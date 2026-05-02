@@ -2065,7 +2065,7 @@ function App() {
             </div>
             <div>
               <strong>商家机构</strong>
-              <span>敢于在这承受大众点评的商家才是实力商家</span>
+              <span>敢于直面客户点评的企业</span>
             </div>
           </div>
           <p className="hero-subcopy">面向韩国留学&生活提供便利，机构商家精准对接目标客户。</p>
