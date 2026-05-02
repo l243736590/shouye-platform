@@ -2020,7 +2020,7 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
-          <p className="eyebrow">Sell UR skills · Korea Study Intelligence Platform</p>
+          <p className="eyebrow hero-eyebrow">韩国留学与生活经验平台</p>
           <h1>售业</h1>
           <p className="hero-copy">
             技能与经验的变现平台
