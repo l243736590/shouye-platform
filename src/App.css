@@ -346,11 +346,11 @@ h3 {
 
 .hero-copy {
   color: rgba(255, 253, 240, 0.84);
-  font-size: clamp(24px, 2.6vw, 38px);
+  font-size: clamp(28px, 3vw, 46px);
   font-weight: 800;
-  line-height: 1.32;
-  margin: 30px 0 32px;
-  max-width: 940px;
+  line-height: 1.22;
+  margin: 32px 0 34px;
+  max-width: 1080px;
 }
 
 .search-shell {
@@ -420,6 +420,11 @@ h3 {
   flex-wrap: wrap;
   gap: 9px;
   padding: 18px 22px 0 0;
+}
+
+.hero-metrics .metric-stacked {
+  align-items: flex-start;
+  flex-direction: column;
 }
 
 .hero-metrics strong {
