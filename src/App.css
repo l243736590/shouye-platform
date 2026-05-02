@@ -1198,62 +1198,92 @@ h3 {
   display: none !important;
 }
 
-.profile-page,
-.school-posts-page {
+.profile-page {
   margin: 0 auto;
   max-width: 1280px;
   padding: 120px 24px 64px;
 }
 
+.school-posts-page {
+  margin: 0;
+  max-width: none;
+  padding: 72px 0 72px;
+}
+
 .school-posts-hero {
-  border-radius: 8px;
-  min-height: 480px;
+  align-items: center;
+  border-radius: 0;
+  display: grid;
+  min-height: calc(100svh - 72px);
   overflow: hidden;
   position: relative;
+  width: 100%;
 }
 
 .school-gallery-strip {
-  display: grid;
-  grid-template-columns: 1.2fr 0.9fr 0.9fr;
   height: 100%;
   inset: 0;
   position: absolute;
 }
 
 .school-gallery-strip img {
-  animation: schoolImageBreath 9s ease-in-out infinite alternate;
   height: 100%;
   object-fit: cover;
+  position: absolute;
   width: 100%;
 }
 
 .school-gallery-strip img:first-child {
-  grid-row: span 2;
+  filter: saturate(0.92) contrast(1.02);
+  inset: 0;
+}
+
+.school-gallery-strip img:nth-child(n + 2) {
+  border: 1px solid rgba(255, 253, 240, 0.22);
+  border-radius: 7px;
+  bottom: clamp(28px, 4vw, 58px);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.22);
+  height: clamp(108px, 13vw, 170px);
+  width: clamp(156px, 20vw, 260px);
+  z-index: 2;
+}
+
+.school-gallery-strip img:nth-child(2) {
+  right: clamp(28px, 5vw, 76px);
+}
+
+.school-gallery-strip img:nth-child(3) {
+  right: clamp(198px, 27vw, 350px);
+}
+
+.school-gallery-strip img:nth-child(n + 4) {
+  display: none;
 }
 
 .school-posts-hero-overlay {
   background:
-    linear-gradient(90deg, rgba(7, 18, 15, 0.9), rgba(7, 18, 15, 0.62), rgba(7, 18, 15, 0.18)),
-    linear-gradient(0deg, rgba(7, 18, 15, 0.52), rgba(7, 18, 15, 0.04));
+    linear-gradient(90deg, rgba(6, 15, 13, 0.92), rgba(6, 15, 13, 0.62), rgba(6, 15, 13, 0.12)),
+    linear-gradient(0deg, rgba(6, 15, 13, 0.54), rgba(6, 15, 13, 0.08));
   inset: 0;
   position: absolute;
+  z-index: 1;
 }
 
 .school-posts-hero-content {
   color: #fffdf0;
   display: grid;
   gap: 14px;
-  max-width: 760px;
-  padding: clamp(42px, 6vw, 82px);
+  max-width: 850px;
+  padding: clamp(56px, 8vw, 112px);
   position: relative;
-  z-index: 1;
+  z-index: 3;
 }
 
 .school-posts-hero-content h1 {
   color: #fffdf0;
-  font-size: clamp(58px, 9vw, 132px);
+  font-size: clamp(74px, 11vw, 170px);
   letter-spacing: 0;
-  line-height: 0.92;
+  line-height: 0.88;
   margin: 0;
 }
 
@@ -1298,17 +1328,9 @@ h3 {
 }
 
 .school-posts-heading {
-  margin-top: 34px;
-}
-
-@keyframes schoolImageBreath {
-  from {
-    transform: scale(1);
-  }
-
-  to {
-    transform: scale(1.045);
-  }
+  margin: 54px auto 0;
+  max-width: 1280px;
+  padding: 0 24px;
 }
 
 .profile-layout {
@@ -1377,7 +1399,9 @@ h3 {
 }
 
 .school-posts-page .post-grid {
-  margin-top: 20px;
+  margin: 20px auto 0;
+  max-width: 1280px;
+  padding: 0 24px;
 }
 
 .modal-sheet h2 {
@@ -1969,8 +1993,30 @@ h3 {
   }
 
   .profile-page,
-  .school-posts-page {
+  .school-posts-heading,
+  .school-posts-page .post-grid {
     padding-inline: 18px;
+  }
+
+  .school-posts-page {
+    padding-top: 64px;
+  }
+
+  .school-posts-hero {
+    min-height: calc(100svh - 64px);
+  }
+
+  .school-posts-hero-content {
+    align-self: end;
+    padding: 110px 20px 40px;
+  }
+
+  .school-posts-hero-content h1 {
+    font-size: clamp(54px, 18vw, 92px);
+  }
+
+  .school-gallery-strip img:nth-child(n + 2) {
+    display: none;
   }
 
   .profile-avatar-row,
