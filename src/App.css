@@ -422,12 +422,14 @@ h3 {
 .intro-section,
 .schools-section,
 .school-browser-section,
+.brochure-section,
 .workspace-section,
 .posts-section,
 .points-section,
 .trust-section,
 .cta-section {
   padding: clamp(72px, 10vw, 132px) clamp(20px, 5vw, 72px);
+  scroll-margin-top: 72px;
 }
 
 .section-heading {
@@ -659,6 +661,7 @@ h3 {
 
 .school-page-meta span,
 .school-programs span,
+.school-brochure-chip,
 .school-strengths strong {
   align-items: center;
   background: rgba(255, 253, 240, 0.12);
@@ -668,6 +671,19 @@ h3 {
   gap: 7px;
   min-height: 38px;
   padding: 8px 11px;
+}
+
+.school-brochure-chip {
+  background: #fffdf0;
+  border-color: rgba(255, 253, 240, 0.64);
+  color: var(--forest);
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.school-brochure-chip:hover {
+  background: #f0d46b;
+  border-color: #f0d46b;
 }
 
 .school-programs,
@@ -721,6 +737,96 @@ h3 {
   display: inline-flex;
   font-size: 13px;
   font-weight: 800;
+}
+
+.brochure-section {
+  background: #f3f7f1;
+}
+
+.brochure-section .section-heading p:last-child {
+  color: var(--muted);
+  line-height: 1.7;
+  margin-top: 18px;
+  max-width: 780px;
+}
+
+.brochure-layout {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: 0.88fr 1.12fr;
+  margin-top: 52px;
+}
+
+.brochure-main,
+.brochure-item {
+  background: #fffdf7;
+  border: 1px solid var(--line);
+}
+
+.brochure-main {
+  display: grid;
+  min-height: 360px;
+  padding: clamp(28px, 4vw, 46px);
+}
+
+.brochure-main svg {
+  color: var(--coral);
+}
+
+.brochure-main span {
+  align-self: end;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.brochure-main h3 {
+  color: var(--forest);
+  font-size: clamp(34px, 5vw, 62px);
+  line-height: 0.95;
+  max-width: 520px;
+}
+
+.brochure-main p {
+  color: var(--muted);
+  line-height: 1.75;
+  max-width: 520px;
+}
+
+.brochure-main button {
+  align-items: center;
+  background: var(--forest);
+  color: #fffdf0;
+  display: inline-flex;
+  gap: 9px;
+  justify-content: center;
+  margin-top: 12px;
+  min-height: 48px;
+  padding: 0 18px;
+  width: fit-content;
+}
+
+.brochure-items {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.brochure-item {
+  display: grid;
+  gap: 18px;
+  min-height: 178px;
+  padding: 26px;
+}
+
+.brochure-item strong {
+  color: var(--forest);
+  font-size: 22px;
+}
+
+.brochure-item p {
+  color: var(--muted);
+  line-height: 1.65;
 }
 
 .pathway-grid {
@@ -1208,6 +1314,11 @@ h3 {
   }
 
   .workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .brochure-layout,
+  .brochure-items {
     grid-template-columns: 1fr;
   }
 
