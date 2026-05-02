@@ -9,6 +9,7 @@
   --coral: #e65f43;
   --gold: #c99b34;
   --aqua: #2d8c8a;
+  --blue: #1269d3;
   --shadow: 0 24px 70px rgba(23, 33, 29, 0.14);
 }
 
@@ -20,11 +21,11 @@ main {
 
 .site-header {
   align-items: center;
-  background: rgba(251, 251, 245, 0.9);
-  backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(221, 229, 223, 0.8);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(221, 229, 223, 0.72);
   display: flex;
-  height: 72px;
+  height: 76px;
   justify-content: space-between;
   left: 0;
   padding: 0 clamp(20px, 4vw, 56px);
@@ -93,7 +94,7 @@ main {
 .nav-dropdown > a {
   align-items: center;
   display: inline-flex;
-  height: 72px;
+  height: 76px;
   letter-spacing: 0;
 }
 
@@ -108,7 +109,7 @@ main {
   pointer-events: none;
   position: fixed;
   right: 0;
-  top: 72px;
+  top: 76px;
   transform: translateY(-10px);
   transition:
     opacity 180ms ease,
@@ -118,7 +119,7 @@ main {
 }
 
 .nav-dropdown.is-open .mega-menu {
-  background: rgba(5, 12, 10, 0.88);
+  background: rgba(5, 12, 10, 0.86);
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -273,7 +274,7 @@ button {
 
 .hero-section {
   display: grid;
-  min-height: 94svh;
+  min-height: 96svh;
   overflow: hidden;
   position: relative;
 }
@@ -288,13 +289,14 @@ button {
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform: scale(1.02);
   width: 100%;
 }
 
 .hero-overlay {
   background:
-    linear-gradient(90deg, rgba(8, 18, 15, 0.84), rgba(8, 18, 15, 0.48) 46%, rgba(8, 18, 15, 0.08)),
-    linear-gradient(0deg, rgba(8, 18, 15, 0.56), transparent 48%);
+    linear-gradient(90deg, rgba(8, 18, 15, 0.9), rgba(8, 18, 15, 0.58) 48%, rgba(8, 18, 15, 0.12)),
+    linear-gradient(0deg, rgba(8, 18, 15, 0.62), transparent 54%);
   z-index: 1;
 }
 
@@ -302,8 +304,8 @@ button {
   align-self: center;
   color: #fffdf0;
   margin-left: clamp(22px, 7vw, 96px);
-  max-width: 760px;
-  padding: 118px 22px 72px 0;
+  max-width: 940px;
+  padding: 132px 22px 72px 0;
   z-index: 2;
 }
 
@@ -328,8 +330,8 @@ p {
 }
 
 h1 {
-  font-size: clamp(72px, 14vw, 168px);
-  line-height: 0.88;
+  font-size: clamp(82px, 15vw, 184px);
+  line-height: 0.86;
 }
 
 h2 {
@@ -344,10 +346,10 @@ h3 {
 
 .hero-copy {
   color: rgba(255, 253, 240, 0.84);
-  font-size: clamp(18px, 2vw, 25px);
+  font-size: clamp(19px, 2vw, 28px);
   line-height: 1.5;
   margin: 28px 0 30px;
-  max-width: 640px;
+  max-width: 760px;
 }
 
 .search-shell {
@@ -355,7 +357,7 @@ h3 {
   background: rgba(255, 255, 255, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 8px;
-  box-shadow: var(--shadow);
+  box-shadow: 0 24px 58px rgba(4, 12, 10, 0.22);
   color: var(--forest);
   display: grid;
   gap: 12px;
@@ -374,7 +376,7 @@ h3 {
 
 .search-shell button,
 .primary-link {
-  background: var(--coral);
+  background: var(--blue);
   color: #fffdf7;
   padding: 0 20px;
 }
@@ -402,6 +404,34 @@ h3 {
   padding: 0 18px;
 }
 
+.hero-metrics {
+  border-top: 1px solid rgba(255, 253, 240, 0.22);
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 28px;
+  max-width: 860px;
+}
+
+.hero-metrics div {
+  display: grid;
+  gap: 6px;
+  padding: 18px 22px 0 0;
+}
+
+.hero-metrics strong {
+  color: #fffdf0;
+  font-size: clamp(24px, 2.8vw, 40px);
+  line-height: 1;
+}
+
+.hero-metrics span {
+  color: rgba(255, 253, 240, 0.7);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .status-line {
   color: rgba(255, 253, 240, 0.76);
   font-size: 14px;
@@ -411,17 +441,18 @@ h3 {
 }
 
 .proof-band {
-  background: var(--forest);
-  color: #fffdf0;
+  background: #ffffff;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
 }
 
 .proof-band div {
-  border-right: 1px solid rgba(255, 253, 240, 0.18);
+  border-right: 1px solid var(--line);
   display: grid;
   gap: 6px;
-  padding: 24px clamp(20px, 4vw, 56px);
+  padding: 26px clamp(20px, 4vw, 56px);
 }
 
 .proof-band div:last-child {
@@ -429,13 +460,14 @@ h3 {
 }
 
 .proof-band strong {
-  color: #f0d46b;
+  color: var(--forest);
   font-size: 32px;
   line-height: 1;
 }
 
 .proof-band span {
-  color: rgba(255, 253, 240, 0.78);
+  color: var(--muted);
+  font-weight: 700;
 }
 
 .intro-section,
@@ -446,16 +478,16 @@ h3 {
 .points-section,
 .trust-section,
 .cta-section {
-  padding: clamp(72px, 10vw, 132px) clamp(20px, 5vw, 72px);
-  scroll-margin-top: 72px;
+  padding: clamp(78px, 10vw, 136px) clamp(20px, 5vw, 72px);
+  scroll-margin-top: 76px;
 }
 
 .section-heading {
-  max-width: 900px;
+  max-width: 980px;
 }
 
 .section-heading h2 {
-  max-width: 840px;
+  max-width: 920px;
 }
 
 .school-browser-section {
@@ -776,19 +808,26 @@ h3 {
 
 .pathway-grid {
   display: grid;
-  gap: 1px;
+  gap: 0;
   grid-template-columns: repeat(3, 1fr);
   margin-top: 56px;
+  max-width: 1280px;
 }
 
 .pathway-item {
-  background: var(--surface);
-  min-height: 220px;
-  padding: 30px;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-right: 0;
+  min-height: 245px;
+  padding: clamp(24px, 3vw, 38px);
+}
+
+.pathway-item:last-child {
+  border-right: 1px solid var(--line);
 }
 
 .pathway-item svg {
-  color: var(--aqua);
+  color: var(--blue);
   margin-bottom: 28px;
 }
 
@@ -806,11 +845,11 @@ h3 {
 }
 
 .schools-section {
-  background: #eff5ee;
+  background: #f4f8f5;
 }
 
 .workspace-section {
-  background: #fffdf7;
+  background: #ffffff;
 }
 
 .workspace-grid {
@@ -818,20 +857,21 @@ h3 {
   gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 48px;
+  max-width: 1280px;
 }
 
 .workspace-panel {
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff, #f7faf7);
   border: 1px solid var(--line);
   border-radius: 8px;
   display: grid;
   gap: 16px;
-  min-height: 245px;
-  padding: 26px;
+  min-height: 285px;
+  padding: clamp(24px, 3vw, 34px);
 }
 
 .workspace-panel svg {
-  color: var(--aqua);
+  color: var(--blue);
 }
 
 .workspace-panel p {
@@ -856,6 +896,7 @@ h3 {
 .school-list {
   border-top: 1px solid #cbd8d0;
   margin-top: 52px;
+  max-width: 1280px;
 }
 
 .school-row {
@@ -911,6 +952,7 @@ h3 {
   display: flex;
   gap: 32px;
   justify-content: space-between;
+  max-width: 1280px;
 }
 
 .category-tabs {
@@ -937,6 +979,7 @@ h3 {
   gap: 18px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 42px;
+  max-width: 1280px;
 }
 
 .post-card {
@@ -945,8 +988,8 @@ h3 {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  min-height: 315px;
-  padding: 22px;
+  min-height: 330px;
+  padding: 24px;
 }
 
 .post-card-header,
@@ -1013,7 +1056,7 @@ h3 {
 
 .points-section {
   align-items: center;
-  background: #fffdf7;
+  background: #f7faf7;
   display: grid;
   gap: 48px;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -1034,9 +1077,10 @@ h3 {
 
 .points-flow > div {
   align-items: center;
-  background: var(--forest);
+  background: #ffffff;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  color: #fffdf0;
+  color: var(--forest);
   display: grid;
   gap: 18px;
   min-height: 148px;
@@ -1044,7 +1088,7 @@ h3 {
 }
 
 .points-flow > svg {
-  color: var(--coral);
+  color: var(--blue);
 }
 
 .points-flow span {
@@ -1053,7 +1097,7 @@ h3 {
 }
 
 .trust-section {
-  background: var(--forest);
+  background: #0b1d18;
   color: #fffdf0;
   display: grid;
   gap: 54px;
@@ -1096,7 +1140,8 @@ h3 {
 
 .cta-section {
   align-items: start;
-  background: #f4ecdc;
+  background: #ffffff;
+  border-top: 1px solid var(--line);
   display: grid;
   gap: 28px;
   justify-items: start;
@@ -1829,6 +1874,18 @@ h3 {
 }
 
 @media (max-width: 1100px) {
+  .proof-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pathway-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pathway-item {
+    border-right: 1px solid var(--line);
+  }
+
   .post-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1925,8 +1982,11 @@ h3 {
     width: 100%;
   }
 
+  .hero-metrics {
+    grid-template-columns: 1fr;
+  }
+
   .proof-band,
-  .pathway-grid,
   .post-grid {
     grid-template-columns: 1fr;
   }
@@ -1940,7 +2000,7 @@ h3 {
   }
 
   .proof-band div {
-    border-bottom: 1px solid rgba(255, 253, 240, 0.18);
+    border-bottom: 1px solid var(--line);
     border-right: 0;
   }
 

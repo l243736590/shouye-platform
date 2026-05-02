@@ -1822,12 +1822,6 @@ function App() {
     setMessage(`已使用 ${post.price} 积分解锁：${post.title}`)
   }
 
-  const resetLocalData = () => {
-    const nextState = { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
-    setAppState(nextState)
-    setMessage('页面数据已重置。')
-  }
-
   const scrollToPartnerSection = () => {
     document.getElementById('partner-apply')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -1991,10 +1985,10 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
-          <p className="eyebrow">Sell Your Skills · 韩国留学内容社区 · 机构入驻 · 人才连接</p>
-          <h1>售业平台</h1>
+          <p className="eyebrow">Sell UR skills · Korea Study Intelligence Platform</p>
+          <h1>售业</h1>
           <p className="hero-copy">
-            把韩国留学经验沉淀成可变现的真实经验库。
+            面向韩国留学人群的真实经验库、机构合作入口和留学生人才连接平台。
           </p>
 
           <div className="search-shell" role="search">
@@ -2014,9 +2008,23 @@ function App() {
               <PenLine size={18} aria-hidden="true" />
             </button>
             <button className="secondary-link" type="button" onClick={scrollToPartnerSection}>
-              查看合作入口
+              商家合作申请
               <ArrowRight size={18} aria-hidden="true" />
             </button>
+          </div>
+          <div className="hero-metrics" aria-label="平台能力概览">
+            <div>
+              <strong>{allSchoolProfiles.length}+</strong>
+              <span>韩国主流院校入口</span>
+            </div>
+            <div>
+              <strong>D1</strong>
+              <span>注册、帖子和合作申请云端存储</span>
+            </div>
+            <div>
+              <strong>Admin</strong>
+              <span>后台审核、积分和账号管理</span>
+            </div>
           </div>
           <p className="status-line">{message}</p>
         </motion.div>
@@ -2024,12 +2032,16 @@ function App() {
 
       <section className="proof-band" aria-label="Platform highlights">
         <div>
-          <strong>韩国</strong>
-          <span>垂直聚焦韩国院校与专业</span>
+          <strong>KR</strong>
+          <span>垂直聚焦韩国院校、专业和申请链路</span>
         </div>
         <div>
           <strong>{allSchoolProfiles.length}+</strong>
           <span>首批主流院校内容入口</span>
+        </div>
+        <div>
+          <strong>Verify</strong>
+          <span>邮箱验证、材料审核和后台风控</span>
         </div>
         <div>
           <strong>B2B</strong>
@@ -2380,8 +2392,8 @@ function App() {
 
       <section className="intro-section">
         <div className="section-heading">
-          <p className="eyebrow dark">平台价值</p>
-          <h2>把零散经验变成可检索、可验证、可商业化的留学决策资产。</h2>
+          <p className="eyebrow dark">Why Shouye</p>
+          <h2>把分散在学生群里的真实经验，沉淀成可搜索、可审核、可合作的留学决策资产。</h2>
         </div>
         <div className="pathway-grid">
           {pathways.map((item) => (
@@ -2401,8 +2413,8 @@ function App() {
 
       <section className="schools-section" id="schools">
         <div className="section-heading">
-          <p className="eyebrow dark">韩国院校入口</p>
-          <h2>以学校为入口沉淀申请、课程、教授、就业和生活信息。</h2>
+          <p className="eyebrow dark">School Graph</p>
+          <h2>先用韩国院校库建立用户入口，再围绕学校沉淀内容、服务和商业合作。</h2>
         </div>
         <div className="school-list">
           {schools.map((school) => (
@@ -2435,8 +2447,8 @@ function App() {
 
       <section className="workspace-section" id="workspace">
         <div className="section-heading">
-          <p className="eyebrow dark">合作入口</p>
-          <h2>{currentUser ? `${currentUser.name}，这里是你的创作者中心。` : '学生、机构和企业都可以在这里找到合作位置。'}</h2>
+          <p className="eyebrow dark">Partner OS</p>
+          <h2>{currentUser ? `${currentUser.name}，这里是你的创作者中心。` : '为学生、留学服务商和企业设计清晰的合作入口。'}</h2>
         </div>
         <div className="workspace-grid">
           <article className="workspace-panel">
@@ -2459,15 +2471,15 @@ function App() {
           </article>
           <article className="workspace-panel">
             <PenLine size={24} aria-hidden="true" />
-            <h3>机构入驻</h3>
-            <p>留学机构、语学堂、论文辅导和职业规划机构可发布审核后的专题内容，获取精准线索。</p>
-            <button type="button" onClick={() => setPublishOpen(true)}>申请内容入驻</button>
+            <h3>商家合作申请</h3>
+            <p>留学机构、语学院、论文辅导、政府部门和职业规划机构可提交合作表单，由后台统一跟进。</p>
+            <button type="button" onClick={scrollToPartnerSection}>提交合作表单</button>
           </article>
           <article className="workspace-panel">
             <Coins size={24} aria-hidden="true" />
             <h3>企业人才合作</h3>
-            <p>沉淀韩国院校学生画像后，可为跨境企业、韩企和教育品牌提供实习、招聘与校园推广入口。</p>
-            <button type="button" onClick={resetLocalData}>查看合作模型</button>
+            <p>当注册用户和认证材料积累后，可为跨境企业、韩企和教育品牌提供实习、招聘与校园推广入口。</p>
+            <button type="button" onClick={scrollToPartnerSection}>查看合作入口</button>
           </article>
         </div>
       </section>
@@ -2475,8 +2487,8 @@ function App() {
       <section className="posts-section" id="posts">
         <div className="posts-topline">
           <div className="section-heading">
-            <p className="eyebrow dark">精选内容样例</p>
-            <h2>把学生最关心的问题做成可交易的经验资产。</h2>
+            <p className="eyebrow dark">Content Samples</p>
+            <h2>内容不是普通帖子，而是能影响择校、申请和服务转化的决策节点。</h2>
           </div>
           <div className="category-tabs" aria-label="Post categories">
             {categories.map((category) => (
@@ -2535,10 +2547,10 @@ function App() {
 
       <section className="points-section" id="points">
         <div className="points-copy">
-          <p className="eyebrow dark">商业化路径</p>
-          <h2>内容积分是增长入口，机构入驻和人才合作是商业出口。</h2>
+          <p className="eyebrow dark">Business Model</p>
+          <h2>内容积分负责增长与激励，机构合作和人才连接负责商业化。</h2>
           <p>
-            平台通过加精内容解锁、机构认证号、专题内容页、精准线索和韩国留学生人才库形成多层收入结构。
+            平台通过加精内容解锁、机构认证号、专题内容页、精准线索和韩国留学生人才库形成多层收入结构，适合先从韩国垂直市场验证。
           </p>
         </div>
         <div className="points-flow" aria-label="Points flow">
@@ -2562,7 +2574,7 @@ function App() {
       <section className="trust-section" id="trust">
         <div className="trust-panel">
           <ShieldCheck size={30} aria-hidden="true" />
-          <h2>真实性和匿名保护是平台的护城河。</h2>
+          <h2>真实性审核和匿名保护，是商家愿意合作的前提。</h2>
           <p>
             平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和加精人工审核，既保证内容可信，也保护发帖人安全。
           </p>
@@ -2584,8 +2596,8 @@ function App() {
       </section>
 
       <section className="cta-section" id="partner-apply">
-        <p className="eyebrow dark">合作提案</p>
-        <h2>先聚焦韩国留学内容，再扩展机构服务和留学生人才连接。</h2>
+        <p className="eyebrow dark">Partner Application</p>
+        <h2>欢迎留学机构、语学院、论文辅导、政府部门和招聘方申请成为首批合作方。</h2>
         <button className="primary-link dark-link" type="button" onClick={() => setPartnerOpen(true)}>
           申请成为首批合作方
           <Plus size={18} aria-hidden="true" />
