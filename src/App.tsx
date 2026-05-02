@@ -1351,7 +1351,7 @@ function App() {
               target="_blank"
               rel="noreferrer"
             >
-              获取外国人招生简章
+              获取外国人招生简章（모집요강）
               <BookOpenCheck size={18} aria-hidden="true" />
             </a>
           </div>
