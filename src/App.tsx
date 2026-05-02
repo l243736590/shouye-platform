@@ -120,6 +120,20 @@ const schoolPageSize = 8
 const fileImage = (fileName: string) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}?width=1800`
 
+type CommonsImagePage = {
+  imageinfo?: { thumburl?: string; url?: string }[]
+}
+
+const getFallbackGalleryImages = (school: SchoolProfile) => {
+  const region = schoolRegions.find((group) => group.schools.some((item) => item.id === school.id))
+  const siblingImages = region?.schools
+    .filter((item) => item.id !== school.id)
+    .slice(0, 2)
+    .map((item) => item.image) ?? []
+
+  return [school.image, ...siblingImages, heroImage].slice(0, 3)
+}
+
 const schoolRegions: { region: string; summary: string; schools: SchoolProfile[] }[] = [
   {
     region: '首尔',
@@ -1107,6 +1121,7 @@ function App() {
   const [pendingEmail, setPendingEmail] = useState('')
   const [pointDrafts, setPointDrafts] = useState<Record<string, string>>({})
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
+  const [schoolGalleries, setSchoolGalleries] = useState<Record<string, string[]>>({})
 
   const [postForm, setPostForm] = useState({
     title: '',
@@ -1170,12 +1185,54 @@ function App() {
   const selectedSchool =
     routeSchool ?? allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
   const selectedCampusLinks = getCampusLinks(selectedSchool)
+  const selectedSchoolGallery = schoolGalleries[selectedSchool.id]?.length
+    ? schoolGalleries[selectedSchool.id]
+    : getFallbackGalleryImages(selectedSchool)
+  const selectedSchoolGalleryLoaded = Boolean(schoolGalleries[selectedSchool.id]?.length)
   const normalizedAuthEmail = authForm.email.trim().toLowerCase()
   const isEmailCodeVerified =
     authMode === 'register' &&
     Boolean(pendingEmail) &&
     pendingEmail === normalizedAuthEmail &&
     authForm.emailCode.trim().length === 6
+
+  useEffect(() => {
+    if (!schoolRouteId || selectedSchoolGalleryLoaded) return
+
+    const controller = new AbortController()
+    const endpoint =
+      `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=${encodeURIComponent(
+        `${selectedSchool.englishName} campus university`,
+      )}` + '&prop=imageinfo&iiprop=url&iiurlwidth=1800&format=json&origin=*'
+
+    fetch(endpoint, { signal: controller.signal })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { query?: { pages?: Record<string, CommonsImagePage> } } | null) => {
+        const images = Object.values(data?.query?.pages ?? {})
+          .flatMap((page) => page.imageinfo ?? [])
+          .map((image) => image.thumburl ?? image.url)
+          .filter((url): url is string => Boolean(url))
+          .filter((url) => !/logo|seal|map|icon/i.test(url))
+
+        if (!images.length) return
+
+        setSchoolGalleries((galleries) => ({
+          ...galleries,
+          [selectedSchool.id]: [...new Set([selectedSchool.image, ...images])].slice(0, 4),
+        }))
+      })
+      .catch(() => {
+        // Keep the curated school image if Wikimedia search is unavailable.
+      })
+
+    return () => controller.abort()
+  }, [
+    schoolRouteId,
+    selectedSchool.englishName,
+    selectedSchool.id,
+    selectedSchool.image,
+    selectedSchoolGalleryLoaded,
+  ])
 
   const filteredPosts = useMemo(() => {
     return appState.posts.filter((post) => {
@@ -1822,7 +1879,18 @@ function App() {
   return (
     <main className={isAdminRoute ? 'admin-route' : isProfileRoute ? 'profile-route' : schoolRouteId ? 'school-route' : undefined}>
       <header className="site-header" aria-label="Main navigation">
-        <a className="brand" href="#top" aria-label="售业平台首页">
+        <a
+          className="brand"
+          href="/"
+          aria-label="售业 Sell UR skills 首页"
+          onClick={(event) => {
+            event.preventDefault()
+            setMegaMenuOpen(false)
+            window.history.pushState(null, '', '/')
+            window.dispatchEvent(new PopStateEvent('popstate'))
+            window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
+          }}
+        >
           <span className="brand-mark">
             售
             <button
@@ -1835,7 +1903,7 @@ function App() {
               }}
             />
           </span>
-          <span>售业平台</span>
+          <span>售业 Sell UR skills</span>
         </a>
         <nav className="nav-links" aria-label="Primary">
           <div
@@ -2099,8 +2167,38 @@ function App() {
 
       {schoolRouteId && (
         <section className="school-posts-page">
-          <div className="section-heading">
-            <p className="eyebrow dark">{selectedSchool.name}</p>
+          <div className="school-posts-hero">
+            <div className="school-gallery-strip" aria-hidden="true">
+              {selectedSchoolGallery.map((image, index) => (
+                <img
+                  key={`${selectedSchool.id}-${image}`}
+                  src={image}
+                  alt=""
+                  style={{ animationDelay: `${index * 0.7}s` }}
+                />
+              ))}
+            </div>
+            <div className="school-posts-hero-overlay" />
+            <div className="school-posts-hero-content">
+              <p className="eyebrow">{selectedSchool.region} · 学校经验库</p>
+              <h1>{selectedSchool.name}</h1>
+              <strong>{selectedSchool.englishName}</strong>
+              <p>{selectedSchool.description}</p>
+              <div className="school-posts-hero-actions">
+                <button type="button" onClick={() => setPublishOpen(true)}>
+                  分享这所学校的经验
+                  <PenLine size={18} aria-hidden="true" />
+                </button>
+                {selectedCampusLinks.slice(0, 2).map((link) => (
+                  <a key={link.label} href={link.url} target="_blank" rel="noreferrer">
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="section-heading school-posts-heading">
+            <p className="eyebrow dark">经验帖子</p>
             <h2>{selectedSchool.name} 相关经验帖子。</h2>
           </div>
           <div className="post-grid">

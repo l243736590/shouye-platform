@@ -47,6 +47,7 @@ main {
   display: inline-flex;
   font-weight: 800;
   gap: 10px;
+  white-space: nowrap;
 }
 
 .brand-mark {
@@ -1202,6 +1203,112 @@ h3 {
   margin: 0 auto;
   max-width: 1280px;
   padding: 120px 24px 64px;
+}
+
+.school-posts-hero {
+  border-radius: 8px;
+  min-height: 480px;
+  overflow: hidden;
+  position: relative;
+}
+
+.school-gallery-strip {
+  display: grid;
+  grid-template-columns: 1.2fr 0.9fr 0.9fr;
+  height: 100%;
+  inset: 0;
+  position: absolute;
+}
+
+.school-gallery-strip img {
+  animation: schoolImageBreath 9s ease-in-out infinite alternate;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.school-gallery-strip img:first-child {
+  grid-row: span 2;
+}
+
+.school-posts-hero-overlay {
+  background:
+    linear-gradient(90deg, rgba(7, 18, 15, 0.9), rgba(7, 18, 15, 0.62), rgba(7, 18, 15, 0.18)),
+    linear-gradient(0deg, rgba(7, 18, 15, 0.52), rgba(7, 18, 15, 0.04));
+  inset: 0;
+  position: absolute;
+}
+
+.school-posts-hero-content {
+  color: #fffdf0;
+  display: grid;
+  gap: 14px;
+  max-width: 760px;
+  padding: clamp(42px, 6vw, 82px);
+  position: relative;
+  z-index: 1;
+}
+
+.school-posts-hero-content h1 {
+  color: #fffdf0;
+  font-size: clamp(58px, 9vw, 132px);
+  letter-spacing: 0;
+  line-height: 0.92;
+  margin: 0;
+}
+
+.school-posts-hero-content strong {
+  color: #f0d46b;
+  font-size: clamp(20px, 2.6vw, 34px);
+}
+
+.school-posts-hero-content p:not(.eyebrow) {
+  color: rgba(255, 253, 240, 0.86);
+  font-size: clamp(16px, 1.5vw, 20px);
+  line-height: 1.8;
+  margin: 0;
+  max-width: 680px;
+}
+
+.school-posts-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.school-posts-hero-actions a,
+.school-posts-hero-actions button {
+  align-items: center;
+  background: rgba(255, 253, 240, 0.14);
+  border: 1px solid rgba(255, 253, 240, 0.28);
+  border-radius: 7px;
+  color: #fffdf0;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  text-decoration: none;
+}
+
+.school-posts-hero-actions button {
+  background: #1269d3;
+  border-color: #1269d3;
+}
+
+.school-posts-heading {
+  margin-top: 34px;
+}
+
+@keyframes schoolImageBreath {
+  from {
+    transform: scale(1);
+  }
+
+  to {
+    transform: scale(1.045);
+  }
 }
 
 .profile-layout {
