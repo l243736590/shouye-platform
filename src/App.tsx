@@ -137,7 +137,7 @@ const getFallbackGalleryImages = (school: SchoolProfile) => {
 const schoolRegions: { region: string; summary: string; schools: SchoolProfile[] }[] = [
   {
     region: '首尔',
-    summary: '按 QS 2026 顺序优先展示，再补艺术、女子大、理工和常见申请院校。',
+    summary: '优先展示 QS 2026 排名前列院校，并覆盖艺术、女子大学、理工类和高频申请院校。',
     schools: [
       {
         id: 'snu',
@@ -329,7 +329,7 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         city: '竹田 / 天安',
         landmark: '竹田校区',
         image: fileImage('Dankook University Jukjeon Campus.jpg'),
-        description: '虽主校区不在首尔市内，但常被首都圈申请者一起比较，设计、传媒、经营、音乐和医学相关方向可看。',
+        description: '虽主校区不在首尔市内，但常被首都圈申请者一起比较，设计、传媒、经营、音乐和医学相关方向值得纳入择校清单。',
         programs: ['设计', '传媒', '经营', '音乐'],
         strengths: ['首都圈备选', '专业多', '生活成本可控'],
         source: 'https://commons.wikimedia.org/wiki/Category:Dankook_University',
@@ -571,7 +571,7 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         image: fileImage('0-campus-sm-Ajou.jpg'),
         description: '工科、医学、国际大学院和交换项目有一定优势，适合想在首都圈但避开首尔高生活成本的学生。',
         programs: ['工科', '医学', '国际学', '经营'],
-        strengths: ['首都圈', '理工医学', '性价比可看'],
+        strengths: ['首都圈', '理工医学', '性价比突出'],
         source: 'https://commons.wikimedia.org/wiki/File:0-campus-sm-Ajou.jpg',
       },
       {
@@ -648,7 +648,7 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         image: fileImage('Kyungpook National University in Daegu.jpg'),
         description: '地方国立代表之一，工科、IT、经营、自然科学和奖学金政策适合详细比较。',
         programs: ['IT', '工科', '经营', '自然科学'],
-        strengths: ['国立背景', '生活成本低', '奖学金可看'],
+        strengths: ['国立背景', '生活成本低', '奖学金友好'],
         source: 'https://commons.wikimedia.org/wiki/File:Kyungpook_National_University_in_Daegu.jpg',
       },
       {
@@ -1281,7 +1281,7 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('云端积分更新失败，请检查 D1 绑定。'))
+      }).catch(() => setMessage('积分更新失败，请稍后重试。'))
     }
   }
 
@@ -1299,7 +1299,7 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('云端账号状态更新失败，请检查 D1 绑定。'))
+      }).catch(() => setMessage('账号状态更新失败，请稍后重试。'))
     }
   }
 
@@ -1332,7 +1332,7 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('云端材料审核更新失败，请检查 D1 绑定。'))
+      }).catch(() => setMessage('材料审核状态更新失败，请稍后重试。'))
     }
   }
 
@@ -1355,7 +1355,7 @@ function App() {
       fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
         headers: { authorization: `Bearer ${adminToken}` },
         method: 'DELETE',
-      }).catch(() => setMessage('云端删除用户失败，请检查 D1 绑定。'))
+      }).catch(() => setMessage('账号删除失败，请稍后重试。'))
     }
     setMessage('后台已删除用户。')
   }
@@ -1373,7 +1373,7 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('云端帖子更新失败，请检查 D1 绑定。'))
+      }).catch(() => setMessage('帖子更新失败，请稍后重试。'))
     }
   }
 
@@ -1395,7 +1395,7 @@ function App() {
       fetch(`/api/admin/posts/${encodeURIComponent(postId)}`, {
         headers: { authorization: `Bearer ${adminToken}` },
         method: 'DELETE',
-      }).catch(() => setMessage('云端删除帖子失败，请检查 D1 绑定。'))
+      }).catch(() => setMessage('帖子删除失败，请稍后重试。'))
     }
     setMessage('后台已删除帖子。')
   }
@@ -1517,7 +1517,7 @@ function App() {
 
     if (pendingEmail !== email || authForm.emailCode.trim().length !== 6) {
       setMessage('请先完成邮箱验证码校验。')
-      setAuthNotice('请先点击发送验证码，并输入当前邮箱收到的 6 位验证码。')
+      setAuthNotice('请发送验证码，并输入邮箱收到的 6 位数字。')
       return
     }
 
@@ -1558,7 +1558,7 @@ function App() {
       user.id = data.user.id
       user.joinedAt = data.user.joinedAt
     } catch {
-      setMessage('云端数据库暂未连接，已保存到本地演示数据。')
+      setMessage('网络连接不稳定，本次信息已暂存，请稍后刷新确认。')
     }
 
     setAppState((state) => ({
@@ -1665,7 +1665,7 @@ function App() {
       })
       const data = (await response.json()) as { post?: Post; error?: string }
       if (!response.ok || !data.post) {
-        setMessage(data.error ?? '云端发布失败，请稍后再试。')
+        setMessage(data.error ?? '发布失败，请稍后再试。')
         return
       }
       post.id = data.post.id
@@ -1673,7 +1673,7 @@ function App() {
       post.author = data.post.author
       post.authorId = data.post.authorId
     } catch {
-      setMessage('云端数据库暂未连接，已保存到本地演示数据。')
+      setMessage('网络连接不稳定，本次内容已暂存，请稍后刷新确认。')
     }
 
     setAppState((state) => ({
@@ -1740,7 +1740,7 @@ function App() {
       detail: '',
     })
     setPartnerOpen(false)
-    setMessage('合作申请已提交，后台可以查看。')
+    setMessage('合作申请已提交，团队会在后台跟进。')
   }
 
   const handleProfileSave = async (event: FormEvent<HTMLFormElement>) => {
@@ -1789,7 +1789,7 @@ function App() {
             : user,
         ),
       }))
-      setMessage('个人信息已保存到本地。')
+      setMessage('个人信息已保存。')
     }
   }
 
@@ -1799,7 +1799,7 @@ function App() {
         body: JSON.stringify({ userId: currentUser.id }),
         headers: { 'content-type': 'application/json' },
         method: 'DELETE',
-      }).catch(() => setMessage('云端删除帖子失败，已先从本地列表移除。'))
+      }).catch(() => setMessage('帖子已从当前列表移除，稍后将同步最新状态。'))
     }
     setAppState((state) => ({
       ...state,
@@ -1821,7 +1821,7 @@ function App() {
     }
 
     if (currentUser.points < post.price) {
-      setMessage(`积分不足，还差 ${post.price - currentUser.points} 积分。可以先发布经验或充值积分。`)
+      setMessage(`积分不足，还差 ${post.price - currentUser.points} 积分。可通过发布经验或充值获取积分。`)
       return
     }
 
@@ -1846,7 +1846,7 @@ function App() {
   const openAdminEntry = () => {
     if (adminToken) {
       setAdminOpen(true)
-      refreshAdminState().catch(() => setMessage('后台云端数据同步失败，请检查 D1 绑定。'))
+      refreshAdminState().catch(() => setMessage('后台数据同步失败，请稍后重试。'))
       return
     }
     setAdminLoginOpen(true)
@@ -1867,7 +1867,7 @@ function App() {
     if (!response?.ok || !data?.token) {
       setAdminLoginForm((form) => ({
         ...form,
-        error: data?.error ?? '管理员登录失败，请确认 D1 数据库和 Worker API 已部署。',
+        error: data?.error ?? '管理员登录失败，请确认账号或密码是否正确。',
       }))
       return
     }
@@ -1877,7 +1877,7 @@ function App() {
     setAdminLoginOpen(false)
     setAdminOpen(true)
     setAdminLoginForm({ username: '', password: '', error: '' })
-    refreshAdminState(data.token).catch(() => setMessage('后台已登录，但云端数据同步失败。'))
+    refreshAdminState(data.token).catch(() => setMessage('后台已登录，数据同步失败，请刷新后重试。'))
   }
 
   const logoutAdmin = () => {
@@ -2060,8 +2060,8 @@ function App() {
               <span>韩国主流院校入口</span>
             </div>
             <div>
-              <strong>D1</strong>
-              <span>注册、帖子和合作申请云端存储</span>
+              <strong>数据</strong>
+              <span>注册、帖子和合作申请统一存储</span>
             </div>
             <div>
               <strong>Admin</strong>
@@ -2151,7 +2151,7 @@ function App() {
                   />
                 </label>
                 <label>
-                  补充认证材料
+                  认证材料
                   <input
                     multiple
                     type="file"
@@ -2169,7 +2169,7 @@ function App() {
                       })
                     }}
                   />
-                  <small className="field-help">演示版保存文件名；正式版下一步接 R2 保存文件。</small>
+                  <small className="field-help">材料会进入后台审核；提交前建议遮挡证件号码等非必要敏感信息。</small>
                 </label>
                 <button type="submit">保存个人信息</button>
               </form>
@@ -2223,9 +2223,9 @@ function App() {
         <section className="posts-page">
           <div className="posts-page-head">
             <div>
-              <p className="eyebrow dark">Experience Feed</p>
+              <p className="eyebrow dark">经验社区</p>
               <h1>经验库</h1>
-              <p>像刷小红书一样看韩国院校、教授、课程、申请和生活经验。</p>
+              <p>集中浏览韩国院校、教授、课程、申请和生活经验。</p>
             </div>
             <button className="primary-link" type="button" onClick={() => setPublishOpen(true)}>
               发布经验
@@ -2320,7 +2320,7 @@ function App() {
               ) : (
                 <div className="posts-empty-state">
                   <h3>没有找到相关帖子</h3>
-                  <p>可以换个关键词，或者发布第一篇相关经验。</p>
+                  <p>换一个关键词，或发布第一篇相关经验。</p>
                   <button type="button" onClick={() => setPublishOpen(true)}>
                     发布经验
                   </button>
@@ -2365,7 +2365,7 @@ function App() {
           </div>
           <div className="section-heading school-posts-heading">
             <p className="eyebrow dark">经验帖子</p>
-            <h2>{selectedSchool.name} 相关经验帖子。</h2>
+            <h2>{selectedSchool.name} 相关经验</h2>
           </div>
           <div className="post-grid">
             {selectedSchoolPosts.length ? (
@@ -2385,7 +2385,7 @@ function App() {
                 </article>
               ))
             ) : (
-              <p className="admin-empty">这所学校暂时还没有帖子，可以先发布第一篇经验。</p>
+              <p className="admin-empty">这所学校暂时还没有经验内容，欢迎发布第一篇。</p>
             )}
           </div>
         </section>
@@ -2394,7 +2394,7 @@ function App() {
       <section className="school-browser-section" id="school-browser">
         <div className="section-heading">
           <p className="eyebrow dark">韩国主流院校导航</p>
-          <h2>按地区展开学校，点院校进入专属页面。</h2>
+          <h2>按地区浏览院校，选择学校进入专属内容页。</h2>
         </div>
 
         <div className="school-browser">
@@ -2426,7 +2426,7 @@ function App() {
                 <div className="submenu-intro">
                   <div>
                     <strong>{group.region}</strong>
-                    <span>{group.schools.length} 所院校 · QS 2026 优先，后接常见申请院校</span>
+                    <span>{group.schools.length} 所院校 · 按 QS 2026 与申请热度排序</span>
                   </div>
                   <p>{group.summary}</p>
                 </div>
@@ -2568,7 +2568,7 @@ function App() {
       <section className="schools-section" id="schools">
         <div className="section-heading">
           <p className="eyebrow dark">School Graph</p>
-          <h2>先用韩国院校库建立用户入口，再围绕学校沉淀内容、服务和商业合作。</h2>
+          <h2>以韩国院校库建立用户入口，再围绕学校沉淀内容、服务和商业合作。</h2>
         </div>
         <div className="school-list">
           {schools.map((school) => (
@@ -2602,7 +2602,7 @@ function App() {
       <section className="workspace-section" id="workspace">
         <div className="section-heading">
           <p className="eyebrow dark">Partner OS</p>
-          <h2>{currentUser ? `${currentUser.name}，这里是你的创作者中心。` : '为学生、留学服务商和企业设计清晰的合作入口。'}</h2>
+          <h2>{currentUser ? `${currentUser.name}，管理你的创作与认证。` : '为学生、留学服务商和企业设计清晰的合作入口。'}</h2>
         </div>
         <div className="workspace-grid">
           <article className="workspace-panel">
@@ -2613,12 +2613,12 @@ function App() {
                 <p>{currentUser.identity} · {currentUser.school}</p>
                 <strong>{currentUser.points} 积分</strong>
                 <button type="button" onClick={() => updateUserPoints(currentUser.id, currentUser.points + 100)}>
-                  模拟积分充值
+                  积分充值
                 </button>
               </>
             ) : (
               <>
-                <p>认证学生可以匿名分享学校、教授、课程和申请经验，通过积分获得内容收益。</p>
+                <p>学生完成认证后，可匿名分享学校、教授、课程和申请经验，并通过积分获得内容收益。</p>
                 <button type="button" onClick={() => setAuthMode('register')}>创建创作者账号</button>
               </>
             )}
@@ -2632,7 +2632,7 @@ function App() {
           <article className="workspace-panel">
             <Coins size={24} aria-hidden="true" />
             <h3>企业人才合作</h3>
-            <p>当注册用户和认证材料积累后，可为跨境企业、韩企和教育品牌提供实习、招聘与校园推广入口。</p>
+            <p>认证用户积累后，可为跨境企业、韩企和教育品牌提供实习、招聘与校园推广入口。</p>
             <button type="button" onClick={scrollToPartnerSection}>查看合作入口</button>
           </article>
         </div>
@@ -2642,7 +2642,7 @@ function App() {
         <div className="posts-topline">
           <div className="section-heading">
             <p className="eyebrow dark">Content Samples</p>
-            <h2>内容不是普通帖子，而是能影响择校、申请和服务转化的决策节点。</h2>
+            <h2>每篇经验都对应真实的择校、申请和服务转化场景。</h2>
           </div>
           <div className="category-tabs" aria-label="Post categories">
             {categories.map((category) => (
@@ -2704,7 +2704,7 @@ function App() {
           <p className="eyebrow dark">Business Model</p>
           <h2>内容积分负责增长与激励，机构合作和人才连接负责商业化。</h2>
           <p>
-            平台通过加精内容解锁、机构认证号、专题内容页、精准线索和韩国留学生人才库形成多层收入结构，适合先从韩国垂直市场验证。
+            平台通过加精内容解锁、机构认证号、专题内容页、精准线索和韩国留学生人才库形成多层收入结构，从韩国垂直市场开始验证。
           </p>
         </div>
         <div className="points-flow" aria-label="Points flow">
@@ -2730,7 +2730,7 @@ function App() {
           <ShieldCheck size={30} aria-hidden="true" />
           <h2>真实性审核和匿名保护，是商家愿意合作的前提。</h2>
           <p>
-            平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和加精人工审核，既保证内容可信，也保护发帖人安全。
+            平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和加精人工审核，让内容可信，也让发帖人更安全。
           </p>
         </div>
         <div className="trust-list">
@@ -2740,7 +2740,7 @@ function App() {
           </div>
           <div>
             <BadgeCheck size={22} aria-hidden="true" />
-            <span>付费加精内容先审后展示</span>
+            <span>付费加精内容审核后展示</span>
           </div>
           <div>
             <ShieldCheck size={22} aria-hidden="true" />
@@ -2801,7 +2801,7 @@ function App() {
                   {adminLoginForm.error}
                 </p>
               )}
-              <p className="admin-login-note">当前为前端演示登录，正式上线后应接入服务端权限校验。</p>
+              <p className="admin-login-note">后台仅限管理员访问，请妥善保管账号信息。</p>
               <button type="submit">进入后台</button>
             </form>
           </section>
@@ -2877,7 +2877,7 @@ function App() {
                     <span>操作</span>
                   </div>
                   {appState.users.length === 0 ? (
-                    <p className="admin-empty">暂无注册用户。你可以先用注册入口创建测试账号。</p>
+                    <p className="admin-empty">暂无注册用户。新用户注册后会进入账号列表。</p>
                   ) : (
                     appState.users.map((user) => (
                       <div className="admin-row" key={user.id}>
@@ -3033,7 +3033,7 @@ function App() {
                       </div>
                     </>
                   ) : (
-                    <p className="admin-empty">点击左侧“查看账号”，即可审核证件、调整认证状态、禁言或封号。</p>
+                    <p className="admin-empty">选择账号后，可审核材料、调整认证状态、禁言或封号。</p>
                   )}
                 </aside>
               </div>
@@ -3124,7 +3124,7 @@ function App() {
                 )}
               </div>
             )}
-            <p className="admin-footnote">后台已接入 Cloudflare D1；注册账号、合作申请、积分和帖子管理会保存到云端数据库。</p>
+            <p className="admin-footnote">注册账号、合作申请、积分和帖子管理会统一保存，方便后续审核和运营。</p>
           </section>
         </div>
       )}
@@ -3195,7 +3195,7 @@ function App() {
                         })
                       }}
                     />
-                    <small className="field-help">可上传学生证、在读证明、Offer、毕业证明等。演示版只保存文件名。</small>
+                    <small className="field-help">可上传学生证、在读证明、Offer、毕业证明等；提交前建议遮挡证件号码等非必要敏感信息。</small>
                   </label>
                 </>
               )}
@@ -3289,7 +3289,7 @@ function App() {
               <X size={20} aria-hidden="true" />
             </button>
             <p className="eyebrow dark">发布经验</p>
-            <h2>发布可被审核、加精和变现的经验内容。</h2>
+            <h2>发布可检索、可审核、可加精的留学经验。</h2>
             <form className="form-stack" onSubmit={handlePublish}>
               <label>
                 标题

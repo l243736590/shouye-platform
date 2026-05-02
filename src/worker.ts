@@ -182,7 +182,7 @@ const getPartnerApplications = async (env: Env) => {
 
 const sendVerificationEmail = async (env: Env, email: string, code: string) => {
   if (!env.RESEND_API_KEY) {
-    return { ok: false, error: '邮件服务未配置：请先设置 RESEND_API_KEY。' }
+    return { ok: false, error: '邮件服务暂未开通，请稍后再试。' }
   }
 
   const response = await fetch('https://api.resend.com/emails', {
@@ -207,7 +207,7 @@ const sendVerificationEmail = async (env: Env, email: string, code: string) => {
 }
 
 const handleSendVerificationCode = async (request: Request, env: Env) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{ email: string }>(request)
   const email = body.email?.trim().toLowerCase()
 
@@ -245,7 +245,7 @@ const verifyEmailCode = async (env: Env, email: string, code: string) => {
 }
 
 const handleRegister = async (request: Request, env: Env) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{
     name: string
     email: string
@@ -326,7 +326,7 @@ const handleRegister = async (request: Request, env: Env) => {
 }
 
 const handleLogin = async (request: Request, env: Env) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{ email: string; password: string }>(request)
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
@@ -350,7 +350,7 @@ const handleLogin = async (request: Request, env: Env) => {
 }
 
 const handleAdminLogin = async (request: Request, env: Env) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{ username: string; password: string }>(request)
   const passwordHash = await hashText(body.password ?? '')
 
@@ -369,7 +369,7 @@ const handleAdminLogin = async (request: Request, env: Env) => {
 }
 
 const handlePostCreate = async (request: Request, env: Env) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<PostRecord & { userId: string }>(request)
   const user = body.userId
     ? await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(body.userId).first<Record<string, unknown>>()
@@ -424,7 +424,7 @@ const handlePostCreate = async (request: Request, env: Env) => {
 }
 
 const handlePartnerCreate = async (request: Request, env: Env) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<PartnerApplicationRecord>(request)
 
   if (!body.company?.trim() || !body.contact?.trim() || !body.phone?.trim()) {
@@ -467,7 +467,7 @@ const handlePartnerCreate = async (request: Request, env: Env) => {
 }
 
 const updateProfile = async (request: Request, env: Env, userId: string) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<Partial<UserRecord>>(request)
   const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
   if (!existing) return json({ error: '用户不存在。' }, { status: 404 })
@@ -508,7 +508,7 @@ const updateProfile = async (request: Request, env: Env, userId: string) => {
 }
 
 const updateUser = async (request: Request, env: Env, userId: string) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<Partial<UserRecord>>(request)
   const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
   if (!existing) return json({ error: '用户不存在。' }, { status: 404 })
@@ -550,7 +550,7 @@ const updateUser = async (request: Request, env: Env, userId: string) => {
 }
 
 const updatePost = async (request: Request, env: Env, postId: string) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<Partial<PostRecord>>(request)
   await env.DB.prepare(
     `UPDATE posts SET
@@ -573,7 +573,7 @@ const updatePost = async (request: Request, env: Env, postId: string) => {
 }
 
 const deleteOwnPost = async (request: Request, env: Env, postId: string) => {
-  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{ userId: string }>(request)
   const post = await env.DB.prepare('SELECT author_id FROM posts WHERE id = ?').bind(postId).first<
     Record<string, unknown>
@@ -633,7 +633,7 @@ export default {
       const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/)
       if (userMatch && request.method === 'PATCH') return updateUser(request, env, userMatch[1])
       if (userMatch && request.method === 'DELETE') {
-        if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+        if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
         await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userMatch[1]).run()
         return json({ users: await getAllUsers(env) })
       }
@@ -641,7 +641,7 @@ export default {
       const postMatch = url.pathname.match(/^\/api\/admin\/posts\/([^/]+)$/)
       if (postMatch && request.method === 'PATCH') return updatePost(request, env, postMatch[1])
       if (postMatch && request.method === 'DELETE') {
-        if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+        if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
         await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(postMatch[1]).run()
         return json({ posts: await getAllPosts(env) })
       }
