@@ -506,7 +506,7 @@ function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null)
   const [publishOpen, setPublishOpen] = useState(false)
   const [activePost, setActivePost] = useState<Post | null>(null)
-  const [message, setMessage] = useState('内容会先保存在当前浏览器，适合第一版演示和测试。')
+  const [message, setMessage] = useState('面向韩国留学人群的经验内容、机构入驻与人才连接平台。')
 
   const [authForm, setAuthForm] = useState({
     name: '',
@@ -545,11 +545,6 @@ function App() {
       return matchesCategory && matchesQuery
     })
   }, [appState.posts, selectedCategory, query])
-
-  const userPosts = useMemo(() => {
-    if (!currentUser) return []
-    return appState.posts.filter((post) => post.authorId === currentUser.id)
-  }, [appState.posts, currentUser])
 
   const updateUserPoints = (userId: string, nextPoints: number) => {
     setAppState((state) => ({
@@ -608,7 +603,7 @@ function App() {
     }
 
     if (!pendingEmailCode || authForm.emailCode.trim() !== pendingEmailCode) {
-      setMessage('请先发送邮箱验证码，并输入正确的验证码。')
+      setMessage('请先完成邮箱验证码校验。')
       return
     }
 
@@ -645,7 +640,7 @@ function App() {
       identity: '准备申请',
       school: '',
     })
-    setMessage('注册成功，已赠送 80 积分用于体验加精内容。')
+    setMessage('注册成功，已获得 80 初始积分，可用于解锁加精内容。')
   }
 
   const sendEmailCode = () => {
@@ -661,7 +656,7 @@ function App() {
     const code = String(Math.floor(100000 + Math.random() * 900000))
     setPendingEmailCode(code)
     setAuthForm((form) => ({ ...form, emailCode: '' }))
-    setMessage(`演示版验证码已生成：${code}。正式版会发送到 ${email}。`)
+    setMessage(`验证码已生成：${code}。上线后将通过邮件发送到 ${email}。`)
   }
 
   const handlePublish = (event: FormEvent<HTMLFormElement>) => {
@@ -709,7 +704,7 @@ function App() {
       price: '0',
     })
     setPublishOpen(false)
-    setMessage('发布成功，系统奖励 30 积分。内容已经保存到本地存储。')
+    setMessage('发布成功，系统已奖励 30 积分。')
   }
 
   const openPost = (post: Post) => {
@@ -725,7 +720,7 @@ function App() {
     }
 
     if (currentUser.points < post.price) {
-      setMessage(`积分不足，还差 ${post.price - currentUser.points} 积分。可以先发布经验或体验充值。`)
+      setMessage(`积分不足，还差 ${post.price - currentUser.points} 积分。可以先发布经验或充值积分。`)
       return
     }
 
@@ -746,7 +741,7 @@ function App() {
   const resetLocalData = () => {
     const nextState = { users: [], posts: seedPosts, currentUserId: null, unlockedPostIds: {} }
     setAppState(nextState)
-    setMessage('演示数据已重置。')
+    setMessage('页面数据已重置。')
   }
 
   return (
@@ -760,7 +755,7 @@ function App() {
           <a href="#schools">韩国院校</a>
           <a href="#school-browser">院校菜单</a>
           <a href="#posts">经验库</a>
-          <a href="#workspace">工作台</a>
+          <a href="#workspace">合作入口</a>
           <a href="#points">积分</a>
         </nav>
         {currentUser ? (
@@ -796,7 +791,7 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
-          <p className="eyebrow">Sell Your Skills · 韩国留学先行 · 注册 / 发帖 / 积分 / 解锁</p>
+          <p className="eyebrow">Sell Your Skills · 韩国留学内容社区 · 机构入驻 · 人才连接</p>
           <h1>售业平台</h1>
           <p className="hero-copy">
             把韩国留学经验沉淀成可变现的真实经验库。
@@ -815,11 +810,11 @@ function App() {
 
           <div className="hero-actions" aria-label="Quick actions">
             <button className="primary-link" type="button" onClick={() => setPublishOpen(true)}>
-              发布经验
+              申请入驻 / 发布经验
               <PenLine size={18} aria-hidden="true" />
             </button>
             <button className="secondary-link" type="button" onClick={() => setAuthMode('register')}>
-              创建账号
+              查看合作入口
               <ArrowRight size={18} aria-hidden="true" />
             </button>
           </div>
@@ -829,16 +824,16 @@ function App() {
 
       <section className="proof-band" aria-label="Platform highlights">
         <div>
-          <strong>{appState.users.length}</strong>
-          <span>已注册测试用户</span>
+          <strong>韩国</strong>
+          <span>垂直聚焦韩国院校与专业</span>
         </div>
         <div>
-          <strong>{appState.posts.length}</strong>
-          <span>经验内容已存储</span>
+          <strong>{allSchoolProfiles.length}+</strong>
+          <span>首批主流院校内容入口</span>
         </div>
         <div>
-          <strong>+30</strong>
-          <span>发布经验奖励积分</span>
+          <strong>B2B</strong>
+          <span>机构内容入驻与企业人才合作</span>
         </div>
       </section>
 
@@ -938,8 +933,8 @@ function App() {
 
       <section className="intro-section">
         <div className="section-heading">
-          <p className="eyebrow dark">第一阶段聚焦韩国</p>
-          <h2>先把账号、内容和积分闭环跑起来。</h2>
+          <p className="eyebrow dark">平台价值</p>
+          <h2>把零散经验变成可检索、可验证、可商业化的留学决策资产。</h2>
         </div>
         <div className="pathway-grid">
           {pathways.map((item) => (
@@ -960,7 +955,7 @@ function App() {
       <section className="schools-section" id="schools">
         <div className="section-heading">
           <p className="eyebrow dark">韩国院校入口</p>
-          <h2>先从热门学校跑通内容结构。</h2>
+          <h2>以学校为入口沉淀申请、课程、教授、就业和生活信息。</h2>
         </div>
         <div className="school-list">
           {schools.map((school) => (
@@ -993,39 +988,39 @@ function App() {
 
       <section className="workspace-section" id="workspace">
         <div className="section-heading">
-          <p className="eyebrow dark">用户工作台</p>
-          <h2>{currentUser ? `${currentUser.name}，这里是你的内容账户。` : '注册后就能发布经验并累计积分。'}</h2>
+          <p className="eyebrow dark">合作入口</p>
+          <h2>{currentUser ? `${currentUser.name}，这里是你的创作者中心。` : '学生、机构和企业都可以在这里找到合作位置。'}</h2>
         </div>
         <div className="workspace-grid">
           <article className="workspace-panel">
             <LogIn size={24} aria-hidden="true" />
-            <h3>{currentUser ? '当前账号' : '注册 / 登录'}</h3>
+            <h3>{currentUser ? '创作者账户' : '学生创作者'}</h3>
             {currentUser ? (
               <>
                 <p>{currentUser.identity} · {currentUser.school}</p>
                 <strong>{currentUser.points} 积分</strong>
                 <button type="button" onClick={() => updateUserPoints(currentUser.id, currentUser.points + 100)}>
-                  体验充值 +100
+                  模拟积分充值
                 </button>
               </>
             ) : (
               <>
-                <p>新用户注册赠送 80 积分，方便测试加精内容解锁。</p>
-                <button type="button" onClick={() => setAuthMode('register')}>立即注册</button>
+                <p>认证学生可以匿名分享学校、教授、课程和申请经验，通过积分获得内容收益。</p>
+                <button type="button" onClick={() => setAuthMode('register')}>创建创作者账号</button>
               </>
             )}
           </article>
           <article className="workspace-panel">
             <PenLine size={24} aria-hidden="true" />
-            <h3>内容发布</h3>
-            <p>标题、学校、分类、摘要、正文和积分价格都会被保存。</p>
-            <button type="button" onClick={() => setPublishOpen(true)}>发布经验</button>
+            <h3>机构入驻</h3>
+            <p>留学机构、语学堂、论文辅导和职业规划机构可发布审核后的专题内容，获取精准线索。</p>
+            <button type="button" onClick={() => setPublishOpen(true)}>申请内容入驻</button>
           </article>
           <article className="workspace-panel">
             <Coins size={24} aria-hidden="true" />
-            <h3>我的数据</h3>
-            <p>已发布 {userPosts.length} 篇，已解锁 {currentUnlocks.length} 篇。</p>
-            <button type="button" onClick={resetLocalData}>重置演示数据</button>
+            <h3>企业人才合作</h3>
+            <p>沉淀韩国院校学生画像后，可为跨境企业、韩企和教育品牌提供实习、招聘与校园推广入口。</p>
+            <button type="button" onClick={resetLocalData}>查看合作模型</button>
           </article>
         </div>
       </section>
@@ -1033,8 +1028,8 @@ function App() {
       <section className="posts-section" id="posts">
         <div className="posts-topline">
           <div className="section-heading">
-            <p className="eyebrow dark">经验内容流</p>
-            <h2>让申请者按问题找答案。</h2>
+            <p className="eyebrow dark">精选内容样例</p>
+            <h2>把学生最关心的问题做成可交易的经验资产。</h2>
           </div>
           <div className="category-tabs" aria-label="Post categories">
             {categories.map((category) => (
@@ -1093,26 +1088,26 @@ function App() {
 
       <section className="points-section" id="points">
         <div className="points-copy">
-          <p className="eyebrow dark">积分与变现</p>
-          <h2>先奖励内容，再开放商业化。</h2>
+          <p className="eyebrow dark">商业化路径</p>
+          <h2>内容积分是增长入口，机构入驻和人才合作是商业出口。</h2>
           <p>
-            第一版已经能完成注册、发帖得积分、付积分看加精内容。现在用本地存储，正式版可以迁移到 PostgreSQL、Supabase 或自建后端。
+            平台通过加精内容解锁、机构认证号、专题内容页、精准线索和韩国留学生人才库形成多层收入结构。
           </p>
         </div>
         <div className="points-flow" aria-label="Points flow">
           <div>
             <Sparkles size={22} aria-hidden="true" />
-            <span>发布真实经验</span>
+            <span>真实经验内容</span>
           </div>
           <ArrowRight size={20} aria-hidden="true" />
           <div>
             <Coins size={22} aria-hidden="true" />
-            <span>获得积分</span>
+            <span>积分与加精</span>
           </div>
           <ArrowRight size={20} aria-hidden="true" />
           <div>
             <MessageSquareText size={22} aria-hidden="true" />
-            <span>解锁深度帖</span>
+            <span>B端合作转化</span>
           </div>
         </div>
       </section>
@@ -1120,32 +1115,32 @@ function App() {
       <section className="trust-section" id="trust">
         <div className="trust-panel">
           <ShieldCheck size={30} aria-hidden="true" />
-          <h2>可信内容会是平台的护城河。</h2>
+          <h2>真实性和匿名保护是平台的护城河。</h2>
           <p>
-            下一步可以把学校邮箱、Offer/在读证明打码认证、内容审核、举报处理接进后台。
+            平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和加精人工审核，既保证内容可信，也保护发帖人安全。
           </p>
         </div>
         <div className="trust-list">
           <div>
             <GraduationCap size={22} aria-hidden="true" />
-            <span>在读 / 毕业 / 已录取身份标签</span>
+            <span>学校邮箱、Offer、在读和毕业材料认证</span>
           </div>
           <div>
             <BadgeCheck size={22} aria-hidden="true" />
-            <span>加精内容先审后付费</span>
+            <span>付费加精内容先审后展示</span>
           </div>
           <div>
             <ShieldCheck size={22} aria-hidden="true" />
-            <span>教授评价结构化，减少人身攻击风险</span>
+            <span>匿名展示与小样本保护，降低身份暴露风险</span>
           </div>
         </div>
       </section>
 
       <section className="cta-section">
-        <p className="eyebrow dark">MVP 方向</p>
-        <h2>现在已经有注册、发帖、积分和本地存储。</h2>
+        <p className="eyebrow dark">合作提案</p>
+        <h2>先聚焦韩国留学内容，再扩展机构服务和留学生人才连接。</h2>
         <button className="primary-link dark-link" type="button" onClick={() => setPublishOpen(true)}>
-          发布第一篇经验
+          申请成为首批合作方
           <Plus size={18} aria-hidden="true" />
         </button>
       </section>
@@ -1157,7 +1152,7 @@ function App() {
               <X size={20} aria-hidden="true" />
             </button>
             <p className="eyebrow dark">{authMode === 'login' ? '登录账号' : '创建账号'}</p>
-            <h2>{authMode === 'login' ? '继续使用你的积分账户。' : '注册后即可发布经验。'}</h2>
+            <h2>{authMode === 'login' ? '继续使用你的积分账户。' : '认证后即可分享经验并获得收益。'}</h2>
             <form className="form-stack" onSubmit={handleAuth}>
               {authMode === 'register' && (
                 <>
@@ -1243,7 +1238,7 @@ function App() {
                   />
                 </label>
               )}
-              <button type="submit">{authMode === 'login' ? '登录' : '注册并领取 80 积分'}</button>
+              <button type="submit">{authMode === 'login' ? '登录' : '注册并领取初始积分'}</button>
             </form>
             <button
               className="text-switch"
@@ -1263,7 +1258,7 @@ function App() {
               <X size={20} aria-hidden="true" />
             </button>
             <p className="eyebrow dark">发布经验</p>
-            <h2>分享内容并获得积分。</h2>
+            <h2>发布可被审核、加精和变现的经验内容。</h2>
             <form className="form-stack" onSubmit={handlePublish}>
               <label>
                 标题
