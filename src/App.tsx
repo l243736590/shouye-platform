@@ -78,6 +78,7 @@ const heroImage =
 
 const storageKey = 'shouye-platform-mvp-v1'
 const categories = ['全部', '申请避坑', '学校评价', '教授课程', '毕业就业', '生活落地']
+const schoolPageSize = 8
 
 const fileImage = (fileName: string) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}?width=1800`
@@ -85,7 +86,7 @@ const fileImage = (fileName: string) =>
 const schoolRegions: { region: string; summary: string; schools: SchoolProfile[] }[] = [
   {
     region: '首尔',
-    summary: 'SKY、艺术传媒、商科和语学堂资源最集中。',
+    summary: '按 QS 2026 顺序优先展示，再补艺术、女子大、理工和常见申请院校。',
     schools: [
       {
         id: 'snu',
@@ -127,6 +128,19 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         source: 'https://commons.wikimedia.org/wiki/File:Korea_University_Main_Hall.jpg',
       },
       {
+        id: 'skku-seoul',
+        name: '成均馆大学',
+        englishName: 'Sungkyunkwan University',
+        region: '首尔 / 京畿道',
+        city: '钟路区 / 水原',
+        landmark: '明伦校区与自然科学校区',
+        image: fileImage('Sungkyunkwan University Station view.jpg'),
+        description: '韩国传统名校之一，人文社科在首尔、理工自然科学多在水原，半导体、经营、传媒和工科方向关注度高。',
+        programs: ['半导体', '经营', '传媒', '人文社科'],
+        strengths: ['QS前列', '三星背景', '双校区'],
+        source: 'https://commons.wikimedia.org/wiki/File:Sungkyunkwan_University_Station_view.jpg',
+      },
+      {
         id: 'hanyang',
         name: '汉阳大学',
         englishName: 'Hanyang University',
@@ -153,6 +167,19 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         source: 'https://commons.wikimedia.org/wiki/File:Kyung_Hee_Univ._Administration_Building(Seoul_Campus).JPG',
       },
       {
+        id: 'sejong',
+        name: '世宗大学',
+        englishName: 'Sejong University',
+        region: '首尔',
+        city: '广津区',
+        landmark: '儿童大公园旁校园',
+        image: fileImage('Sejong University Seoul Korea.jpg'),
+        description: '酒店观光、经营、动画、AI与软件方向热度高，位置靠近儿童大公园，生活交通方便。',
+        programs: ['酒店观光', 'AI', '软件', '动画'],
+        strengths: ['QS上升快', '文理兼顾', '交通便利'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Sejong_University',
+      },
+      {
         id: 'cau',
         name: '中央大学',
         englishName: 'Chung-Ang University',
@@ -177,6 +204,279 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         programs: ['设计', '教育', '国际学', '经营'],
         strengths: ['校园现代', '女性教育传统', '生活便利'],
         source: 'https://commons.wikimedia.org/wiki/File:Ewha_Womans_University_Campus_new.jpg',
+      },
+      {
+        id: 'sogang',
+        name: '西江大学',
+        englishName: 'Sogang University',
+        region: '首尔',
+        city: '麻浦区 · 新村',
+        landmark: '新村校区',
+        image: fileImage('Sogang University Gonzaga Hall.jpg'),
+        description: '小而精的私立名校，经营、传媒、国际学、韩国语教育和人文社科方向适合重点比较。',
+        programs: ['经营', '传媒', '国际学', '韩国语教育'],
+        strengths: ['新村生活圈', '课堂强度高', '文商科关注度高'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Sogang_University',
+      },
+      {
+        id: 'dongguk',
+        name: '东国大学',
+        englishName: 'Dongguk University',
+        region: '首尔',
+        city: '中区',
+        landmark: '南山脚下首尔校区',
+        image: fileImage('Dongguk University Seoul campus.jpg'),
+        description: '传媒、电影影像、佛教文化、警察行政和经营方向常被咨询，校区靠近忠武路和南山。',
+        programs: ['电影影像', '传媒', '经营', '警察行政'],
+        strengths: ['传媒影像强', '市中心位置', '生活便利'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Dongguk_University',
+      },
+      {
+        id: 'konkuk',
+        name: '建国大学',
+        englishName: 'Konkuk University',
+        region: '首尔',
+        city: '广津区',
+        landmark: '一鉴湖与首尔校区',
+        image: fileImage('Konkuk University Lake.jpg'),
+        description: '商科、传媒、设计、兽医、房地产和生命科学方向讨论度高，周边商圈成熟。',
+        programs: ['经营', '传媒', '设计', '生命科学'],
+        strengths: ['校园生活强', '专业覆盖广', '商圈成熟'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Konkuk_University',
+      },
+      {
+        id: 'hufs',
+        name: '韩国外国语大学',
+        englishName: 'Hankuk University of Foreign Studies',
+        region: '首尔',
+        city: '东大门区',
+        landmark: '外大前校园',
+        image: fileImage('Hankuk University of Foreign Studies Seoul Campus.jpg'),
+        description: '外语、翻译、国际地域、国际通商和韩国语教育方向代表性强，适合语言和国际事务路线。',
+        programs: ['外语', '翻译', '国际地域', '韩国语教育'],
+        strengths: ['外语强校', '国际化', '专业辨识度高'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Hankuk_University_of_Foreign_Studies',
+      },
+      {
+        id: 'uos',
+        name: '首尔市立大学',
+        englishName: 'University of Seoul',
+        region: '首尔',
+        city: '东大门区',
+        landmark: '市立大学校园',
+        image: fileImage('University of Seoul Main Gate.jpg'),
+        description: '公立大学属性明显，城市科学、税务、行政、建筑、环境和经营方向适合关注性价比。',
+        programs: ['城市科学', '税务', '行政', '建筑'],
+        strengths: ['公立性价比', '城市研究强', '首尔位置'],
+        source: 'https://commons.wikimedia.org/wiki/Category:University_of_Seoul',
+      },
+      {
+        id: 'dankook-seoul',
+        name: '檀国大学',
+        englishName: 'Dankook University',
+        region: '首都圈',
+        city: '竹田 / 天安',
+        landmark: '竹田校区',
+        image: fileImage('Dankook University Jukjeon Campus.jpg'),
+        description: '虽主校区不在首尔市内，但常被首都圈申请者一起比较，设计、传媒、经营、音乐和医学相关方向可看。',
+        programs: ['设计', '传媒', '经营', '音乐'],
+        strengths: ['首都圈备选', '专业多', '生活成本可控'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Dankook_University',
+      },
+      {
+        id: 'seoultech',
+        name: '首尔科技大学',
+        englishName: 'Seoul National University of Science and Technology',
+        region: '首尔',
+        city: '芦原区',
+        landmark: '孔陵校区',
+        image: fileImage('Seoultech campus.jpg'),
+        description: '国立理工取向明显，工科、设计、建筑、IT和产业技术方向适合重视就业和费用的学生。',
+        programs: ['工科', '设计', '建筑', 'IT'],
+        strengths: ['国立理工', '费用友好', '实践导向'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Seoul_National_University_of_Science_and_Technology',
+      },
+      {
+        id: 'kookmin',
+        name: '国民大学',
+        englishName: 'Kookmin University',
+        region: '首尔',
+        city: '城北区',
+        landmark: '北岳山下校园',
+        image: fileImage('Kookmin University.jpg'),
+        description: '汽车、设计、经营、AI和软件方向有特色，适合看作品集、实践课程和就业合作。',
+        programs: ['汽车', '设计', '经营', 'AI'],
+        strengths: ['设计汽车强', '实践导向', '北首尔生活圈'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Kookmin_University',
+      },
+      {
+        id: 'soongsil',
+        name: '崇实大学',
+        englishName: 'Soongsil University',
+        region: '首尔',
+        city: '铜雀区',
+        landmark: '崇实大入口校园',
+        image: fileImage('Soongsil University Seoul Korea.jpg'),
+        description: 'IT、软件、经营、社会科学和创业方向常见，地铁通勤便利，适合务实型申请者。',
+        programs: ['软件', 'IT', '经营', '创业'],
+        strengths: ['IT传统', '交通方便', '就业导向'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Soongsil_University',
+      },
+      {
+        id: 'sookmyung',
+        name: '淑明女子大学',
+        englishName: "Sookmyung Women's University",
+        region: '首尔',
+        city: '龙山区',
+        landmark: '龙山校区',
+        image: fileImage('Sookmyung Women’s University.jpg'),
+        description: '女子大学代表之一，教育、传媒、经营、国际学、食品营养和艺术方向适合比较。',
+        programs: ['教育', '传媒', '经营', '国际学'],
+        strengths: ['龙山位置', '女性教育传统', '生活便利'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Sookmyung_Women%27s_University',
+      },
+      {
+        id: 'kwangwoon',
+        name: '光云大学',
+        englishName: 'Kwangwoon University',
+        region: '首尔',
+        city: '芦原区',
+        landmark: '光云大站附近校园',
+        image: fileImage('Kwangwoon University.jpg'),
+        description: '电子、电气、信息通信、机器人和软件方向有辨识度，适合理工方向备选。',
+        programs: ['电子', '信息通信', '机器人', '软件'],
+        strengths: ['电子通信强', '理工取向', '首尔北部'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Kwangwoon_University',
+      },
+      {
+        id: 'myongji',
+        name: '明知大学',
+        englishName: 'Myongji University',
+        region: '首尔 / 京畿道',
+        city: '西大门区 / 龙仁',
+        landmark: '人文校区与自然校区',
+        image: fileImage('Myongji University.jpg'),
+        description: '人文、经营、建筑、工程和艺术方向常见，申请前要确认专业所在校区。',
+        programs: ['人文', '经营', '建筑', '工程'],
+        strengths: ['双校区', '专业覆盖广', '适合备选'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Myongji_University',
+      },
+      {
+        id: 'sangmyung',
+        name: '祥明大学',
+        englishName: 'Sangmyung University',
+        region: '首尔 / 忠清',
+        city: '钟路区 / 天安',
+        landmark: '首尔校区',
+        image: fileImage('Sangmyung University Seoul campus.jpg'),
+        description: '艺术、设计、动漫、教育和文化内容方向常见，适合关注作品集和实践课程。',
+        programs: ['设计', '动漫', '艺术', '教育'],
+        strengths: ['艺术设计', '首尔校区小而集中', '作品集重要'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Sangmyung_University',
+      },
+      {
+        id: 'hansung',
+        name: '汉城大学',
+        englishName: 'Hansung University',
+        region: '首尔',
+        city: '城北区',
+        landmark: '汉城大入口校区',
+        image: fileImage('Hansung University.jpg'),
+        description: '设计、IT、经营、人文社科和美容时尚方向可作为首尔私立校备选。',
+        programs: ['设计', 'IT', '经营', '时尚'],
+        strengths: ['首尔位置', '实践专业', '申请灵活'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Hansung_University',
+      },
+      {
+        id: 'sungshin',
+        name: '诚信女子大学',
+        englishName: "Sungshin Women's University",
+        region: '首尔',
+        city: '城北区',
+        landmark: '敦岩校区',
+        image: fileImage('Sungshin Women’s University.jpg'),
+        description: '设计、美术、音乐、教育、护理和生活科学方向常见，女生申请者关注度高。',
+        programs: ['设计', '美术', '教育', '护理'],
+        strengths: ['女子大学', '艺术教育', '生活圈成熟'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Sungshin_Women%27s_University',
+      },
+      {
+        id: 'dongduk',
+        name: '同德女子大学',
+        englishName: "Dongduk Women's University",
+        region: '首尔',
+        city: '城北区',
+        landmark: '月谷校区',
+        image: fileImage('Dongduk Women’s University.jpg'),
+        description: '设计、表演艺术、时尚、音乐和人文社科方向常见，适合看作品集与面试要求。',
+        programs: ['设计', '表演艺术', '时尚', '音乐'],
+        strengths: ['艺术时尚', '女子大学', '面试重要'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Dongduk_Women%27s_University',
+      },
+      {
+        id: 'duksung',
+        name: '德成女子大学',
+        englishName: "Duksung Women's University",
+        region: '首尔',
+        city: '道峰区',
+        landmark: '双门洞校园',
+        image: fileImage('Duksung Women’s University.jpg'),
+        description: '药学、幼儿教育、心理、经营和人文社科方向可关注，北首尔生活成本相对友好。',
+        programs: ['药学', '教育', '心理', '经营'],
+        strengths: ['女子大学', '北首尔', '生活成本可控'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Duksung_Women%27s_University',
+      },
+      {
+        id: 'swu',
+        name: '首尔女子大学',
+        englishName: "Seoul Women's University",
+        region: '首尔',
+        city: '芦原区',
+        landmark: '花郎台附近校园',
+        image: fileImage('Seoul Women’s University.jpg'),
+        description: '教育、心理、传媒、经营、食品营养和人文社科方向常见，适合比较奖学金和通勤。',
+        programs: ['教育', '心理', '传媒', '经营'],
+        strengths: ['女子大学', '北首尔', '校园环境安静'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Seoul_Women%27s_University',
+      },
+      {
+        id: 'knua',
+        name: '韩国艺术综合学校',
+        englishName: 'Korea National University of Arts',
+        region: '首尔',
+        city: '城北区 / 瑞草区',
+        landmark: '石串洞与瑞草校区',
+        image: fileImage('Korea National University of Arts.jpg'),
+        description: '韩国顶尖艺术类国立院校，音乐、舞蹈、戏剧、电影、视觉艺术方向适合专业型申请者。',
+        programs: ['音乐', '舞蹈', '戏剧', '电影'],
+        strengths: ['艺术顶尖', '专业门槛高', '作品集核心'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Korea_National_University_of_Arts',
+      },
+      {
+        id: 'knsu',
+        name: '韩国体育大学',
+        englishName: 'Korea National Sport University',
+        region: '首尔',
+        city: '松坡区',
+        landmark: '奥林匹克公园旁校园',
+        image: fileImage('Korea National Sport University.jpg'),
+        description: '体育、运动科学、教练、康复和体育产业方向代表学校，适合体育专业路线。',
+        programs: ['体育', '运动科学', '康复', '体育产业'],
+        strengths: ['体育国立', '专业性强', '奥林匹克园区'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Korea_National_Sport_University',
+      },
+      {
+        id: 'sahmyook',
+        name: '三育大学',
+        englishName: 'Sahmyook University',
+        region: '首尔',
+        city: '芦原区',
+        landmark: '绿色校园',
+        image: fileImage('Sahmyook University.jpg'),
+        description: '护理、保健、食品营养、经营和语言方向常见，校园环境安静，适合看专业匹配度。',
+        programs: ['护理', '保健', '食品营养', '经营'],
+        strengths: ['保健护理', '校园安静', '首尔北部'],
+        source: 'https://commons.wikimedia.org/wiki/Category:Sahmyook_University',
       },
       {
         id: 'hongik',
@@ -507,6 +807,7 @@ function App() {
   const [publishOpen, setPublishOpen] = useState(false)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [message, setMessage] = useState('面向韩国留学人群的经验内容、机构入驻与人才连接平台。')
+  const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
 
   const [authForm, setAuthForm] = useState({
     name: '',
@@ -570,8 +871,18 @@ function App() {
 
   const openRegionSection = (region: string) => {
     setOpenRegion(region)
+    setSchoolPages((pages) => ({ ...pages, [region]: pages[region] ?? 1 }))
     setMegaMenuOpen(false)
     document.getElementById('school-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const openRegionMenu = (region: string) => {
+    setOpenRegion(region)
+    setSchoolPages((pages) => ({ ...pages, [region]: pages[region] ?? 1 }))
+  }
+
+  const changeSchoolPage = (region: string, page: number) => {
+    setSchoolPages((pages) => ({ ...pages, [region]: page }))
   }
 
   const handleAuth = (event: FormEvent<HTMLFormElement>) => {
@@ -886,7 +1197,7 @@ function App() {
                 className={openRegion === group.region ? 'active' : ''}
                 key={group.region}
                 type="button"
-                onClick={() => setOpenRegion(group.region)}
+                onClick={() => openRegionMenu(group.region)}
               >
                 <span>{group.region}</span>
                 <ChevronDown size={16} aria-hidden="true" />
@@ -894,30 +1205,71 @@ function App() {
             ))}
           </div>
 
-          {schoolRegions.map((group) => (
-            <div
-              className={openRegion === group.region ? 'school-submenu open' : 'school-submenu'}
-              key={group.region}
-            >
-              <div className="submenu-intro">
-                <strong>{group.region}</strong>
-                <p>{group.summary}</p>
+          {schoolRegions.map((group) => {
+            const currentPage = schoolPages[group.region] ?? 1
+            const pageCount = Math.ceil(group.schools.length / schoolPageSize)
+            const startIndex = (currentPage - 1) * schoolPageSize
+            const pageSchools = group.schools.slice(startIndex, startIndex + schoolPageSize)
+
+            return (
+              <div
+                className={openRegion === group.region ? 'school-submenu open' : 'school-submenu'}
+                key={group.region}
+              >
+                <div className="submenu-intro">
+                  <div>
+                    <strong>{group.region}</strong>
+                    <span>{group.schools.length} 所院校 · QS 2026 优先，后接常见申请院校</span>
+                  </div>
+                  <p>{group.summary}</p>
+                </div>
+                <div className="submenu-grid">
+                  {pageSchools.map((school, schoolIndex) => (
+                    <button
+                      className={selectedSchool.id === school.id ? 'school-menu-card active' : 'school-menu-card'}
+                      key={school.id}
+                      type="button"
+                      onClick={() => openSchoolPage(school)}
+                    >
+                      <em>#{startIndex + schoolIndex + 1}</em>
+                      <span>{school.name}</span>
+                      <small>{school.city} · {school.landmark}</small>
+                    </button>
+                  ))}
+                </div>
+                {pageCount > 1 && (
+                  <div className="school-pagination" aria-label={`${group.region} 学校分页`}>
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => changeSchoolPage(group.region, currentPage - 1)}
+                    >
+                      上一页
+                    </button>
+                    <div>
+                      {Array.from({ length: pageCount }, (_, index) => index + 1).map((page) => (
+                        <button
+                          className={currentPage === page ? 'active' : ''}
+                          key={page}
+                          type="button"
+                          onClick={() => changeSchoolPage(group.region, page)}
+                        >
+                          {page}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={currentPage === pageCount}
+                      onClick={() => changeSchoolPage(group.region, currentPage + 1)}
+                    >
+                      下一页
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="submenu-grid">
-                {group.schools.map((school) => (
-                  <button
-                    className={selectedSchool.id === school.id ? 'school-menu-card active' : 'school-menu-card'}
-                    key={school.id}
-                    type="button"
-                    onClick={() => openSchoolPage(school)}
-                  >
-                    <span>{school.name}</span>
-                    <small>{school.city} · {school.landmark}</small>
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </section>
 

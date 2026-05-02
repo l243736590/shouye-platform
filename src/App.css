@@ -508,7 +508,16 @@ h3 {
 
 .submenu-intro strong {
   color: var(--forest);
+  display: block;
   font-size: 30px;
+}
+
+.submenu-intro span {
+  color: rgba(20, 40, 33, 0.62);
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  margin-top: 7px;
 }
 
 .submenu-intro p {
@@ -555,6 +564,51 @@ h3 {
 .school-menu-card small {
   color: var(--muted);
   line-height: 1.45;
+}
+
+.school-menu-card em {
+  color: rgba(230, 95, 67, 0.72);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.school-pagination {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 18px;
+}
+
+.school-pagination > div {
+  display: flex;
+  gap: 6px;
+}
+
+.school-pagination button {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 900;
+  height: 38px;
+  min-width: 38px;
+  padding: 0 12px;
+}
+
+.school-pagination button.active {
+  background: var(--forest);
+  border-color: var(--forest);
+  color: #fffdf0;
+}
+
+.school-pagination button:disabled {
+  color: rgba(42, 63, 55, 0.32);
+  cursor: not-allowed;
 }
 
 .school-page-section {
@@ -1253,6 +1307,15 @@ h3 {
 
   .submenu-grid {
     grid-template-columns: 1fr;
+  }
+
+  .school-pagination {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .school-pagination > div {
+    flex-wrap: wrap;
   }
 
   .school-page-section {
