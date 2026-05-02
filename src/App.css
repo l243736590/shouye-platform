@@ -1181,6 +1181,28 @@ h3 {
   white-space: nowrap;
 }
 
+.form-notice,
+.form-success {
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+  margin: -4px 0 0;
+  padding: 10px 12px;
+}
+
+.form-notice {
+  background: #fff4d4;
+  border: 1px solid rgba(240, 212, 107, 0.72);
+  color: #6d4d00;
+}
+
+.form-success {
+  background: rgba(33, 119, 87, 0.12);
+  border: 1px solid rgba(33, 119, 87, 0.24);
+  color: var(--forest);
+}
+
 .form-stack textarea {
   min-height: 160px;
   resize: vertical;

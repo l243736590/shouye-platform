@@ -968,6 +968,7 @@ function App() {
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [message, setMessage] = useState('面向韩国留学人群的经验内容、机构入驻与人才连接平台。')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
+  const [authNotice, setAuthNotice] = useState('')
 
   const [authForm, setAuthForm] = useState({
     name: '',
@@ -979,6 +980,7 @@ function App() {
     school: '',
   })
   const [pendingEmailCode, setPendingEmailCode] = useState('')
+  const [pendingEmail, setPendingEmail] = useState('')
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
 
   const [postForm, setPostForm] = useState({
@@ -999,6 +1001,12 @@ function App() {
   const selectedSchool =
     allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
   const selectedCampusLinks = getCampusLinks(selectedSchool)
+  const normalizedAuthEmail = authForm.email.trim().toLowerCase()
+  const isEmailCodeVerified =
+    authMode === 'register' &&
+    Boolean(pendingEmailCode) &&
+    pendingEmail === normalizedAuthEmail &&
+    authForm.emailCode.trim() === pendingEmailCode
 
   const filteredPosts = useMemo(() => {
     return appState.posts.filter((post) => {
@@ -1048,12 +1056,14 @@ function App() {
 
   const handleAuth = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    setAuthNotice('')
     const email = authForm.email.trim().toLowerCase()
     const password = authForm.password.trim()
     const confirmPassword = authForm.confirmPassword.trim()
 
     if (!email || !password) {
       setMessage('请填写邮箱和密码。')
+      setAuthNotice('请填写邮箱和密码。')
       return
     }
 
@@ -1063,6 +1073,7 @@ function App() {
       )
       if (!matched) {
         setMessage('没有找到这个账号，或密码不正确。')
+        setAuthNotice('没有找到这个账号，或密码不正确。')
         return
       }
       setAppState((state) => ({ ...state, currentUserId: matched.id }))
@@ -1073,21 +1084,25 @@ function App() {
 
     if (password.length < 6) {
       setMessage('密码至少需要 6 位。')
+      setAuthNotice('密码至少需要 6 位。')
       return
     }
 
     if (password !== confirmPassword) {
       setMessage('两次输入的密码不一致。')
+      setAuthNotice('两次输入的密码不一致。')
       return
     }
 
-    if (!pendingEmailCode || authForm.emailCode.trim() !== pendingEmailCode) {
+    if (!pendingEmailCode || pendingEmail !== email || authForm.emailCode.trim() !== pendingEmailCode) {
       setMessage('请先完成邮箱验证码校验。')
+      setAuthNotice('请先点击发送验证码，并输入当前邮箱收到的 6 位验证码。')
       return
     }
 
     if (appState.users.some((user) => user.email === email)) {
       setMessage('这个邮箱已经注册过了，可以直接登录。')
+      setAuthNotice('这个邮箱已经注册过了，可以直接登录。')
       return
     }
 
@@ -1110,6 +1125,8 @@ function App() {
     }))
     setAuthMode(null)
     setPendingEmailCode('')
+    setPendingEmail('')
+    setAuthNotice('')
     setAuthForm({
       name: '',
       email: '',
@@ -1126,16 +1143,25 @@ function App() {
     const email = authForm.email.trim().toLowerCase()
     if (!email) {
       setMessage('请先填写邮箱，再发送验证码。')
+      setAuthNotice('请先填写邮箱，再发送验证码。')
       return
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setMessage('邮箱格式不正确。')
+      setAuthNotice('邮箱格式不正确，请检查后再发送。')
+      return
+    }
+    if (appState.users.some((user) => user.email === email)) {
+      setMessage('这个邮箱已经注册过了，可以直接登录。')
+      setAuthNotice('这个邮箱已经注册过了，可以直接登录。')
       return
     }
     const code = String(Math.floor(100000 + Math.random() * 900000))
     setPendingEmailCode(code)
+    setPendingEmail(email)
     setAuthForm((form) => ({ ...form, emailCode: '' }))
-    setMessage(`验证码已生成：${code}。上线后将通过邮件发送到 ${email}。`)
+    setAuthNotice(`验证码已生成。当前演示版还未接入真实邮件服务，测试验证码：${code}`)
+    setMessage(`验证码已生成。当前演示版还未接入真实邮件服务，测试验证码：${code}`)
   }
 
   const handlePublish = (event: FormEvent<HTMLFormElement>) => {
@@ -1708,7 +1734,14 @@ function App() {
       {authMode && (
         <div className="modal-backdrop" role="presentation">
           <section className="modal-sheet" aria-label={authMode === 'login' ? '登录' : '注册'}>
-            <button className="close-button" type="button" onClick={() => setAuthMode(null)}>
+            <button
+              className="close-button"
+              type="button"
+              onClick={() => {
+                setAuthMode(null)
+                setAuthNotice('')
+              }}
+            >
               <X size={20} aria-hidden="true" />
             </button>
             <p className="eyebrow dark">{authMode === 'login' ? '登录账号' : '创建账号'}</p>
@@ -1753,7 +1786,10 @@ function App() {
                   <input
                     type="email"
                     value={authForm.email}
-                    onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
+                    onChange={(event) => {
+                      setAuthForm({ ...authForm, email: event.target.value })
+                      setAuthNotice('')
+                    }}
                     placeholder="you@example.com"
                     autoComplete="email"
                   />
@@ -1771,10 +1807,23 @@ function App() {
                     inputMode="numeric"
                     maxLength={6}
                     value={authForm.emailCode}
-                    onChange={(event) => setAuthForm({ ...authForm, emailCode: event.target.value })}
+                    onChange={(event) => {
+                      setAuthForm({ ...authForm, emailCode: event.target.value.replace(/\D/g, '') })
+                      setAuthNotice('')
+                    }}
                     placeholder="请输入 6 位验证码"
                   />
                 </label>
+              )}
+              {authMode === 'register' && isEmailCodeVerified && (
+                <p className="form-success" role="status">
+                  邮箱验证码已通过。
+                </p>
+              )}
+              {authNotice && (
+                <p className="form-notice" role="status" aria-live="polite">
+                  {authNotice}
+                </p>
               )}
               <label>
                 密码
@@ -1803,7 +1852,10 @@ function App() {
             <button
               className="text-switch"
               type="button"
-              onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')}
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'register' : 'login')
+                setAuthNotice('')
+              }}
             >
               {authMode === 'login' ? '还没有账号？去注册' : '已有账号？去登录'}
             </button>
