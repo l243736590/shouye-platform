@@ -521,10 +521,18 @@ h3 {
   color: #fff4a8;
 }
 
+.school-page-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 26px;
+}
+
 .school-page-content .primary-link,
 .school-experience-link {
   border: 0;
-  margin-top: 26px;
+  margin-top: 0;
 }
 
 .school-experience-link {
@@ -552,7 +560,7 @@ h3 {
   color: rgba(255, 253, 240, 0.76);
   display: inline-flex;
   font-size: 13px;
-  margin-left: 14px;
+  font-weight: 800;
 }
 
 .pathway-grid {
@@ -1176,8 +1184,7 @@ h3 {
   }
 
   .image-source-link {
-    margin-left: 0;
-    margin-top: 14px;
+    width: 100%;
   }
 
   .post-card {

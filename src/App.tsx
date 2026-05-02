@@ -875,13 +875,19 @@ function App() {
               <strong key={strength}>{strength}</strong>
             ))}
           </div>
-          <button type="button" className="school-experience-link" onClick={() => setQuery(selectedSchool.name)}>
-            获取这所学校的经验
-            <BookOpenText size={20} aria-hidden="true" />
-          </button>
-          <a className="image-source-link" href={selectedSchool.source} target="_blank" rel="noreferrer">
-            背景图来源
-          </a>
+          <div className="school-page-actions">
+            <button type="button" className="primary-link" onClick={() => setPublishOpen(true)}>
+              分享这所学校的经验
+              <PenLine size={18} aria-hidden="true" />
+            </button>
+            <button type="button" className="school-experience-link" onClick={() => setQuery(selectedSchool.name)}>
+              获取这所学校的经验
+              <BookOpenText size={20} aria-hidden="true" />
+            </button>
+            <a className="image-source-link" href={selectedSchool.source} target="_blank" rel="noreferrer">
+              背景图来源
+            </a>
+          </div>
         </div>
       </section>
 
