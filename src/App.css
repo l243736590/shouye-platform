@@ -624,10 +624,10 @@ h3 {
   border-radius: 8px;
   color: var(--ink);
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) auto;
-  min-height: 92px;
-  padding: 18px;
+  gap: 22px;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  min-height: 112px;
+  padding: 18px 20px;
   text-align: left;
   transition:
     background 180ms ease,
@@ -670,16 +670,16 @@ h3 {
   align-items: center;
   background: #ffffff;
   border: 1px solid rgba(23, 63, 53, 0.12);
-  border-radius: 999px;
-  box-shadow: 0 10px 24px rgba(23, 33, 29, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 12px 26px rgba(23, 33, 29, 0.08);
   color: var(--forest);
   display: inline-flex;
   flex: none;
-  height: 52px;
+  height: 72px;
   justify-content: center;
   overflow: hidden;
   position: relative;
-  width: 52px;
+  width: 142px;
 }
 
 .school-logo-mark span {
@@ -692,7 +692,7 @@ h3 {
   background: #ffffff;
   height: 100%;
   object-fit: contain;
-  padding: 8px;
+  padding: 10px 12px;
   position: absolute;
   width: 100%;
 }
@@ -2392,6 +2392,18 @@ h3 {
 
   .submenu-grid {
     grid-template-columns: 1fr;
+  }
+
+  .school-menu-card {
+    gap: 14px;
+    grid-template-columns: minmax(0, 1fr) 112px;
+    min-height: 104px;
+    padding: 16px;
+  }
+
+  .school-logo-mark {
+    height: 62px;
+    width: 112px;
   }
 
   .school-pagination {

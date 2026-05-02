@@ -889,15 +889,51 @@ const getLanguageInstituteUrl = (school: SchoolProfile) =>
   schoolLanguageInstituteUrls[school.id] ??
   `https://search.naver.com/search.naver?query=${encodeURIComponent(`${school.name} 한국어학당`)}`
 
-const getSchoolLogoUrl = (school: SchoolProfile) => {
-  const officialUrl = schoolOfficialUrls[school.id] ?? school.source
-  try {
-    const hostname = new URL(officialUrl).hostname
-    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`
-  } catch {
-    return ''
-  }
+const schoolLogoUrls: Record<string, string> = {
+  ajou: '/school-logos/card/ajou.png',
+  cau: '/school-logos/card/cau.png',
+  'cau-anseong': '/school-logos/card/cau-anseong.png',
+  chungnam: '/school-logos/card/chungnam.png',
+  'dankook-seoul': '/school-logos/card/dankook-seoul.png',
+  donga: '/school-logos/card/donga.png',
+  dongduk: '/school-logos/card/dongduk.png',
+  dongguk: '/school-logos/card/dongguk.png',
+  duksung: '/school-logos/card/duksung.png',
+  ewha: '/school-logos/card/ewha.png',
+  hansung: '/school-logos/card/hansung.png',
+  hanyang: '/school-logos/card/hanyang.png',
+  'hanyang-erica': '/school-logos/card/hanyang-erica.png',
+  hongik: '/school-logos/card/hongik.svg',
+  hufs: '/school-logos/card/hufs.png',
+  kaist: '/school-logos/card/kaist.png',
+  keimyung: '/school-logos/card/keimyung.png',
+  knsu: '/school-logos/card/knsu.png',
+  knu: '/school-logos/card/knu.png',
+  knua: '/school-logos/card/knua.png',
+  konkuk: '/school-logos/card/konkuk.png',
+  kookmin: '/school-logos/card/kookmin.png',
+  korea: '/school-logos/card/korea.png',
+  kwangwoon: '/school-logos/card/kwangwoon.png',
+  kyunghee: '/school-logos/card/kyunghee.png',
+  myongji: '/school-logos/card/myongji.png',
+  pnu: '/school-logos/card/pnu.png',
+  sahmyook: '/school-logos/card/sahmyook.png',
+  sangmyung: '/school-logos/card/sangmyung.png',
+  sejong: '/school-logos/card/sejong.png',
+  seoultech: '/school-logos/card/seoultech.png',
+  skku: '/school-logos/card/skku.png',
+  'skku-seoul': '/school-logos/card/skku-seoul.png',
+  snu: '/school-logos/card/snu.svg',
+  sogang: '/school-logos/card/sogang.png',
+  soongsil: '/school-logos/card/soongsil.png',
+  sookmyung: '/school-logos/card/sookmyung.png',
+  sungshin: '/school-logos/card/sungshin.png',
+  swu: '/school-logos/card/swu.png',
+  uos: '/school-logos/card/uos.png',
+  yonsei: '/school-logos/card/yonsei.png',
 }
+
+const getSchoolLogoUrl = (school: SchoolProfile) => schoolLogoUrls[school.id] ?? ''
 
 const getCampusLinks = (school: SchoolProfile): CampusLink[] => {
   const officialUrl = schoolOfficialUrls[school.id] ?? school.source
