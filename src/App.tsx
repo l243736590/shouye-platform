@@ -889,6 +889,16 @@ const getLanguageInstituteUrl = (school: SchoolProfile) =>
   schoolLanguageInstituteUrls[school.id] ??
   `https://search.naver.com/search.naver?query=${encodeURIComponent(`${school.name} 한국어학당`)}`
 
+const getSchoolLogoUrl = (school: SchoolProfile) => {
+  const officialUrl = schoolOfficialUrls[school.id] ?? school.source
+  try {
+    const hostname = new URL(officialUrl).hostname
+    return `https://icons.duckduckgo.com/ip3/${hostname}.ico`
+  } catch {
+    return ''
+  }
+}
+
 const getCampusLinks = (school: SchoolProfile): CampusLink[] => {
   const officialUrl = schoolOfficialUrls[school.id] ?? school.source
   const languageInstituteLink: CampusLink = {
@@ -2438,9 +2448,23 @@ function App() {
                       type="button"
                       onClick={() => openSchoolPage(school)}
                     >
-                      <em>#{startIndex + schoolIndex + 1}</em>
-                      <span>{school.name}</span>
-                      <small>{school.city} · {school.landmark}</small>
+                      <div className="school-menu-copy">
+                        <em>#{startIndex + schoolIndex + 1}</em>
+                        <span>{school.name}</span>
+                        <small>{school.city} · {school.landmark}</small>
+                      </div>
+                      <div className="school-logo-mark" aria-hidden="true">
+                        <span>{school.name.slice(0, 1)}</span>
+                        {getSchoolLogoUrl(school) && (
+                          <img
+                            src={getSchoolLogoUrl(school)}
+                            alt=""
+                            onError={(event) => {
+                              event.currentTarget.style.display = 'none'
+                            }}
+                          />
+                        )}
+                      </div>
                     </button>
                   ))}
                 </div>

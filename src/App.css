@@ -618,13 +618,14 @@ h3 {
 }
 
 .school-menu-card {
-  align-items: start;
+  align-items: center;
   background: #f6f8f4;
   border: 1px solid var(--line);
   border-radius: 8px;
   color: var(--ink);
   display: grid;
-  gap: 8px;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
   min-height: 92px;
   padding: 18px;
   text-align: left;
@@ -632,6 +633,12 @@ h3 {
     background 180ms ease,
     border-color 180ms ease,
     transform 180ms ease;
+}
+
+.school-menu-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
 }
 
 .school-menu-card:hover,
@@ -657,6 +664,37 @@ h3 {
   font-style: normal;
   font-weight: 900;
   letter-spacing: 0;
+}
+
+.school-logo-mark {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(23, 63, 53, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(23, 33, 29, 0.08);
+  color: var(--forest);
+  display: inline-flex;
+  flex: none;
+  height: 52px;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  width: 52px;
+}
+
+.school-logo-mark span {
+  color: rgba(23, 63, 53, 0.62);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.school-logo-mark img {
+  background: #ffffff;
+  height: 100%;
+  object-fit: contain;
+  padding: 8px;
+  position: absolute;
+  width: 100%;
 }
 
 .school-pagination {
