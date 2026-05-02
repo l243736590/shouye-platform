@@ -2178,8 +2178,8 @@ function App() {
           <span>首批主流院校内容入口</span>
         </div>
         <div>
-          <strong>Verify</strong>
-          <span>邮箱验证、材料审核和后台风控</span>
+          <strong>隐私</strong>
+          <span>售业严格保护用户隐私</span>
         </div>
         <div>
           <strong>B2B</strong>

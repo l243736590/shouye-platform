@@ -543,11 +543,12 @@ h3 {
 }
 
 .section-heading {
-  max-width: 980px;
+  max-width: min(60vw, 1160px);
 }
 
 .section-heading h2 {
-  max-width: 920px;
+  line-height: 1.5;
+  max-width: 100%;
 }
 
 .school-browser-section {
@@ -564,12 +565,13 @@ h3 {
 }
 
 .school-browser-section .section-heading {
-  max-width: 1120px;
+  max-width: min(60vw, 1160px);
 }
 
 .school-browser-section .section-heading h2 {
   font-size: clamp(44px, 7vw, 96px);
-  max-width: 980px;
+  line-height: 1.5;
+  max-width: 100%;
 }
 
 .region-menu {
