@@ -317,9 +317,22 @@ button {
   align-self: center;
   color: #fffdf0;
   margin-left: clamp(22px, 7vw, 96px);
-  max-width: 940px;
+  max-width: 1040px;
   padding: 132px 22px 72px 0;
   z-index: 2;
+}
+
+.sr-only {
+  border: 0;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .eyebrow {
@@ -353,6 +366,20 @@ p {
 h1 {
   font-size: clamp(82px, 15vw, 184px);
   line-height: 0.86;
+}
+
+.hero-title-logo-wrap {
+  line-height: 0;
+}
+
+.hero-title-logo {
+  display: block;
+  filter: drop-shadow(0 24px 44px rgba(2, 8, 6, 0.28));
+  height: auto;
+  max-height: clamp(150px, 22vw, 320px);
+  object-fit: contain;
+  object-position: left center;
+  width: min(64vw, 620px);
 }
 
 h2 {
@@ -1189,6 +1216,15 @@ h3 {
 
 .trust-panel {
   max-width: 820px;
+}
+
+.trust-brand-logo {
+  display: block;
+  filter: drop-shadow(0 20px 44px rgba(0, 0, 0, 0.22));
+  height: auto;
+  margin: -8px 0 30px;
+  max-width: min(100%, 360px);
+  width: 34vw;
 }
 
 .trust-panel > svg {
@@ -2262,6 +2298,16 @@ h3 {
     align-self: end;
     margin-left: 0;
     padding: 110px 20px 42px;
+  }
+
+  .hero-title-logo {
+    max-height: 190px;
+    width: min(88vw, 430px);
+  }
+
+  .trust-brand-logo {
+    max-width: 260px;
+    width: 74vw;
   }
 
   .search-shell {

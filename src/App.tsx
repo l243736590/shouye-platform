@@ -2109,7 +2109,15 @@ function App() {
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
           <p className="eyebrow hero-eyebrow">韩国留学与生活经验平台</p>
-          <h1>售业</h1>
+          <h1 className="hero-title-logo-wrap">
+            <span className="sr-only">售业</span>
+            <img
+              className="hero-title-logo"
+              src="/brand/shouye-logo-light-text.png"
+              alt=""
+              aria-hidden="true"
+            />
+          </h1>
           <p className="hero-copy">
             技能与经验的变现平台
           </p>
@@ -2829,6 +2837,11 @@ function App() {
 
       <section className="trust-section" id="trust">
         <div className="trust-panel">
+          <img
+            className="trust-brand-logo"
+            src="/brand/shouye-logo-light-wordmark.png"
+            alt="售业 Sell what you know"
+          />
           <ShieldCheck size={30} aria-hidden="true" />
           <h2>真实性审核和匿名保护，是商家愿意合作的前提。</h2>
           <p>
