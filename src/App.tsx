@@ -1106,7 +1106,7 @@ function App() {
   const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'partners'>('users')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
-  const [, setMessage] = useState('面向韩国留学&生活提供便利，机构商家精准对接目标客户。')
+  const [, setMessage] = useState('')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
   const [authNotice, setAuthNotice] = useState('')
 
@@ -2023,7 +2023,7 @@ function App() {
           <p className="eyebrow">Sell UR skills · Korea Study Intelligence Platform</p>
           <h1>售业</h1>
           <p className="hero-copy">
-            面向韩国留学&生活提供便利，机构商家精准对接目标客户。
+            技能与经验的变现平台
           </p>
 
           <form
@@ -2068,6 +2068,7 @@ function App() {
               <span>敢于在这承受大众点评的商家才是实力商家</span>
             </div>
           </div>
+          <p className="hero-subcopy">面向韩国留学&生活提供便利，机构商家精准对接目标客户。</p>
         </motion.div>
       </section>
 
