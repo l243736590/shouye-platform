@@ -69,7 +69,7 @@ type SchoolProfile = {
 type CampusLink = {
   label: string
   url: string
-  icon: 'pin' | 'building'
+  icon: 'pin' | 'building' | 'language'
 }
 
 type StoredState = {
@@ -701,6 +701,46 @@ const schoolOfficialUrls: Record<string, string> = {
   chungnam: 'https://plus.cnu.ac.kr/html/en/',
 }
 
+const schoolLanguageInstituteUrls: Record<string, string> = {
+  snu: 'https://lei.snu.ac.kr/',
+  yonsei: 'https://www.yskli.com/',
+  korea: 'https://klc.korea.ac.kr/',
+  'skku-seoul': 'https://koreansli.skku.edu/',
+  hanyang: 'https://iie.hanyang.ac.kr/',
+  kyunghee: 'https://iie.khu.ac.kr/',
+  sejong: 'https://ili.sejong.ac.kr/',
+  cau: 'https://korean.cau.ac.kr/',
+  ewha: 'https://elc.ewha.ac.kr/',
+  sogang: 'https://klec.sogang.ac.kr/',
+  dongguk: 'https://interlang.dongguk.edu/',
+  konkuk: 'https://kfli.konkuk.ac.kr/',
+  hufs: 'https://builder.hufs.ac.kr/user/hufskli/',
+  uos: 'https://global.uos.ac.kr/iice/',
+  'dankook-seoul': 'https://www.dankook.ac.kr/web/international',
+  seoultech: 'https://language.seoultech.ac.kr/',
+  kookmin: 'https://iie.kookmin.ac.kr/',
+  soongsil: 'https://language.ssu.ac.kr/',
+  sookmyung: 'https://lingua.sookmyung.ac.kr/',
+  kwangwoon: 'https://klc.kw.ac.kr/',
+  myongji: 'https://kli.mju.ac.kr/',
+  sangmyung: 'https://www.smu.ac.kr/smklec/index.do',
+  hansung: 'https://www.hansung.ac.kr/global_en/index.do',
+  sungshin: 'https://www.sungshin.ac.kr/sites/kli/index.do',
+  duksung: 'https://dili.duksung.ac.kr/',
+  swu: 'https://klc.swu.ac.kr/',
+  sahmyook: 'https://kli.syu.ac.kr/',
+  hongik: 'https://koreanle.hongik.ac.kr/',
+  skku: 'https://koreansli.skku.edu/',
+  ajou: 'https://kli.ajou.ac.kr/',
+  'hanyang-erica': 'https://iie.hanyang.ac.kr/',
+  'cau-anseong': 'https://korean.cau.ac.kr/',
+  pnu: 'https://lei.pusan.ac.kr/',
+  donga: 'https://global.donga.ac.kr/',
+  knu: 'https://korean.knu.ac.kr/',
+  keimyung: 'https://kli.kmu.ac.kr/',
+  chungnam: 'https://plus.cnu.ac.kr/html/en/',
+}
+
 const campusLinksBySchool: Record<string, CampusLink[]> = {
   'skku-seoul': [
     { label: '明伦校区官网 · 首尔', url: 'https://www.skku.edu/eng/', icon: 'pin' },
@@ -800,15 +840,24 @@ const getBrochureUrl = (school: SchoolProfile) =>
   schoolBrochureUrls[school.id] ??
   `https://www.google.com/search?q=${encodeURIComponent(`${school.name} 외국인 입학 모집요강`)}`
 
+const getLanguageInstituteUrl = (school: SchoolProfile) =>
+  schoolLanguageInstituteUrls[school.id] ??
+  `https://search.naver.com/search.naver?query=${encodeURIComponent(`${school.name} 한국어학당`)}`
+
 const getCampusLinks = (school: SchoolProfile): CampusLink[] => {
   const officialUrl = schoolOfficialUrls[school.id] ?? school.source
-
-  return (
+  const languageInstituteLink: CampusLink = {
+    label: '语学院入口',
+    url: getLanguageInstituteUrl(school),
+    icon: 'language',
+  }
+  const campusLinks =
     campusLinksBySchool[school.id] ?? [
       { label: `${school.region} · ${school.city}`, url: officialUrl, icon: 'pin' },
       { label: `${school.landmark}官网`, url: officialUrl, icon: 'building' },
     ]
-  )
+
+  return [...campusLinks, languageInstituteLink]
 }
 
 const getParentRegion = (schoolId: string) =>
@@ -1472,7 +1521,7 @@ function App() {
           <p className="school-description">{selectedSchool.description}</p>
           <div className="school-page-meta">
             {selectedCampusLinks.map((campus) => {
-              const Icon = campus.icon === 'pin' ? MapPin : Building2
+              const Icon = campus.icon === 'pin' ? MapPin : campus.icon === 'building' ? Building2 : GraduationCap
 
               return (
                 <a href={campus.url} key={campus.label} target="_blank" rel="noreferrer">
