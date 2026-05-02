@@ -8,9 +8,9 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "deploy": "npm run build && wrangler deploy",
-    "db:create": "wrangler d1 create shouye-platform-db",
-    "db:migrate": "wrangler d1 migrations apply shouye-platform-db --remote"
+    "deploy": "npm run build && npx wrangler deploy",
+    "db:create": "npx wrangler d1 create shouye-platform-db",
+    "db:migrate": "npx wrangler d1 migrations apply shouye-platform-db --remote"
   },
   "dependencies": {
     "framer-motion": "^12.38.0",

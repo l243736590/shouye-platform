@@ -7,12 +7,11 @@ directory = "./dist"
 binding = "ASSETS"
 run_worker_first = ["/api/*"]
 
-# Create this D1 database in Cloudflare, then uncomment and fill database_id.
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "shouye-platform-db"
-# database_id = "REPLACE_WITH_D1_DATABASE_ID"
-# migrations_dir = "migrations"
+[[d1_databases]]
+binding = "DB"
+database_name = "shouye-platform-db"
+database_id = "db86ef5e-4044-4107-88a9-9dc497bbfe3f"
+migrations_dir = "migrations"
 
 [vars]
 ADMIN_USERNAME = "l243736590"
