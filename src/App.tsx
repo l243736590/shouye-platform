@@ -1082,13 +1082,17 @@ function App() {
   const [currentPath, setCurrentPath] = useState(() => (typeof window !== 'undefined' ? window.location.pathname : '/'))
   const isAdminRoute = currentPath === '/admin'
   const isProfileRoute = currentPath === '/me'
+  const isPostsRoute = currentPath === '/posts'
   const schoolRouteId =
     typeof window !== 'undefined' ? currentPath.match(/^\/school\/([^/]+)$/)?.[1] : undefined
   const initialAdminToken = typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''
   const [appState, setAppState] = useState<StoredState>(() => initialState())
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
   const [selectedCategory, setSelectedCategory] = useState('全部')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() =>
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : '',
+  )
+  const [postSchoolFilter, setPostSchoolFilter] = useState('全部学校')
   const [selectedSchoolId, setSelectedSchoolId] = useState(() => getInitialSchoolId())
   const [openRegion, setOpenRegion] = useState(
     () => getParentRegion(getInitialSchoolId()) ?? schoolRegions[0].region,
@@ -1159,7 +1163,12 @@ function App() {
   }, [appState])
 
   useEffect(() => {
-    const syncPath = () => setCurrentPath(window.location.pathname)
+    const syncPath = () => {
+      setCurrentPath(window.location.pathname)
+      if (window.location.pathname === '/posts') {
+        setQuery(new URLSearchParams(window.location.search).get('q') ?? '')
+      }
+    }
     window.addEventListener('popstate', syncPath)
     return () => window.removeEventListener('popstate', syncPath)
   }, [])
@@ -1237,15 +1246,23 @@ function App() {
   const filteredPosts = useMemo(() => {
     return appState.posts.filter((post) => {
       const matchesCategory = selectedCategory === '全部' || post.category === selectedCategory
+      const matchesSchool = postSchoolFilter === '全部学校' || post.school === postSchoolFilter
       const text = `${post.title}${post.school}${post.category}${post.excerpt}${post.author}`
       const matchesQuery = text.toLowerCase().includes(query.toLowerCase())
-      return matchesCategory && matchesQuery
+      return matchesCategory && matchesSchool && matchesQuery
     })
-  }, [appState.posts, selectedCategory, query])
+  }, [appState.posts, postSchoolFilter, selectedCategory, query])
   const selectedSchoolPosts = appState.posts.filter((post) => post.school === selectedSchool.name)
   const currentUserPosts = currentUser
     ? appState.posts.filter((post) => post.authorId === currentUser.id || post.author === currentUser.name)
     : []
+  const openPostsPage = (nextQuery = query) => {
+    const trimmedQuery = nextQuery.trim()
+    const nextUrl = trimmedQuery ? `/posts?q=${encodeURIComponent(trimmedQuery)}` : '/posts'
+    window.history.pushState(null, '', nextUrl)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
+  }
 
   const updateUserPoints = (userId: string, nextPoints: number) => {
     const normalizedPoints = Math.max(0, Number.isFinite(nextPoints) ? nextPoints : 0)
@@ -1870,8 +1887,18 @@ function App() {
     setSelectedAdminUserId(null)
   }
 
+  const mainClassName = isAdminRoute
+    ? 'admin-route'
+    : isProfileRoute
+      ? 'profile-route'
+      : isPostsRoute
+        ? 'posts-route'
+        : schoolRouteId
+          ? 'school-route'
+          : undefined
+
   return (
-    <main className={isAdminRoute ? 'admin-route' : isProfileRoute ? 'profile-route' : schoolRouteId ? 'school-route' : undefined}>
+    <main className={mainClassName}>
       <header className="site-header" aria-label="Main navigation">
         <a
           className="brand"
@@ -1931,7 +1958,15 @@ function App() {
               </div>
             </div>
           </div>
-          <a href="#posts">经验库</a>
+          <a
+            href="/posts"
+            onClick={(event) => {
+              event.preventDefault()
+              openPostsPage('')
+            }}
+          >
+            经验库
+          </a>
           <a href="#workspace">合作入口</a>
           <a href="#points">积分</a>
         </nav>
@@ -1991,7 +2026,14 @@ function App() {
             面向韩国留学人群的真实经验库、机构合作入口和留学生人才连接平台。
           </p>
 
-          <div className="search-shell" role="search">
+          <form
+            className="search-shell"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault()
+              openPostsPage(query)
+            }}
+          >
             <Search size={20} aria-hidden="true" />
             <input
               value={query}
@@ -1999,8 +2041,8 @@ function App() {
               placeholder="搜索：延世大学、经营学、教授、毕业论文、签证..."
               aria-label="搜索学校、专业、教授和经验"
             />
-            <button type="button">搜索</button>
-          </div>
+            <button type="submit">搜索</button>
+          </form>
 
           <div className="hero-actions" aria-label="Quick actions">
             <button className="primary-link" type="button" onClick={() => setPublishOpen(true)}>
@@ -2174,6 +2216,118 @@ function App() {
               登录账号
             </button>
           )}
+        </section>
+      )}
+
+      {isPostsRoute && (
+        <section className="posts-page">
+          <div className="posts-page-head">
+            <div>
+              <p className="eyebrow dark">Experience Feed</p>
+              <h1>经验库</h1>
+              <p>像刷小红书一样看韩国院校、教授、课程、申请和生活经验。</p>
+            </div>
+            <button className="primary-link" type="button" onClick={() => setPublishOpen(true)}>
+              发布经验
+              <PenLine size={18} aria-hidden="true" />
+            </button>
+          </div>
+
+          <form
+            className="posts-page-search"
+            role="search"
+            onSubmit={(event) => {
+              event.preventDefault()
+              openPostsPage(query)
+            }}
+          >
+            <Search size={20} aria-hidden="true" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="搜索学校、专业、教授、论文、签证、租房..."
+              aria-label="搜索帖子"
+            />
+            <button type="submit">搜索</button>
+          </form>
+
+          <div className="posts-page-layout">
+            <aside className="posts-filter-panel" aria-label="帖子筛选">
+              <label>
+                学校
+                <select value={postSchoolFilter} onChange={(event) => setPostSchoolFilter(event.target.value)}>
+                  <option>全部学校</option>
+                  {allSchoolProfiles.map((school) => (
+                    <option key={school.id}>{school.name}</option>
+                  ))}
+                </select>
+              </label>
+              <div>
+                <span>分类</span>
+                <div className="posts-filter-tabs">
+                  {categories.map((category) => (
+                    <button
+                      className={selectedCategory === category ? 'active' : ''}
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      type="button"
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            <div className="social-post-grid">
+              {filteredPosts.length ? (
+                filteredPosts.map((post) => {
+                  const unlocked = post.price === 0 || currentUnlocks.includes(post.id)
+                  return (
+                    <motion.article
+                      className="social-post-card"
+                      key={post.id}
+                      layout
+                      whileHover={{ y: -4 }}
+                      transition={{ type: 'spring', stiffness: 230, damping: 20 }}
+                    >
+                      <div className="social-post-cover">
+                        <span>{post.school.slice(0, 2)}</span>
+                      </div>
+                      <div className="social-post-body">
+                        <div className="post-card-header">
+                          <span>{post.category}</span>
+                          <span className={post.price === 0 ? 'free' : 'locked'}>
+                            {post.price === 0 ? '免费' : unlocked ? '已解锁' : `${post.price} 积分`}
+                          </span>
+                        </div>
+                        <h3>{post.title}</h3>
+                        <p>{post.excerpt}</p>
+                        <div className="post-footer">
+                          <span>{post.author}</span>
+                          <span>
+                            <TrendingUp size={15} aria-hidden="true" />
+                            {post.hot}
+                          </span>
+                        </div>
+                        <button className="read-button" type="button" onClick={() => openPost(post)}>
+                          {post.price > 0 && !unlocked ? '积分解锁' : '查看全文'}
+                        </button>
+                      </div>
+                    </motion.article>
+                  )
+                })
+              ) : (
+                <div className="posts-empty-state">
+                  <h3>没有找到相关帖子</h3>
+                  <p>可以换个关键词，或者发布第一篇相关经验。</p>
+                  <button type="button" onClick={() => setPublishOpen(true)}>
+                    发布经验
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
         </section>
       )}
 
