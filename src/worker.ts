@@ -594,10 +594,7 @@ export default {
 
     if (!url.pathname.startsWith('/api/')) {
       const response = await env.ASSETS.fetch(request)
-      if (
-        response.status === 404 &&
-        request.headers.get('accept')?.includes('text/html')
-      ) {
+      if (response.status === 404 && !url.pathname.split('/').pop()?.includes('.')) {
         return env.ASSETS.fetch(new Request(new URL('/', request.url), request))
       }
 
