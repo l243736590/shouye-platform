@@ -16,3 +16,4 @@ migrations_dir = "migrations"
 [vars]
 ADMIN_USERNAME = "l243736590"
 ADMIN_PASSWORD_HASH = "8e20b592394cac7f7faf7b1df2d2e6295d8df4b926f14d96496c7573cb8bcf04"
+MAIL_FROM = "售业平台 <noreply@shouye.fun>"

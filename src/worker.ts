@@ -3,6 +3,8 @@ type Env = {
   ASSETS: Fetcher
   ADMIN_USERNAME: string
   ADMIN_PASSWORD_HASH: string
+  RESEND_API_KEY?: string
+  MAIL_FROM?: string
 }
 
 type UserStatus = 'active' | 'muted' | 'banned'
@@ -26,7 +28,22 @@ type UserRecord = {
   joinedAt: string
   status: UserStatus
   verificationStatus: VerificationStatus
+  avatarUrl: string
+  bio: string
   documents: CredentialDocument[]
+}
+
+type PartnerApplicationRecord = {
+  id: string
+  company: string
+  type: string
+  contact: string
+  phone: string
+  direction: string
+  budget: string
+  detail: string
+  status: 'pending' | 'contacted' | 'closed'
+  createdAt: string
 }
 
 type PostRecord = {
@@ -72,6 +89,8 @@ const rowToUser = (row: Record<string, unknown>, documents: CredentialDocument[]
   joinedAt: String(row.joined_at),
   status: String(row.status) as UserStatus,
   verificationStatus: String(row.verification_status) as VerificationStatus,
+  avatarUrl: String(row.avatar_url ?? ''),
+  bio: String(row.bio ?? ''),
   documents,
 })
 
@@ -96,6 +115,19 @@ const rowToDocument = (row: Record<string, unknown>): CredentialDocument => ({
   type: String(row.type),
   status: String(row.status) as VerificationStatus,
   uploadedAt: String(row.uploaded_at),
+})
+
+const rowToPartnerApplication = (row: Record<string, unknown>): PartnerApplicationRecord => ({
+  id: String(row.id),
+  company: String(row.company),
+  type: String(row.type),
+  contact: String(row.contact),
+  phone: String(row.phone),
+  direction: String(row.direction),
+  budget: String(row.budget ?? ''),
+  detail: String(row.detail ?? ''),
+  status: String(row.status) as PartnerApplicationRecord['status'],
+  createdAt: String(row.created_at),
 })
 
 const readBody = async <T>(request: Request) => {
@@ -140,20 +172,98 @@ const getAllPosts = async (env: Env) => {
   return (rows.results ?? []).map(rowToPost)
 }
 
+const getPartnerApplications = async (env: Env) => {
+  if (!env.DB) return []
+  const rows = await env.DB.prepare('SELECT * FROM partner_applications ORDER BY created_at DESC').all<
+    Record<string, unknown>
+  >()
+  return (rows.results ?? []).map(rowToPartnerApplication)
+}
+
+const sendVerificationEmail = async (env: Env, email: string, code: string) => {
+  if (!env.RESEND_API_KEY) {
+    return { ok: false, error: '邮件服务未配置：请先设置 RESEND_API_KEY。' }
+  }
+
+  const response = await fetch('https://api.resend.com/emails', {
+    body: JSON.stringify({
+      from: env.MAIL_FROM || '售业平台 <noreply@shouye.fun>',
+      to: [email],
+      subject: '售业平台注册验证码',
+      html: `<p>你的售业平台注册验证码是：</p><h2>${code}</h2><p>验证码 10 分钟内有效。</p>`,
+    }),
+    headers: {
+      authorization: `Bearer ${env.RESEND_API_KEY}`,
+      'content-type': 'application/json',
+    },
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    return { ok: false, error: '验证码邮件发送失败，请检查发件域名和邮件服务配置。' }
+  }
+
+  return { ok: true }
+}
+
+const handleSendVerificationCode = async (request: Request, env: Env) => {
+  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  const body = await readBody<{ email: string }>(request)
+  const email = body.email?.trim().toLowerCase()
+
+  if (!email) return json({ error: '请先填写邮箱。' }, { status: 400 })
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: '邮箱格式不正确。' }, { status: 400 })
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
+  if (existing) return json({ error: '这个邮箱已经注册过了，可以直接登录。' }, { status: 409 })
+
+  const code = String(Math.floor(100000 + Math.random() * 900000))
+  const now = new Date()
+  const expiresAt = new Date(now.getTime() + 1000 * 60 * 10)
+  const sent = await sendVerificationEmail(env, email, code)
+
+  if (!sent.ok) return json({ error: sent.error }, { status: 503 })
+
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO email_verifications (email, code_hash, expires_at, created_at)
+     VALUES (?, ?, ?, ?)`,
+  )
+    .bind(email, await hashText(code), expiresAt.toISOString(), now.toISOString())
+    .run()
+
+  return json({ ok: true })
+}
+
+const verifyEmailCode = async (env: Env, email: string, code: string) => {
+  if (!env.DB) return false
+  const row = await env.DB.prepare('SELECT * FROM email_verifications WHERE email = ?').bind(email).first<
+    Record<string, unknown>
+  >()
+  if (!row) return false
+  if (String(row.expires_at) < new Date().toISOString()) return false
+  return String(row.code_hash) === (await hashText(code))
+}
+
 const handleRegister = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
   const body = await readBody<{
     name: string
     email: string
     password: string
+    emailCode: string
     identity: string
     school: string
+    avatarUrl: string
+    bio: string
     documents: CredentialDocument[]
   }>(request)
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
 
   if (!email || !password) return json({ error: '邮箱和密码不能为空。' }, { status: 400 })
+  if (!(await verifyEmailCode(env, email, body.emailCode ?? ''))) {
+    return json({ error: '邮箱验证码不正确或已过期。' }, { status: 400 })
+  }
 
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
   if (existing) return json({ error: '这个邮箱已经注册过了。' }, { status: 409 })
@@ -162,8 +272,8 @@ const handleRegister = async (request: Request, env: Env) => {
   const joinedAt = new Date().toISOString()
   await env.DB.prepare(
     `INSERT INTO users
-      (id, name, email, password_hash, identity, school, points, joined_at, status, verification_status)
-      VALUES (?, ?, ?, ?, ?, ?, 80, ?, 'active', 'pending')`,
+      (id, name, email, password_hash, identity, school, points, joined_at, status, verification_status, avatar_url, bio)
+      VALUES (?, ?, ?, ?, ?, ?, 80, ?, 'active', 'pending', ?, ?)`,
   )
     .bind(
       userId,
@@ -173,6 +283,8 @@ const handleRegister = async (request: Request, env: Env) => {
       body.identity || '准备申请',
       body.school?.trim() || '暂未填写',
       joinedAt,
+      body.avatarUrl?.trim() || '',
+      body.bio?.trim() || '',
     )
     .run()
 
@@ -202,9 +314,13 @@ const handleRegister = async (request: Request, env: Env) => {
       joined_at: joinedAt,
       status: 'active',
       verification_status: 'pending',
+      avatar_url: body.avatarUrl?.trim() || '',
+      bio: body.bio?.trim() || '',
     },
     body.documents ?? [],
   )
+
+  await env.DB.prepare('DELETE FROM email_verifications WHERE email = ?').bind(email).run()
 
   return json({ user })
 }
@@ -307,6 +423,90 @@ const handlePostCreate = async (request: Request, env: Env) => {
   return json({ post })
 }
 
+const handlePartnerCreate = async (request: Request, env: Env) => {
+  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  const body = await readBody<PartnerApplicationRecord>(request)
+
+  if (!body.company?.trim() || !body.contact?.trim() || !body.phone?.trim()) {
+    return json({ error: '请填写机构名称、联系人和联系方式。' }, { status: 400 })
+  }
+
+  const application: PartnerApplicationRecord = {
+    id: createId('partner'),
+    company: body.company.trim(),
+    type: body.type || '留学机构',
+    contact: body.contact.trim(),
+    phone: body.phone.trim(),
+    direction: body.direction || '内容入驻',
+    budget: body.budget?.trim() || '',
+    detail: body.detail?.trim() || '',
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO partner_applications
+      (id, company, type, contact, phone, direction, budget, detail, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      application.id,
+      application.company,
+      application.type,
+      application.contact,
+      application.phone,
+      application.direction,
+      application.budget,
+      application.detail,
+      application.status,
+      application.createdAt,
+    )
+    .run()
+
+  return json({ application })
+}
+
+const updateProfile = async (request: Request, env: Env, userId: string) => {
+  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  const body = await readBody<Partial<UserRecord>>(request)
+  const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
+  if (!existing) return json({ error: '用户不存在。' }, { status: 404 })
+
+  await env.DB.prepare(
+    `UPDATE users SET
+      name = COALESCE(?, name),
+      identity = COALESCE(?, identity),
+      school = COALESCE(?, school),
+      avatar_url = COALESCE(?, avatar_url),
+      bio = COALESCE(?, bio)
+     WHERE id = ?`,
+  )
+    .bind(body.name ?? null, body.identity ?? null, body.school ?? null, body.avatarUrl ?? null, body.bio ?? null, userId)
+    .run()
+
+  for (const document of body.documents ?? []) {
+    await env.DB.prepare(
+      `INSERT INTO user_documents (id, user_id, name, type, status, uploaded_at)
+       VALUES (?, ?, ?, ?, 'pending', ?)`,
+    )
+      .bind(
+        document.id || createId('doc'),
+        userId,
+        document.name || '认证材料',
+        document.type || '身份/学校认证材料',
+        document.uploadedAt || new Date().toISOString(),
+      )
+      .run()
+  }
+
+  const row = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  const documents = await env.DB.prepare('SELECT * FROM user_documents WHERE user_id = ? ORDER BY uploaded_at DESC')
+    .bind(userId)
+    .all<Record<string, unknown>>()
+
+  return json({ user: row ? rowToUser(row, (documents.results ?? []).map(rowToDocument)) : null })
+}
+
 const updateUser = async (request: Request, env: Env, userId: string) => {
   if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
   const body = await readBody<Partial<UserRecord>>(request)
@@ -320,7 +520,9 @@ const updateUser = async (request: Request, env: Env, userId: string) => {
       school = COALESCE(?, school),
       points = COALESCE(?, points),
       status = COALESCE(?, status),
-      verification_status = COALESCE(?, verification_status)
+      verification_status = COALESCE(?, verification_status),
+      avatar_url = COALESCE(?, avatar_url),
+      bio = COALESCE(?, bio)
      WHERE id = ?`,
   )
     .bind(
@@ -330,6 +532,8 @@ const updateUser = async (request: Request, env: Env, userId: string) => {
       typeof body.points === 'number' ? body.points : null,
       body.status ?? null,
       body.verificationStatus ?? null,
+      body.avatarUrl ?? null,
+      body.bio ?? null,
       userId,
     )
     .run()
@@ -368,6 +572,22 @@ const updatePost = async (request: Request, env: Env, postId: string) => {
   return json({ posts: await getAllPosts(env) })
 }
 
+const deleteOwnPost = async (request: Request, env: Env, postId: string) => {
+  if (!env.DB) return json({ error: 'D1 数据库尚未绑定。' }, { status: 503 })
+  const body = await readBody<{ userId: string }>(request)
+  const post = await env.DB.prepare('SELECT author_id FROM posts WHERE id = ?').bind(postId).first<
+    Record<string, unknown>
+  >()
+
+  if (!post) return json({ error: '帖子不存在。' }, { status: 404 })
+  if (!body.userId || String(post.author_id) !== body.userId) {
+    return json({ error: '只能删除自己发布的帖子。' }, { status: 403 })
+  }
+
+  await env.DB.prepare('DELETE FROM posts WHERE id = ?').bind(postId).run()
+  return json({ posts: await getAllPosts(env) })
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
@@ -386,16 +606,31 @@ export default {
 
     if (url.pathname === '/api/health') return json({ ok: true })
     if (url.pathname === '/api/posts' && request.method === 'GET') return json({ posts: await getAllPosts(env) })
+    if (url.pathname === '/api/auth/send-code' && request.method === 'POST') {
+      return handleSendVerificationCode(request, env)
+    }
     if (url.pathname === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env)
     if (url.pathname === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env)
     if (url.pathname === '/api/posts' && request.method === 'POST') return handlePostCreate(request, env)
+    const publicPostMatch = url.pathname.match(/^\/api\/posts\/([^/]+)$/)
+    if (publicPostMatch && request.method === 'DELETE') return deleteOwnPost(request, env, publicPostMatch[1])
+    if (url.pathname === '/api/partner-applications' && request.method === 'POST') {
+      return handlePartnerCreate(request, env)
+    }
     if (url.pathname === '/api/admin/login' && request.method === 'POST') return handleAdminLogin(request, env)
+
+    const publicUserMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/)
+    if (publicUserMatch && request.method === 'PATCH') return updateProfile(request, env, publicUserMatch[1])
 
     if (url.pathname.startsWith('/api/admin/')) {
       if (!(await requireAdmin(request, env))) return json({ error: '未登录管理员。' }, { status: 401 })
 
       if (url.pathname === '/api/admin/state' && request.method === 'GET') {
-        return json({ users: await getAllUsers(env), posts: await getAllPosts(env) })
+        return json({
+          users: await getAllUsers(env),
+          posts: await getAllPosts(env),
+          partnerApplications: await getPartnerApplications(env),
+        })
       }
 
       const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/)

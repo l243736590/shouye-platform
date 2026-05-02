@@ -48,7 +48,22 @@ type User = {
   joinedAt: string
   status: UserStatus
   verificationStatus: VerificationStatus
+  avatarUrl: string
+  bio: string
   documents: CredentialDocument[]
+}
+
+type PartnerApplication = {
+  id: string
+  company: string
+  type: string
+  contact: string
+  phone: string
+  direction: string
+  budget: string
+  detail: string
+  status: 'pending' | 'contacted' | 'closed'
+  createdAt: string
 }
 
 type Post = {
@@ -89,6 +104,7 @@ type CampusLink = {
 type StoredState = {
   users: User[]
   posts: Post[]
+  partnerApplications: PartnerApplication[]
   currentUserId: string | null
   unlockedPostIds: Record<string, string[]>
 }
@@ -1019,17 +1035,19 @@ const normalizeUser = (user: Partial<User>): User => ({
   joinedAt: user.joinedAt ?? new Date().toISOString(),
   status: user.status ?? 'active',
   verificationStatus: user.verificationStatus ?? (user.documents?.length ? 'pending' : 'pending'),
+  avatarUrl: user.avatarUrl ?? '',
+  bio: user.bio ?? '',
   documents: user.documents ?? [],
 })
 
 const initialState = (): StoredState => {
   if (typeof window === 'undefined') {
-    return { users: [], posts: seedPosts, currentUserId: null, unlockedPostIds: {} }
+    return { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
   }
 
   const saved = window.localStorage.getItem(storageKey)
   if (!saved) {
-    return { users: [], posts: seedPosts, currentUserId: null, unlockedPostIds: {} }
+    return { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
   }
 
   try {
@@ -1037,18 +1055,24 @@ const initialState = (): StoredState => {
     return {
       users: (parsed.users ?? []).map(normalizeUser),
       posts: parsed.posts?.length ? parsed.posts : seedPosts,
+      partnerApplications: parsed.partnerApplications ?? [],
       currentUserId: parsed.currentUserId ?? null,
       unlockedPostIds: parsed.unlockedPostIds ?? {},
     }
   } catch {
-    return { users: [], posts: seedPosts, currentUserId: null, unlockedPostIds: {} }
+    return { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
   }
 }
 
 function App() {
-  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin'
+  const [currentPath, setCurrentPath] = useState(() => (typeof window !== 'undefined' ? window.location.pathname : '/'))
+  const isAdminRoute = currentPath === '/admin'
+  const isProfileRoute = currentPath === '/me'
+  const schoolRouteId =
+    typeof window !== 'undefined' ? currentPath.match(/^\/school\/([^/]+)$/)?.[1] : undefined
   const initialAdminToken = typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''
   const [appState, setAppState] = useState<StoredState>(() => initialState())
+  const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
   const [selectedCategory, setSelectedCategory] = useState('全部')
   const [query, setQuery] = useState('')
   const [selectedSchoolId, setSelectedSchoolId] = useState(() => getInitialSchoolId())
@@ -1061,7 +1085,7 @@ function App() {
   const [adminOpen, setAdminOpen] = useState(() => isAdminRoute && Boolean(initialAdminToken))
   const [adminLoginOpen, setAdminLoginOpen] = useState(() => isAdminRoute && !initialAdminToken)
   const [adminToken, setAdminToken] = useState(initialAdminToken)
-  const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
+  const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'partners'>('users')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [message, setMessage] = useState('面向韩国留学人群的经验内容、机构入驻与人才连接平台。')
@@ -1076,15 +1100,17 @@ function App() {
     emailCode: '',
     identity: '准备申请',
     school: '',
+    avatarUrl: '',
+    bio: '',
     documents: [] as CredentialDocument[],
   })
-  const [pendingEmailCode, setPendingEmailCode] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
+  const [pointDrafts, setPointDrafts] = useState<Record<string, string>>({})
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
 
   const [postForm, setPostForm] = useState({
     title: '',
-    school: '',
+    school: allSchoolProfiles[0].name,
     category: '申请避坑',
     excerpt: '',
     body: '',
@@ -1104,10 +1130,24 @@ function App() {
     password: '',
     error: '',
   })
+  const [profileForm, setProfileForm] = useState({
+    name: currentUser?.name ?? '',
+    avatarUrl: currentUser?.avatarUrl ?? '',
+    bio: currentUser?.bio ?? '',
+    identity: currentUser?.identity ?? '准备申请',
+    school: currentUser?.school ?? '',
+    documents: [] as CredentialDocument[],
+  })
 
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(appState))
   }, [appState])
+
+  useEffect(() => {
+    const syncPath = () => setCurrentPath(window.location.pathname)
+    window.addEventListener('popstate', syncPath)
+    return () => window.removeEventListener('popstate', syncPath)
+  }, [])
 
   useEffect(() => {
     fetch('/api/posts')
@@ -1122,18 +1162,20 @@ function App() {
       })
   }, [])
 
-  const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
+  const routeSchool = schoolRouteId
+    ? allSchoolProfiles.find((school) => school.id === decodeURIComponent(schoolRouteId))
+    : null
   const selectedSchool =
-    allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
+    routeSchool ?? allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
   const selectedCampusLinks = getCampusLinks(selectedSchool)
   const normalizedAuthEmail = authForm.email.trim().toLowerCase()
   const isEmailCodeVerified =
     authMode === 'register' &&
-    Boolean(pendingEmailCode) &&
+    Boolean(pendingEmail) &&
     pendingEmail === normalizedAuthEmail &&
-    authForm.emailCode.trim() === pendingEmailCode
+    authForm.emailCode.trim().length === 6
 
   const filteredPosts = useMemo(() => {
     return appState.posts.filter((post) => {
@@ -1143,17 +1185,23 @@ function App() {
       return matchesCategory && matchesQuery
     })
   }, [appState.posts, selectedCategory, query])
+  const selectedSchoolPosts = appState.posts.filter((post) => post.school === selectedSchool.name)
+  const currentUserPosts = currentUser
+    ? appState.posts.filter((post) => post.authorId === currentUser.id || post.author === currentUser.name)
+    : []
 
   const updateUserPoints = (userId: string, nextPoints: number) => {
+    const normalizedPoints = Math.max(0, Number.isFinite(nextPoints) ? nextPoints : 0)
     setAppState((state) => ({
       ...state,
       users: state.users.map((user) =>
-        user.id === userId ? { ...user, points: nextPoints } : user,
+        user.id === userId ? { ...user, points: normalizedPoints } : user,
       ),
     }))
+    setPointDrafts((drafts) => ({ ...drafts, [userId]: String(normalizedPoints) }))
     if (adminToken) {
       fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
-        body: JSON.stringify({ points: nextPoints }),
+        body: JSON.stringify({ points: normalizedPoints }),
         headers: {
           authorization: `Bearer ${adminToken}`,
           'content-type': 'application/json',
@@ -1312,11 +1360,12 @@ function App() {
       headers: { authorization: `Bearer ${token}` },
     })
     if (!response.ok) throw new Error('admin-state-failed')
-    const data = (await response.json()) as { users: User[]; posts: Post[] }
+    const data = (await response.json()) as { users: User[]; posts: Post[]; partnerApplications?: PartnerApplication[] }
     setAppState((state) => ({
       ...state,
       users: data.users ?? state.users,
       posts: data.posts?.length ? data.posts : state.posts,
+      partnerApplications: data.partnerApplications ?? state.partnerApplications,
     }))
   }
 
@@ -1392,7 +1441,7 @@ function App() {
       return
     }
 
-    if (!pendingEmailCode || pendingEmail !== email || authForm.emailCode.trim() !== pendingEmailCode) {
+    if (pendingEmail !== email || authForm.emailCode.trim().length !== 6) {
       setMessage('请先完成邮箱验证码校验。')
       setAuthNotice('请先点击发送验证码，并输入当前邮箱收到的 6 位验证码。')
       return
@@ -1415,12 +1464,14 @@ function App() {
       joinedAt: new Date().toISOString(),
       status: 'active',
       verificationStatus: authForm.documents.length ? 'pending' : 'pending',
+      avatarUrl: authForm.avatarUrl.trim(),
+      bio: authForm.bio.trim(),
       documents: authForm.documents,
     }
 
     try {
       const response = await fetch('/api/auth/register', {
-        body: JSON.stringify({ ...user, password }),
+        body: JSON.stringify({ ...user, password, emailCode: authForm.emailCode.trim() }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
       })
@@ -1443,7 +1494,6 @@ function App() {
       unlockedPostIds: { ...state.unlockedPostIds, [user.id]: [] },
     }))
     setAuthMode(null)
-    setPendingEmailCode('')
     setPendingEmail('')
     setAuthNotice('')
     setAuthForm({
@@ -1454,12 +1504,14 @@ function App() {
       emailCode: '',
       identity: '准备申请',
       school: '',
+      avatarUrl: '',
+      bio: '',
       documents: [],
     })
     setMessage('注册成功，已获得 80 初始积分，可用于解锁加精内容。')
   }
 
-  const sendEmailCode = () => {
+  const sendEmailCode = async () => {
     const email = authForm.email.trim().toLowerCase()
     if (!email) {
       setMessage('请先填写邮箱，再发送验证码。')
@@ -1476,12 +1528,26 @@ function App() {
       setAuthNotice('这个邮箱已经注册过了，可以直接登录。')
       return
     }
-    const code = String(Math.floor(100000 + Math.random() * 900000))
-    setPendingEmailCode(code)
-    setPendingEmail(email)
-    setAuthForm((form) => ({ ...form, emailCode: '' }))
-    setAuthNotice(`验证码已生成。当前演示版还未接入真实邮件服务，测试验证码：${code}`)
-    setMessage(`验证码已生成。当前演示版还未接入真实邮件服务，测试验证码：${code}`)
+    try {
+      const response = await fetch('/api/auth/send-code', {
+        body: JSON.stringify({ email }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json()) as { error?: string }
+      if (!response.ok) {
+        setAuthNotice(data.error ?? '验证码邮件发送失败。')
+        setMessage(data.error ?? '验证码邮件发送失败。')
+        return
+      }
+      setPendingEmail(email)
+      setAuthForm((form) => ({ ...form, emailCode: '' }))
+      setAuthNotice(`验证码已发送到 ${email}，请在 10 分钟内填写。`)
+      setMessage(`验证码已发送到 ${email}。`)
+    } catch {
+      setAuthNotice('验证码邮件发送失败，请稍后再试。')
+      setMessage('验证码邮件发送失败，请稍后再试。')
+    }
   }
 
   const handlePublish = async (event: FormEvent<HTMLFormElement>) => {
@@ -1545,7 +1611,7 @@ function App() {
     }))
     setPostForm({
       title: '',
-      school: '',
+      school: allSchoolProfiles[0].name,
       category: '申请避坑',
       excerpt: '',
       body: '',
@@ -1555,11 +1621,39 @@ function App() {
     setMessage('发布成功，系统已奖励 30 积分。')
   }
 
-  const handlePartnerApply = (event: FormEvent<HTMLFormElement>) => {
+  const handlePartnerApply = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!partnerForm.company.trim() || !partnerForm.contact.trim() || !partnerForm.phone.trim()) {
       setMessage('请填写机构名称、联系人和联系方式。')
       return
+    }
+
+    try {
+      const response = await fetch('/api/partner-applications', {
+        body: JSON.stringify(partnerForm),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json()) as { application?: PartnerApplication; error?: string }
+      if (!response.ok || !data.application) {
+        setMessage(data.error ?? '合作申请提交失败，请稍后再试。')
+        return
+      }
+      setAppState((state) => ({
+        ...state,
+        partnerApplications: [data.application as PartnerApplication, ...state.partnerApplications],
+      }))
+    } catch {
+      const localApplication: PartnerApplication = {
+        id: createId('partner'),
+        ...partnerForm,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      }
+      setAppState((state) => ({
+        ...state,
+        partnerApplications: [localApplication, ...state.partnerApplications],
+      }))
     }
 
     setPartnerForm({
@@ -1572,7 +1666,72 @@ function App() {
       detail: '',
     })
     setPartnerOpen(false)
-    setMessage('合作申请已提交。当前演示版会先保存在前端流程里，正式上线后接入后台数据库和通知。')
+    setMessage('合作申请已提交，后台可以查看。')
+  }
+
+  const handleProfileSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!currentUser) {
+      setAuthMode('login')
+      return
+    }
+
+    const patch: Partial<User> = {
+      name: profileForm.name.trim() || currentUser.name,
+      avatarUrl: profileForm.avatarUrl.trim(),
+      bio: profileForm.bio.trim(),
+      identity: profileForm.identity,
+      school: profileForm.school.trim() || currentUser.school,
+      documents: profileForm.documents,
+    }
+
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(currentUser.id)}`, {
+        body: JSON.stringify(patch),
+        headers: { 'content-type': 'application/json' },
+        method: 'PATCH',
+      })
+      const data = (await response.json()) as { user?: User; error?: string }
+      if (!response.ok || !data.user) {
+        setMessage(data.error ?? '个人信息保存失败。')
+        return
+      }
+      setAppState((state) => ({
+        ...state,
+        users: state.users.map((user) => (user.id === currentUser.id ? data.user as User : user)),
+      }))
+      setMessage('个人信息已保存。')
+      return
+    } catch {
+      setAppState((state) => ({
+        ...state,
+        users: state.users.map((user) =>
+          user.id === currentUser.id
+            ? {
+                ...user,
+                ...patch,
+                documents: [...user.documents, ...(profileForm.documents ?? [])],
+              }
+            : user,
+        ),
+      }))
+      setMessage('个人信息已保存到本地。')
+    }
+  }
+
+  const removeOwnPost = (postId: string) => {
+    if (currentUser) {
+      fetch(`/api/posts/${encodeURIComponent(postId)}`, {
+        body: JSON.stringify({ userId: currentUser.id }),
+        headers: { 'content-type': 'application/json' },
+        method: 'DELETE',
+      }).catch(() => setMessage('云端删除帖子失败，已先从本地列表移除。'))
+    }
+    setAppState((state) => ({
+      ...state,
+      posts: state.posts.filter((post) => post.id !== postId),
+    }))
+    removePost(postId)
   }
 
   const openPost = (post: Post) => {
@@ -1607,7 +1766,7 @@ function App() {
   }
 
   const resetLocalData = () => {
-    const nextState = { users: [], posts: seedPosts, currentUserId: null, unlockedPostIds: {} }
+    const nextState = { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
     setAppState(nextState)
     setMessage('页面数据已重置。')
   }
@@ -1661,7 +1820,7 @@ function App() {
   }
 
   return (
-    <main className={isAdminRoute ? 'admin-route' : undefined}>
+    <main className={isAdminRoute ? 'admin-route' : isProfileRoute ? 'profile-route' : schoolRouteId ? 'school-route' : undefined}>
       <header className="site-header" aria-label="Main navigation">
         <a className="brand" href="#top" aria-label="售业平台首页">
           <span className="brand-mark">
@@ -1718,6 +1877,23 @@ function App() {
           <div className="user-pill">
             <span>{currentUser.name}</span>
             <strong>{currentUser.points} 积分</strong>
+            <button
+              type="button"
+              onClick={() => {
+                setProfileForm({
+                  name: currentUser.name,
+                  avatarUrl: currentUser.avatarUrl,
+                  bio: currentUser.bio,
+                  identity: currentUser.identity,
+                  school: currentUser.school,
+                  documents: [],
+                })
+                window.history.pushState(null, '', '/me')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+            >
+              个人中心
+            </button>
             <button
               type="button"
               onClick={() => setAppState((state) => ({ ...state, currentUserId: null }))}
@@ -1792,6 +1968,164 @@ function App() {
           <span>机构内容入驻与企业人才合作</span>
         </div>
       </section>
+
+      {isProfileRoute && (
+        <section className="profile-page">
+          <div className="section-heading">
+            <p className="eyebrow dark">个人中心</p>
+            <h2>{currentUser ? '管理个人资料、认证材料和已发布帖子。' : '请先登录后进入个人中心。'}</h2>
+          </div>
+          {currentUser ? (
+            <div className="profile-layout">
+              <form className="profile-panel form-stack" onSubmit={handleProfileSave}>
+                <div className="profile-avatar-row">
+                  <div className="profile-avatar">
+                    {profileForm.avatarUrl ? <img src={profileForm.avatarUrl} alt="" /> : currentUser.name.slice(0, 1)}
+                  </div>
+                  <label>
+                    头像图片链接
+                    <input
+                      value={profileForm.avatarUrl}
+                      onChange={(event) => setProfileForm({ ...profileForm, avatarUrl: event.target.value })}
+                      placeholder="https://..."
+                    />
+                  </label>
+                </div>
+                <label>
+                  昵称
+                  <input
+                    value={profileForm.name}
+                    onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
+                  />
+                </label>
+                <div className="form-grid partner-form-grid">
+                  <label>
+                    身份
+                    <select
+                      value={profileForm.identity}
+                      onChange={(event) => setProfileForm({ ...profileForm, identity: event.target.value })}
+                    >
+                      <option>准备申请</option>
+                      <option>已录取</option>
+                      <option>在读学生</option>
+                      <option>毕业校友</option>
+                      <option>留学顾问</option>
+                    </select>
+                  </label>
+                  <label>
+                    学校 / 目标学校
+                    <input
+                      value={profileForm.school}
+                      onChange={(event) => setProfileForm({ ...profileForm, school: event.target.value })}
+                    />
+                  </label>
+                </div>
+                <label>
+                  个人简介
+                  <textarea
+                    value={profileForm.bio}
+                    onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })}
+                    placeholder="写一下你的学校、专业、申请方向或可分享经验。"
+                  />
+                </label>
+                <label>
+                  补充认证材料
+                  <input
+                    multiple
+                    type="file"
+                    onChange={(event) => {
+                      const files = Array.from(event.target.files ?? [])
+                      setProfileForm({
+                        ...profileForm,
+                        documents: files.map((file) => ({
+                          id: createId('doc'),
+                          name: file.name,
+                          type: file.type || '身份/学校认证材料',
+                          status: 'pending',
+                          uploadedAt: new Date().toISOString(),
+                        })),
+                      })
+                    }}
+                  />
+                  <small className="field-help">演示版保存文件名；正式版下一步接 R2 保存文件。</small>
+                </label>
+                <button type="submit">保存个人信息</button>
+              </form>
+              <div className="profile-panel">
+                <h3>我的认证材料</h3>
+                {currentUser.documents.length ? (
+                  currentUser.documents.map((document) => (
+                    <div className="credential-item" key={document.id}>
+                      <div>
+                        <strong>{document.name}</strong>
+                        <small>{new Date(document.uploadedAt).toLocaleDateString('zh-CN')}</small>
+                      </div>
+                      <span className={`account-badge ${document.status}`}>
+                        {verificationStatusLabel[document.status]}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="admin-empty">暂未提交认证材料。</p>
+                )}
+                <h3>我的帖子</h3>
+                {currentUserPosts.length ? (
+                  currentUserPosts.map((post) => (
+                    <div className="profile-post-row" key={post.id}>
+                      <div>
+                        <strong>{post.title}</strong>
+                        <small>{post.school} · {post.category} · {post.price ? `${post.price} 积分` : '免费'}</small>
+                      </div>
+                      <button type="button" onClick={() => setActivePost(post)}>
+                        预览
+                      </button>
+                      <button className="danger-button" type="button" onClick={() => removeOwnPost(post.id)}>
+                        删除
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <p className="admin-empty">还没有发布帖子。</p>
+                )}
+              </div>
+            </div>
+          ) : (
+            <button className="primary-link" type="button" onClick={() => setAuthMode('login')}>
+              登录账号
+            </button>
+          )}
+        </section>
+      )}
+
+      {schoolRouteId && (
+        <section className="school-posts-page">
+          <div className="section-heading">
+            <p className="eyebrow dark">{selectedSchool.name}</p>
+            <h2>{selectedSchool.name} 相关经验帖子。</h2>
+          </div>
+          <div className="post-grid">
+            {selectedSchoolPosts.length ? (
+              selectedSchoolPosts.map((post) => (
+                <article className="post-card" key={post.id}>
+                  <div className="post-card-header">
+                    <span>{post.category}</span>
+                    <span className={post.price === 0 ? 'free' : 'locked'}>
+                      {post.price === 0 ? '免费' : `${post.price} 积分`}
+                    </span>
+                  </div>
+                  <h3>{post.title}</h3>
+                  <p>{post.excerpt}</p>
+                  <button className="read-button" type="button" onClick={() => openPost(post)}>
+                    查看全文
+                  </button>
+                </article>
+              ))
+            ) : (
+              <p className="admin-empty">这所学校暂时还没有帖子，可以先发布第一篇经验。</p>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="school-browser-section" id="school-browser">
         <div className="section-heading">
@@ -1928,7 +2262,14 @@ function App() {
               分享这所学校的经验
               <PenLine size={18} aria-hidden="true" />
             </button>
-            <button type="button" className="school-experience-link" onClick={() => setQuery(selectedSchool.name)}>
+            <button
+              type="button"
+              className="school-experience-link"
+              onClick={() => {
+                window.history.pushState(null, '', `/school/${selectedSchool.id}`)
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+            >
               获取这所学校的经验
               <BookOpenText size={20} aria-hidden="true" />
             </button>
@@ -2232,6 +2573,10 @@ function App() {
                 <span>加精内容</span>
                 <strong>{appState.posts.filter((post) => post.featured).length}</strong>
               </div>
+              <div>
+                <span>合作申请</span>
+                <strong>{appState.partnerApplications.length}</strong>
+              </div>
             </div>
             <div className="admin-tabs" role="tablist" aria-label="后台管理分类">
               <button
@@ -2247,6 +2592,13 @@ function App() {
                 onClick={() => setAdminTab('posts')}
               >
                 帖子管理
+              </button>
+              <button
+                className={adminTab === 'partners' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('partners')}
+              >
+                合作申请
               </button>
             </div>
 
@@ -2278,14 +2630,20 @@ function App() {
                           aria-label={`${user.name} 积分`}
                           min="0"
                           type="number"
-                          value={user.points}
+                          value={pointDrafts[user.id] ?? String(user.points)}
                           onChange={(event) =>
-                            updateUserPoints(user.id, Math.max(0, Number.parseInt(event.target.value, 10) || 0))
+                            setPointDrafts((drafts) => ({ ...drafts, [user.id]: event.target.value }))
                           }
                         />
                         <div className="admin-actions">
                           <button type="button" onClick={() => setSelectedAdminUserId(user.id)}>
                             查看账号
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateUserPoints(user.id, Number.parseInt(pointDrafts[user.id] ?? String(user.points), 10) || 0)}
+                          >
+                            保存
                           </button>
                           <button type="button" onClick={() => updateUserPoints(user.id, user.points + 50)}>
                             +50
@@ -2415,7 +2773,7 @@ function App() {
                   )}
                 </aside>
               </div>
-            ) : (
+            ) : adminTab === 'posts' ? (
               <div className="admin-table admin-post-table">
                 <div className="admin-row admin-row-head">
                   <span>帖子</span>
@@ -2471,8 +2829,38 @@ function App() {
                   </div>
                 ))}
               </div>
+            ) : (
+              <div className="admin-table admin-partner-table">
+                <div className="admin-row admin-row-head">
+                  <span>机构</span>
+                  <span>类型</span>
+                  <span>方向</span>
+                  <span>联系人</span>
+                  <span>需求</span>
+                </div>
+                {appState.partnerApplications.length === 0 ? (
+                  <p className="admin-empty">暂无合作申请。</p>
+                ) : (
+                  appState.partnerApplications.map((application) => (
+                    <div className="admin-row" key={application.id}>
+                      <div>
+                        <strong>{application.company}</strong>
+                        <small>{new Date(application.createdAt).toLocaleDateString('zh-CN')}</small>
+                      </div>
+                      <span>{application.type}</span>
+                      <span>{application.direction}</span>
+                      <div>
+                        <strong>{application.contact}</strong>
+                        <small>{application.phone}</small>
+                        <small>{application.budget || '未填写预算'}</small>
+                      </div>
+                      <p className="admin-partner-detail">{application.detail || '未填写详细需求'}</p>
+                    </div>
+                  ))
+                )}
+              </div>
             )}
-            <p className="admin-footnote">当前后台为演示版，数据保存在本机浏览器；正式上线需要接数据库和管理员权限。</p>
+            <p className="admin-footnote">后台已接入 Cloudflare D1；注册账号、合作申请、积分和帖子管理会保存到云端数据库。</p>
           </section>
         </div>
       )}
@@ -2649,12 +3037,17 @@ function App() {
               </label>
               <div className="form-grid">
                 <label>
-                  学校 / 主题
-                  <input
+                  学校
+                  <select
                     value={postForm.school}
                     onChange={(event) => setPostForm({ ...postForm, school: event.target.value })}
-                    placeholder="例如：庆熙大学"
-                  />
+                  >
+                    {allSchoolProfiles.map((school) => (
+                      <option key={school.id} value={school.name}>
+                        {school.name}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label>
                   分类

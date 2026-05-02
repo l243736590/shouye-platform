@@ -1186,6 +1186,93 @@ h3 {
   width: min(100%, 1480px);
 }
 
+.profile-route,
+.school-route {
+  background: #eef5ee;
+  min-height: 100svh;
+}
+
+.profile-route > :not(.site-header):not(.profile-page):not(.modal-backdrop),
+.school-route > :not(.site-header):not(.school-posts-page):not(.modal-backdrop) {
+  display: none !important;
+}
+
+.profile-page,
+.school-posts-page {
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 120px 24px 64px;
+}
+
+.profile-layout {
+  align-items: start;
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(360px, 0.75fr) minmax(0, 1fr);
+}
+
+.profile-panel {
+  background: #fffdf7;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 50px rgba(23, 33, 29, 0.06);
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.profile-avatar-row {
+  align-items: end;
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 86px minmax(0, 1fr);
+}
+
+.profile-avatar {
+  align-items: center;
+  aspect-ratio: 1;
+  background: var(--forest);
+  border-radius: 8px;
+  color: #fffdf0;
+  display: flex;
+  font-size: 34px;
+  font-weight: 900;
+  justify-content: center;
+  overflow: hidden;
+  width: 86px;
+}
+
+.profile-avatar img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.profile-post-row {
+  align-items: center;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 88px 88px;
+  padding-top: 12px;
+}
+
+.profile-post-row div {
+  display: grid;
+  gap: 5px;
+}
+
+.profile-post-row button {
+  background: #eef5ee;
+  color: var(--forest);
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.school-posts-page .post-grid {
+  margin-top: 20px;
+}
+
 .modal-sheet h2 {
   font-size: clamp(28px, 4vw, 48px);
   margin-bottom: 24px;
@@ -1310,7 +1397,7 @@ h3 {
 .admin-summary {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   margin-bottom: 18px;
 }
 
@@ -1391,6 +1478,10 @@ h3 {
   grid-template-columns: minmax(260px, 1.5fr) 150px 100px 110px 170px;
 }
 
+.admin-partner-table .admin-row {
+  grid-template-columns: minmax(180px, 1fr) 120px 150px 180px minmax(260px, 1.4fr);
+}
+
 .admin-row-head {
   background: #f6f8f4;
   color: var(--forest);
@@ -1414,6 +1505,13 @@ h3 {
   outline: 0;
   padding: 8px 10px;
   width: 100%;
+}
+
+.admin-partner-detail {
+  color: #354740;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 0;
 }
 
 .admin-actions {
@@ -1629,8 +1727,13 @@ h3 {
     grid-template-columns: 1fr;
   }
 
+  .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
   .admin-user-table .admin-row,
-  .admin-post-table .admin-row {
+  .admin-post-table .admin-row,
+  .admin-partner-table .admin-row {
     align-items: stretch;
     grid-template-columns: 1fr;
   }
@@ -1756,6 +1859,16 @@ h3 {
   .points-flow > svg {
     justify-self: center;
     transform: rotate(90deg);
+  }
+
+  .profile-page,
+  .school-posts-page {
+    padding-inline: 18px;
+  }
+
+  .profile-avatar-row,
+  .profile-post-row {
+    grid-template-columns: 1fr;
   }
 }
 

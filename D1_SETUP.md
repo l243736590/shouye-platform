@@ -1,6 +1,6 @@
 # Cloudflare D1 setup
 
-This project now has a Worker API and D1 schema for accounts, verification documents, posts, unlocks, and admin sessions.
+This project now has a Worker API and D1 schema for accounts, email verification, partner applications, verification documents, posts, unlocks, and admin sessions.
 
 ## 1. Log in to Wrangler
 
@@ -18,8 +18,6 @@ Copy the `database_id` from the command output.
 
 ## 3. Bind D1 in `wrangler.toml`
 
-Uncomment the `[[d1_databases]]` block and replace `REPLACE_WITH_D1_DATABASE_ID`:
-
 ```toml
 [[d1_databases]]
 binding = "DB"
@@ -34,7 +32,17 @@ migrations_dir = "migrations"
 npm run db:migrate
 ```
 
-## 5. Deploy
+## 5. Configure real email verification
+
+Registration sends a real email code through Resend. Create a Resend API key, verify the sending domain, then add the key as a Cloudflare Worker secret:
+
+```powershell
+npx wrangler secret put RESEND_API_KEY
+```
+
+`MAIL_FROM` is configured in `wrangler.toml` as `售业平台 <noreply@shouye.fun>`. Change it after your mail provider confirms the exact sender address.
+
+## 6. Deploy
 
 ```powershell
 npm run deploy
@@ -43,7 +51,9 @@ npm run deploy
 After deployment:
 
 - Registration and login write to D1.
+- Registration requires a real email verification code.
 - Publishing posts writes to D1.
+- Partner applications write to D1 and appear in the admin console.
 - The hidden admin entry logs in through the Worker API.
 - The admin console reads and updates D1 users, documents, points, account status, and posts.
 
