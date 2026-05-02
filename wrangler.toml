@@ -1,5 +1,19 @@
 name = "shouye-platform"
+main = "src/worker.ts"
 compatibility_date = "2026-05-02"
 
 [assets]
 directory = "./dist"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+# Create this D1 database in Cloudflare, then uncomment and fill database_id.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "shouye-platform-db"
+# database_id = "REPLACE_WITH_D1_DATABASE_ID"
+# migrations_dir = "migrations"
+
+[vars]
+ADMIN_USERNAME = "l243736590"
+ADMIN_PASSWORD_HASH = "8e20b592394cac7f7faf7b1df2d2e6295d8df4b926f14d96496c7573cb8bcf04"

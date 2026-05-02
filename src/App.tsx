@@ -98,8 +98,6 @@ const heroImage =
 
 const storageKey = 'shouye-platform-mvp-v1'
 const adminSessionKey = 'shouye-platform-admin-session'
-const adminUsername = 'l243736590'
-const adminPasswordHash = '8e20b592394cac7f7faf7b1df2d2e6295d8df4b926f14d96496c7573cb8bcf04'
 const categories = ['全部', '申请避坑', '学校评价', '教授课程', '毕业就业', '生活落地']
 const schoolPageSize = 8
 
@@ -998,13 +996,6 @@ const pathways = [
 
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
-const hashText = async (value: string) => {
-  const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
-}
-
 const userStatusLabel: Record<UserStatus, string> = {
   active: '正常',
   muted: '禁言',
@@ -1067,8 +1058,8 @@ function App() {
   const [partnerOpen, setPartnerOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [adminLoginOpen, setAdminLoginOpen] = useState(false)
-  const [adminAuthenticated, setAdminAuthenticated] = useState(
-    () => typeof window !== 'undefined' && window.sessionStorage.getItem(adminSessionKey) === 'true',
+  const [adminToken, setAdminToken] = useState(
+    () => (typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''),
   )
   const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
@@ -1118,6 +1109,19 @@ function App() {
     window.localStorage.setItem(storageKey, JSON.stringify(appState))
   }, [appState])
 
+  useEffect(() => {
+    fetch('/api/posts')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { posts?: Post[] } | null) => {
+        if (data?.posts?.length) {
+          setAppState((state) => ({ ...state, posts: data.posts ?? state.posts }))
+        }
+      })
+      .catch(() => {
+        // Keep the local demo data when the Cloudflare API is not bound yet.
+      })
+  }, [])
+
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
@@ -1147,6 +1151,16 @@ function App() {
         user.id === userId ? { ...user, points: nextPoints } : user,
       ),
     }))
+    if (adminToken) {
+      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        body: JSON.stringify({ points: nextPoints }),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      }).catch(() => setMessage('云端积分更新失败，请检查 D1 绑定。'))
+    }
   }
 
   const updateUserAccount = (userId: string, patch: Partial<User>) => {
@@ -1155,6 +1169,16 @@ function App() {
       users: state.users.map((user) => (user.id === userId ? { ...user, ...patch } : user)),
       currentUserId: patch.status === 'banned' && state.currentUserId === userId ? null : state.currentUserId,
     }))
+    if (adminToken) {
+      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        body: JSON.stringify(patch),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      }).catch(() => setMessage('云端账号状态更新失败，请检查 D1 绑定。'))
+    }
   }
 
   const updateUserDocuments = (
@@ -1174,6 +1198,20 @@ function App() {
           : user,
       ),
     }))
+    if (adminToken) {
+      const user = appState.users.find((item) => item.id === userId)
+      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        body: JSON.stringify({
+          verificationStatus,
+          documents: user?.documents.map((document) => ({ ...document, status })) ?? [],
+        }),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      }).catch(() => setMessage('云端材料审核更新失败，请检查 D1 绑定。'))
+    }
   }
 
   const removeUser = (userId: string) => {
@@ -1191,6 +1229,12 @@ function App() {
     if (selectedAdminUserId === userId) {
       setSelectedAdminUserId(null)
     }
+    if (adminToken) {
+      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        headers: { authorization: `Bearer ${adminToken}` },
+        method: 'DELETE',
+      }).catch(() => setMessage('云端删除用户失败，请检查 D1 绑定。'))
+    }
     setMessage('后台已删除用户。')
   }
 
@@ -1199,6 +1243,16 @@ function App() {
       ...state,
       posts: state.posts.map((post) => (post.id === postId ? { ...post, ...patch } : post)),
     }))
+    if (adminToken) {
+      fetch(`/api/admin/posts/${encodeURIComponent(postId)}`, {
+        body: JSON.stringify(patch),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      }).catch(() => setMessage('云端帖子更新失败，请检查 D1 绑定。'))
+    }
   }
 
   const removePost = (postId: string) => {
@@ -1214,6 +1268,12 @@ function App() {
     }))
     if (activePost?.id === postId) {
       setActivePost(null)
+    }
+    if (adminToken) {
+      fetch(`/api/admin/posts/${encodeURIComponent(postId)}`, {
+        headers: { authorization: `Bearer ${adminToken}` },
+        method: 'DELETE',
+      }).catch(() => setMessage('云端删除帖子失败，请检查 D1 绑定。'))
     }
     setMessage('后台已删除帖子。')
   }
@@ -1246,7 +1306,21 @@ function App() {
     setSchoolPages((pages) => ({ ...pages, [region]: page }))
   }
 
-  const handleAuth = (event: FormEvent<HTMLFormElement>) => {
+  const refreshAdminState = async (token = adminToken) => {
+    if (!token) return
+    const response = await fetch('/api/admin/state', {
+      headers: { authorization: `Bearer ${token}` },
+    })
+    if (!response.ok) throw new Error('admin-state-failed')
+    const data = (await response.json()) as { users: User[]; posts: Post[] }
+    setAppState((state) => ({
+      ...state,
+      users: data.users ?? state.users,
+      posts: data.posts?.length ? data.posts : state.posts,
+    }))
+  }
+
+  const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setAuthNotice('')
     const email = authForm.email.trim().toLowerCase()
@@ -1260,6 +1334,33 @@ function App() {
     }
 
     if (authMode === 'login') {
+      try {
+        const response = await fetch('/api/auth/login', {
+          body: JSON.stringify({ email, password }),
+          headers: { 'content-type': 'application/json' },
+          method: 'POST',
+        })
+        const data = (await response.json()) as { user?: User; error?: string }
+        if (!response.ok || !data.user) {
+          setMessage(data.error ?? '没有找到这个账号，或密码不正确。')
+          setAuthNotice(data.error ?? '没有找到这个账号，或密码不正确。')
+          return
+        }
+        const loggedInUser = data.user
+        setAppState((state) => ({
+          ...state,
+          users: state.users.some((user) => user.id === loggedInUser.id)
+            ? state.users.map((user) => (user.id === loggedInUser.id ? loggedInUser : user))
+            : [...state.users, loggedInUser],
+          currentUserId: loggedInUser.id,
+        }))
+        setAuthMode(null)
+        setMessage(`欢迎回来，${loggedInUser.name}。`)
+        return
+      } catch {
+        // Fall back to local demo login when the Cloudflare API is not configured.
+      }
+
       const matched = appState.users.find(
         (user) => user.email === email && user.password === password,
       )
@@ -1317,6 +1418,24 @@ function App() {
       documents: authForm.documents,
     }
 
+    try {
+      const response = await fetch('/api/auth/register', {
+        body: JSON.stringify({ ...user, password }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json()) as { user?: User; error?: string }
+      if (!response.ok || !data.user) {
+        setMessage(data.error ?? '注册失败，请稍后再试。')
+        setAuthNotice(data.error ?? '注册失败，请稍后再试。')
+        return
+      }
+      user.id = data.user.id
+      user.joinedAt = data.user.joinedAt
+    } catch {
+      setMessage('云端数据库暂未连接，已保存到本地演示数据。')
+    }
+
     setAppState((state) => ({
       ...state,
       users: [...state.users, user],
@@ -1365,7 +1484,7 @@ function App() {
     setMessage(`验证码已生成。当前演示版还未接入真实邮件服务，测试验证码：${code}`)
   }
 
-  const handlePublish = (event: FormEvent<HTMLFormElement>) => {
+  const handlePublish = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!currentUser) {
       setAuthMode('register')
@@ -1396,6 +1515,25 @@ function App() {
       body: postForm.body.trim(),
       createdAt: new Date().toISOString(),
       featured: price > 0,
+    }
+
+    try {
+      const response = await fetch('/api/posts', {
+        body: JSON.stringify({ ...post, userId: currentUser.id }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json()) as { post?: Post; error?: string }
+      if (!response.ok || !data.post) {
+        setMessage(data.error ?? '云端发布失败，请稍后再试。')
+        return
+      }
+      post.id = data.post.id
+      post.createdAt = data.post.createdAt
+      post.author = data.post.author
+      post.authorId = data.post.authorId
+    } catch {
+      setMessage('云端数据库暂未连接，已保存到本地演示数据。')
     }
 
     setAppState((state) => ({
@@ -1479,8 +1617,9 @@ function App() {
   }
 
   const openAdminEntry = () => {
-    if (adminAuthenticated) {
+    if (adminToken) {
       setAdminOpen(true)
+      refreshAdminState().catch(() => setMessage('后台云端数据同步失败，请检查 D1 绑定。'))
       return
     }
     setAdminLoginOpen(true)
@@ -1488,24 +1627,35 @@ function App() {
 
   const handleAdminLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const username = adminLoginForm.username.trim()
-    const passwordHash = await hashText(adminLoginForm.password)
+    const response = await fetch('/api/admin/login', {
+      body: JSON.stringify({
+        username: adminLoginForm.username.trim(),
+        password: adminLoginForm.password,
+      }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    }).catch(() => null)
+    const data = response ? ((await response.json()) as { token?: string; error?: string }) : null
 
-    if (username !== adminUsername || passwordHash !== adminPasswordHash) {
-      setAdminLoginForm((form) => ({ ...form, error: '管理员账号或密码不正确。' }))
+    if (!response?.ok || !data?.token) {
+      setAdminLoginForm((form) => ({
+        ...form,
+        error: data?.error ?? '管理员登录失败，请确认 D1 数据库和 Worker API 已部署。',
+      }))
       return
     }
 
-    window.sessionStorage.setItem(adminSessionKey, 'true')
-    setAdminAuthenticated(true)
+    window.sessionStorage.setItem(adminSessionKey, data.token)
+    setAdminToken(data.token)
     setAdminLoginOpen(false)
     setAdminOpen(true)
     setAdminLoginForm({ username: '', password: '', error: '' })
+    refreshAdminState(data.token).catch(() => setMessage('后台已登录，但云端数据同步失败。'))
   }
 
   const logoutAdmin = () => {
     window.sessionStorage.removeItem(adminSessionKey)
-    setAdminAuthenticated(false)
+    setAdminToken('')
     setAdminOpen(false)
     setSelectedAdminUserId(null)
   }
