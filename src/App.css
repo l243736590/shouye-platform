@@ -444,15 +444,6 @@ h3 {
   max-width: 260px;
 }
 
-.status-line {
-  color: rgba(255, 253, 240, 0.9);
-  font-size: clamp(24px, 2.5vw, 40px);
-  font-weight: 900;
-  line-height: 1.25;
-  margin-top: 24px;
-  max-width: 1120px;
-}
-
 .proof-band {
   background: #ffffff;
   border-bottom: 1px solid var(--line);

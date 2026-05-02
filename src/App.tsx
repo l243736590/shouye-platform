@@ -1106,7 +1106,7 @@ function App() {
   const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'partners'>('users')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
-  const [message, setMessage] = useState('面向韩国留学&生活提供便利，机构商家精准对接目标客户。')
+  const [, setMessage] = useState('面向韩国留学&生活提供便利，机构商家精准对接目标客户。')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
   const [authNotice, setAuthNotice] = useState('')
 
@@ -2068,7 +2068,6 @@ function App() {
               <span>敢于在这承受大众点评的商家才是实力商家</span>
             </div>
           </div>
-          <p className="status-line">{message}</p>
         </motion.div>
       </section>
 
