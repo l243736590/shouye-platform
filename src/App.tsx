@@ -2056,16 +2056,16 @@ function App() {
           </div>
           <div className="hero-metrics" aria-label="平台能力概览">
             <div>
-              <strong>{allSchoolProfiles.length}+</strong>
-              <span>韩国主流院校入口</span>
+              <strong>留学</strong>
+              <span>韩国主流院校避坑&经验分享</span>
             </div>
             <div>
-              <strong>数据</strong>
-              <span>注册、帖子和合作申请统一存储</span>
+              <strong>生活</strong>
+              <span>你身边的在韩种草专家</span>
             </div>
             <div>
-              <strong>审核</strong>
-              <span>后台审核、积分和账号管理</span>
+              <strong>商家机构</strong>
+              <span>敢于在这承受大众点评的商家才是实力商家</span>
             </div>
           </div>
           <p className="status-line">{message}</p>

@@ -408,29 +408,33 @@ h3 {
 .hero-metrics {
   border-top: 1px solid rgba(255, 253, 240, 0.22);
   display: grid;
-  gap: 1px;
+  gap: 18px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 28px;
-  max-width: 860px;
+  max-width: 1120px;
 }
 
 .hero-metrics div {
-  display: grid;
-  gap: 6px;
+  align-items: baseline;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
   padding: 18px 22px 0 0;
 }
 
 .hero-metrics strong {
   color: #fffdf0;
-  font-size: clamp(24px, 2.8vw, 40px);
-  line-height: 1;
+  flex: none;
+  font-size: clamp(26px, 3vw, 46px);
+  line-height: 0.95;
 }
 
 .hero-metrics span {
   color: rgba(255, 253, 240, 0.7);
-  font-size: 13px;
+  font-size: clamp(13px, 1vw, 15px);
   font-weight: 800;
   line-height: 1.45;
+  max-width: 260px;
 }
 
 .status-line {
@@ -2193,6 +2197,7 @@ h3 {
 
   .hero-metrics {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .posts-page {
