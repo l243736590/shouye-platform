@@ -799,7 +799,7 @@ function App() {
           <p className="eyebrow">Sell Your Skills · 韩国留学先行 · 注册 / 发帖 / 积分 / 解锁</p>
           <h1>售业平台</h1>
           <p className="hero-copy">
-            Sell your skills. 把 10 年韩国留学经验沉淀成可搜索、可比较、可付费的真实经验库。
+            把韩国留学经验沉淀成可变现的真实经验库。
           </p>
 
           <div className="search-shell" role="search">
