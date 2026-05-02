@@ -2064,7 +2064,7 @@ function App() {
               <span>注册、帖子和合作申请统一存储</span>
             </div>
             <div>
-              <strong>Admin</strong>
+              <strong>审核</strong>
               <span>后台审核、积分和账号管理</span>
             </div>
           </div>
@@ -2771,7 +2771,7 @@ function App() {
             >
               <X size={20} aria-hidden="true" />
             </button>
-            <p className="eyebrow dark">Admin Login</p>
+            <p className="eyebrow dark">管理员登录</p>
             <h2>登录管理员账号后进入后台。</h2>
             {isAdminRoute && (
               <p className="admin-login-note">后台地址：/admin。登录后可管理注册账号、认证材料、积分和帖子。</p>
@@ -2814,7 +2814,7 @@ function App() {
             <button className="close-button" type="button" onClick={() => setAdminOpen(false)}>
               <X size={20} aria-hidden="true" />
             </button>
-            <p className="eyebrow dark">Admin Console</p>
+            <p className="eyebrow dark">后台管理</p>
             <h2>后台管理用户积分和帖子内容。</h2>
             {isAdminRoute && <p className="admin-page-url">后台网页：/admin</p>}
             <button className="admin-logout-button" type="button" onClick={logoutAdmin}>
