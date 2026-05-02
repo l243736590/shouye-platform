@@ -1014,6 +1014,8 @@ function App() {
   )
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null)
   const [publishOpen, setPublishOpen] = useState(false)
+  const [adminOpen, setAdminOpen] = useState(false)
+  const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [message, setMessage] = useState('面向韩国留学人群的经验内容、机构入驻与人才连接平台。')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
@@ -1073,6 +1075,45 @@ function App() {
         user.id === userId ? { ...user, points: nextPoints } : user,
       ),
     }))
+  }
+
+  const removeUser = (userId: string) => {
+    setAppState((state) => {
+      const nextUnlocks = { ...state.unlockedPostIds }
+      delete nextUnlocks[userId]
+
+      return {
+        ...state,
+        users: state.users.filter((user) => user.id !== userId),
+        currentUserId: state.currentUserId === userId ? null : state.currentUserId,
+        unlockedPostIds: nextUnlocks,
+      }
+    })
+    setMessage('后台已删除用户。')
+  }
+
+  const updatePost = (postId: string, patch: Partial<Post>) => {
+    setAppState((state) => ({
+      ...state,
+      posts: state.posts.map((post) => (post.id === postId ? { ...post, ...patch } : post)),
+    }))
+  }
+
+  const removePost = (postId: string) => {
+    setAppState((state) => ({
+      ...state,
+      posts: state.posts.filter((post) => post.id !== postId),
+      unlockedPostIds: Object.fromEntries(
+        Object.entries(state.unlockedPostIds).map(([userId, postIds]) => [
+          userId,
+          postIds.filter((id) => id !== postId),
+        ]),
+      ),
+    }))
+    if (activePost?.id === postId) {
+      setActivePost(null)
+    }
+    setMessage('后台已删除帖子。')
   }
 
   const openSchoolPage = (school: SchoolProfile) => {
@@ -1340,6 +1381,16 @@ function App() {
           <a href="#posts">经验库</a>
           <a href="#workspace">合作入口</a>
           <a href="#points">积分</a>
+          <button
+            className="nav-admin-button"
+            type="button"
+            onClick={() => {
+              setAdminOpen(true)
+              setMegaMenuOpen(false)
+            }}
+          >
+            后台
+          </button>
         </nav>
         {currentUser ? (
           <div className="user-pill">
@@ -1351,9 +1402,15 @@ function App() {
             >
               退出
             </button>
+            <button type="button" onClick={() => setAdminOpen(true)}>
+              后台
+            </button>
           </div>
         ) : (
           <div className="header-actions">
+            <button className="quiet-button" type="button" onClick={() => setAdminOpen(true)}>
+              后台
+            </button>
             <button className="quiet-button" type="button" onClick={() => setAuthMode('login')}>
               登录
             </button>
@@ -1779,6 +1836,155 @@ function App() {
           <Plus size={18} aria-hidden="true" />
         </button>
       </section>
+
+      {adminOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-sheet admin-modal" aria-label="后台管理">
+            <button className="close-button" type="button" onClick={() => setAdminOpen(false)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">Admin Console</p>
+            <h2>后台管理用户积分和帖子内容。</h2>
+            <div className="admin-summary" aria-label="后台数据概览">
+              <div>
+                <span>注册用户</span>
+                <strong>{appState.users.length}</strong>
+              </div>
+              <div>
+                <span>帖子总数</span>
+                <strong>{appState.posts.length}</strong>
+              </div>
+              <div>
+                <span>付费内容</span>
+                <strong>{appState.posts.filter((post) => post.price > 0).length}</strong>
+              </div>
+              <div>
+                <span>加精内容</span>
+                <strong>{appState.posts.filter((post) => post.featured).length}</strong>
+              </div>
+            </div>
+            <div className="admin-tabs" role="tablist" aria-label="后台管理分类">
+              <button
+                className={adminTab === 'users' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('users')}
+              >
+                用户积分
+              </button>
+              <button
+                className={adminTab === 'posts' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('posts')}
+              >
+                帖子管理
+              </button>
+            </div>
+
+            {adminTab === 'users' ? (
+              <div className="admin-table admin-user-table">
+                <div className="admin-row admin-row-head">
+                  <span>用户</span>
+                  <span>身份</span>
+                  <span>学校</span>
+                  <span>积分</span>
+                  <span>操作</span>
+                </div>
+                {appState.users.length === 0 ? (
+                  <p className="admin-empty">暂无注册用户。你可以先用注册入口创建测试账号。</p>
+                ) : (
+                  appState.users.map((user) => (
+                    <div className="admin-row" key={user.id}>
+                      <div>
+                        <strong>{user.name}</strong>
+                        <small>{user.email}</small>
+                      </div>
+                      <span>{user.identity}</span>
+                      <span>{user.school}</span>
+                      <input
+                        aria-label={`${user.name} 积分`}
+                        min="0"
+                        type="number"
+                        value={user.points}
+                        onChange={(event) =>
+                          updateUserPoints(user.id, Math.max(0, Number.parseInt(event.target.value, 10) || 0))
+                        }
+                      />
+                      <div className="admin-actions">
+                        <button type="button" onClick={() => updateUserPoints(user.id, user.points + 50)}>
+                          +50
+                        </button>
+                        <button type="button" onClick={() => updateUserPoints(user.id, Math.max(0, user.points - 50))}>
+                          -50
+                        </button>
+                        <button className="danger-button" type="button" onClick={() => removeUser(user.id)}>
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              <div className="admin-table admin-post-table">
+                <div className="admin-row admin-row-head">
+                  <span>帖子</span>
+                  <span>分类</span>
+                  <span>价格</span>
+                  <span>状态</span>
+                  <span>操作</span>
+                </div>
+                {appState.posts.map((post) => (
+                  <div className="admin-row" key={post.id}>
+                    <div className="admin-post-title">
+                      <input
+                        aria-label="帖子标题"
+                        value={post.title}
+                        onChange={(event) => updatePost(post.id, { title: event.target.value })}
+                      />
+                      <small>{post.school} · {post.author}</small>
+                    </div>
+                    <select
+                      aria-label={`${post.title} 分类`}
+                      value={post.category}
+                      onChange={(event) => updatePost(post.id, { category: event.target.value })}
+                    >
+                      {categories.filter((category) => category !== '全部').map((category) => (
+                        <option key={category}>{category}</option>
+                      ))}
+                    </select>
+                    <input
+                      aria-label={`${post.title} 解锁积分`}
+                      min="0"
+                      type="number"
+                      value={post.price}
+                      onChange={(event) => {
+                        const price = Math.max(0, Number.parseInt(event.target.value, 10) || 0)
+                        updatePost(post.id, { price, featured: price > 0 ? post.featured : false })
+                      }}
+                    />
+                    <button
+                      className={post.featured ? 'status-toggle active' : 'status-toggle'}
+                      type="button"
+                      onClick={() => updatePost(post.id, { featured: !post.featured })}
+                    >
+                      {post.featured ? '已加精' : '未加精'}
+                    </button>
+                    <div className="admin-actions">
+                      <button type="button" onClick={() => setActivePost(post)}>
+                        预览
+                      </button>
+                      <button className="danger-button" type="button" onClick={() => removePost(post.id)}>
+                        删除
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="admin-footnote">当前后台为演示版，数据保存在本机浏览器；正式上线需要接数据库和管理员权限。</p>
+          </section>
+        </div>
+      )}
 
       {authMode && (
         <div className="modal-backdrop" role="presentation">

@@ -78,6 +78,15 @@ main {
   letter-spacing: 0;
 }
 
+.nav-admin-button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 800;
+  padding: 0;
+}
+
 .nav-dropdown {
   height: 100%;
 }
@@ -99,7 +108,7 @@ main {
 }
 
 .nav-dropdown.is-open .mega-menu {
-  background: rgba(5, 12, 10, 0.78);
+  background: rgba(5, 12, 10, 0.88);
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
@@ -136,7 +145,7 @@ main {
 
 .mega-region-grid button {
   align-items: start;
-  background: rgba(255, 253, 240, 0.08);
+  background: rgba(255, 253, 240, 0.1);
   border: 0;
   color: #fffdf0;
   display: grid;
@@ -150,7 +159,7 @@ main {
 }
 
 .mega-region-grid button:hover {
-  background: rgba(255, 253, 240, 0.18);
+  background: rgba(255, 253, 240, 0.2);
   transform: translateY(-2px);
 }
 
@@ -1115,6 +1124,11 @@ h3 {
   width: min(100%, 820px);
 }
 
+.admin-modal {
+  max-width: 1180px;
+  width: min(100%, 1180px);
+}
+
 .modal-sheet h2 {
   font-size: clamp(28px, 4vw, 48px);
   margin-bottom: 24px;
@@ -1226,6 +1240,140 @@ h3 {
   width: 100%;
 }
 
+.admin-summary {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-bottom: 18px;
+}
+
+.admin-summary div {
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.admin-summary span,
+.admin-row small,
+.admin-footnote,
+.admin-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-summary strong {
+  color: var(--forest);
+  font-size: 26px;
+}
+
+.admin-tabs {
+  background: #eef5ee;
+  border-radius: 7px;
+  display: inline-flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  padding: 4px;
+}
+
+.admin-tabs button {
+  background: transparent;
+  color: var(--forest);
+  padding: 10px 16px;
+}
+
+.admin-tabs button.active {
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgba(23, 33, 29, 0.08);
+}
+
+.admin-table {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.admin-row {
+  align-items: center;
+  background: #ffffff;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.admin-row:first-child {
+  border-top: 0;
+}
+
+.admin-user-table .admin-row {
+  grid-template-columns: 1.35fr 0.72fr 0.9fr 110px 220px;
+}
+
+.admin-post-table .admin-row {
+  grid-template-columns: minmax(260px, 1.5fr) 150px 100px 110px 170px;
+}
+
+.admin-row-head {
+  background: #f6f8f4;
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.admin-row > div,
+.admin-post-title {
+  display: grid;
+  gap: 5px;
+}
+
+.admin-row input,
+.admin-row select {
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  min-height: 38px;
+  outline: 0;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.admin-actions button,
+.status-toggle {
+  background: #eef5ee;
+  color: var(--forest);
+  min-height: 36px;
+  padding: 0 10px;
+}
+
+.status-toggle.active {
+  background: var(--forest);
+  color: #fffdf7;
+}
+
+.danger-button {
+  background: #fff0ea !important;
+  color: #a63a27 !important;
+}
+
+.admin-empty {
+  margin: 0;
+  padding: 18px;
+}
+
+.admin-footnote {
+  margin: 14px 0 0;
+}
+
 .post-detail-meta {
   color: var(--muted);
   display: flex;
@@ -1268,6 +1416,20 @@ h3 {
   .points-section,
   .trust-section {
     grid-template-columns: 1fr;
+  }
+
+  .admin-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-user-table .admin-row,
+  .admin-post-table .admin-row {
+    align-items: stretch;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-row-head {
+    display: none;
   }
 }
 
@@ -1422,9 +1584,19 @@ h3 {
     padding: 18px;
   }
 
+  .school-page-meta a,
   .school-page-meta span,
   .school-programs span,
   .school-strengths strong {
+    width: 100%;
+  }
+
+  .admin-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tabs {
+    display: grid;
     width: 100%;
   }
 
