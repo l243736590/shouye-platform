@@ -1181,6 +1181,12 @@ h3 {
   gap: 7px;
 }
 
+.field-help {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .form-stack input,
 .form-stack select,
 .form-stack textarea {
@@ -1308,6 +1314,13 @@ h3 {
   overflow: hidden;
 }
 
+.admin-users-layout {
+  align-items: start;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
+}
+
 .admin-row {
   align-items: center;
   background: #ffffff;
@@ -1322,7 +1335,7 @@ h3 {
 }
 
 .admin-user-table .admin-row {
-  grid-template-columns: 1.35fr 0.72fr 0.9fr 110px 220px;
+  grid-template-columns: minmax(170px, 1.2fr) 78px 88px 92px 230px;
 }
 
 .admin-post-table .admin-row {
@@ -1368,6 +1381,36 @@ h3 {
   padding: 0 10px;
 }
 
+.account-badge {
+  background: #eef5ee;
+  border-radius: 999px;
+  color: var(--forest);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 900;
+  justify-content: center;
+  padding: 7px 10px;
+  width: fit-content;
+}
+
+.account-badge.muted,
+.account-badge.pending {
+  background: #fff4d4;
+  color: #6d4d00;
+}
+
+.account-badge.banned,
+.account-badge.rejected {
+  background: #fff0ea;
+  color: #a63a27;
+}
+
+.account-badge.approved,
+.account-badge.active {
+  background: rgba(33, 119, 87, 0.12);
+  color: var(--forest);
+}
+
 .status-toggle.active {
   background: var(--forest);
   color: #fffdf7;
@@ -1385,6 +1428,102 @@ h3 {
 
 .admin-footnote {
   margin: 14px 0 0;
+}
+
+.admin-account-detail {
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  min-height: 280px;
+  padding: 16px;
+}
+
+.admin-detail-head {
+  align-items: start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.admin-detail-head div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-detail-head span,
+.admin-detail-grid span,
+.credential-panel-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-detail-head button {
+  background: #ffffff;
+  color: var(--forest);
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.admin-detail-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-detail-grid div {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
+.admin-control-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-control-row label {
+  color: var(--forest);
+  display: grid;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+}
+
+.credential-panel {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.credential-panel-head,
+.credential-item {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 12px;
+}
+
+.credential-item {
+  border-top: 1px solid var(--line);
+}
+
+.credential-item div {
+  display: grid;
+  gap: 4px;
+}
+
+.detail-actions {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
 }
 
 .post-detail-meta {
@@ -1433,6 +1572,10 @@ h3 {
 
   .admin-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-users-layout {
+    grid-template-columns: 1fr;
   }
 
   .admin-user-table .admin-row,

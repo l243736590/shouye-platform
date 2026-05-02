@@ -26,6 +26,17 @@ import {
 } from 'lucide-react'
 import './App.css'
 
+type UserStatus = 'active' | 'muted' | 'banned'
+type VerificationStatus = 'pending' | 'approved' | 'rejected'
+
+type CredentialDocument = {
+  id: string
+  name: string
+  type: string
+  status: VerificationStatus
+  uploadedAt: string
+}
+
 type User = {
   id: string
   name: string
@@ -35,6 +46,9 @@ type User = {
   school: string
   points: number
   joinedAt: string
+  status: UserStatus
+  verificationStatus: VerificationStatus
+  documents: CredentialDocument[]
 }
 
 type Post = {
@@ -981,6 +995,32 @@ const pathways = [
 
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
+const userStatusLabel: Record<UserStatus, string> = {
+  active: '正常',
+  muted: '禁言',
+  banned: '封号',
+}
+
+const verificationStatusLabel: Record<VerificationStatus, string> = {
+  pending: '待审核',
+  approved: '已通过',
+  rejected: '已驳回',
+}
+
+const normalizeUser = (user: Partial<User>): User => ({
+  id: user.id ?? createId('user'),
+  name: user.name ?? '韩国留学用户',
+  email: user.email ?? '',
+  password: user.password ?? '',
+  identity: user.identity ?? '准备申请',
+  school: user.school ?? '暂未填写',
+  points: user.points ?? 0,
+  joinedAt: user.joinedAt ?? new Date().toISOString(),
+  status: user.status ?? 'active',
+  verificationStatus: user.verificationStatus ?? (user.documents?.length ? 'pending' : 'pending'),
+  documents: user.documents ?? [],
+})
+
 const initialState = (): StoredState => {
   if (typeof window === 'undefined') {
     return { users: [], posts: seedPosts, currentUserId: null, unlockedPostIds: {} }
@@ -994,7 +1034,7 @@ const initialState = (): StoredState => {
   try {
     const parsed = JSON.parse(saved) as StoredState
     return {
-      users: parsed.users ?? [],
+      users: (parsed.users ?? []).map(normalizeUser),
       posts: parsed.posts?.length ? parsed.posts : seedPosts,
       currentUserId: parsed.currentUserId ?? null,
       unlockedPostIds: parsed.unlockedPostIds ?? {},
@@ -1017,6 +1057,7 @@ function App() {
   const [partnerOpen, setPartnerOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
+  const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [message, setMessage] = useState('面向韩国留学人群的经验内容、机构入驻与人才连接平台。')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
@@ -1030,6 +1071,7 @@ function App() {
     emailCode: '',
     identity: '准备申请',
     school: '',
+    documents: [] as CredentialDocument[],
   })
   const [pendingEmailCode, setPendingEmailCode] = useState('')
   const [pendingEmail, setPendingEmail] = useState('')
@@ -1058,6 +1100,7 @@ function App() {
   }, [appState])
 
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
+  const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
   const selectedSchool =
     allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
@@ -1087,6 +1130,33 @@ function App() {
     }))
   }
 
+  const updateUserAccount = (userId: string, patch: Partial<User>) => {
+    setAppState((state) => ({
+      ...state,
+      users: state.users.map((user) => (user.id === userId ? { ...user, ...patch } : user)),
+      currentUserId: patch.status === 'banned' && state.currentUserId === userId ? null : state.currentUserId,
+    }))
+  }
+
+  const updateUserDocuments = (
+    userId: string,
+    status: VerificationStatus,
+    verificationStatus: VerificationStatus = status,
+  ) => {
+    setAppState((state) => ({
+      ...state,
+      users: state.users.map((user) =>
+        user.id === userId
+          ? {
+              ...user,
+              verificationStatus,
+              documents: user.documents.map((document) => ({ ...document, status })),
+            }
+          : user,
+      ),
+    }))
+  }
+
   const removeUser = (userId: string) => {
     setAppState((state) => {
       const nextUnlocks = { ...state.unlockedPostIds }
@@ -1099,6 +1169,9 @@ function App() {
         unlockedPostIds: nextUnlocks,
       }
     })
+    if (selectedAdminUserId === userId) {
+      setSelectedAdminUserId(null)
+    }
     setMessage('后台已删除用户。')
   }
 
@@ -1176,6 +1249,11 @@ function App() {
         setAuthNotice('没有找到这个账号，或密码不正确。')
         return
       }
+      if (matched.status === 'banned') {
+        setMessage('这个账号已被封号，请联系平台管理员。')
+        setAuthNotice('这个账号已被封号，请联系平台管理员。')
+        return
+      }
       setAppState((state) => ({ ...state, currentUserId: matched.id }))
       setAuthMode(null)
       setMessage(`欢迎回来，${matched.name}。`)
@@ -1215,6 +1293,9 @@ function App() {
       school: authForm.school.trim() || '暂未填写',
       points: 80,
       joinedAt: new Date().toISOString(),
+      status: 'active',
+      verificationStatus: authForm.documents.length ? 'pending' : 'pending',
+      documents: authForm.documents,
     }
 
     setAppState((state) => ({
@@ -1235,6 +1316,7 @@ function App() {
       emailCode: '',
       identity: '准备申请',
       school: '',
+      documents: [],
     })
     setMessage('注册成功，已获得 80 初始积分，可用于解锁加精内容。')
   }
@@ -1269,6 +1351,10 @@ function App() {
     if (!currentUser) {
       setAuthMode('register')
       setMessage('请先注册或登录，再发布经验。')
+      return
+    }
+    if (currentUser.status === 'muted' || currentUser.status === 'banned') {
+      setMessage(currentUser.status === 'banned' ? '账号已被封号，不能发布内容。' : '账号已被禁言，暂时不能发布内容。')
       return
     }
 
@@ -1898,7 +1984,7 @@ function App() {
                 type="button"
                 onClick={() => setAdminTab('users')}
               >
-                用户积分
+                账号管理
               </button>
               <button
                 className={adminTab === 'posts' ? 'active' : ''}
@@ -1910,48 +1996,169 @@ function App() {
             </div>
 
             {adminTab === 'users' ? (
-              <div className="admin-table admin-user-table">
-                <div className="admin-row admin-row-head">
-                  <span>用户</span>
-                  <span>身份</span>
-                  <span>学校</span>
-                  <span>积分</span>
-                  <span>操作</span>
+              <div className="admin-users-layout">
+                <div className="admin-table admin-user-table">
+                  <div className="admin-row admin-row-head">
+                    <span>注册账号</span>
+                    <span>状态</span>
+                    <span>认证</span>
+                    <span>积分</span>
+                    <span>操作</span>
+                  </div>
+                  {appState.users.length === 0 ? (
+                    <p className="admin-empty">暂无注册用户。你可以先用注册入口创建测试账号。</p>
+                  ) : (
+                    appState.users.map((user) => (
+                      <div className="admin-row" key={user.id}>
+                        <div>
+                          <strong>{user.name}</strong>
+                          <small>{user.email}</small>
+                          <small>{user.identity} · {user.school}</small>
+                        </div>
+                        <span className={`account-badge ${user.status}`}>{userStatusLabel[user.status]}</span>
+                        <span className={`account-badge ${user.verificationStatus}`}>
+                          {verificationStatusLabel[user.verificationStatus]}
+                        </span>
+                        <input
+                          aria-label={`${user.name} 积分`}
+                          min="0"
+                          type="number"
+                          value={user.points}
+                          onChange={(event) =>
+                            updateUserPoints(user.id, Math.max(0, Number.parseInt(event.target.value, 10) || 0))
+                          }
+                        />
+                        <div className="admin-actions">
+                          <button type="button" onClick={() => setSelectedAdminUserId(user.id)}>
+                            查看账号
+                          </button>
+                          <button type="button" onClick={() => updateUserPoints(user.id, user.points + 50)}>
+                            +50
+                          </button>
+                          <button type="button" onClick={() => updateUserPoints(user.id, Math.max(0, user.points - 50))}>
+                            -50
+                          </button>
+                          <button className="danger-button" type="button" onClick={() => removeUser(user.id)}>
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
-                {appState.users.length === 0 ? (
-                  <p className="admin-empty">暂无注册用户。你可以先用注册入口创建测试账号。</p>
-                ) : (
-                  appState.users.map((user) => (
-                    <div className="admin-row" key={user.id}>
-                      <div>
-                        <strong>{user.name}</strong>
-                        <small>{user.email}</small>
-                      </div>
-                      <span>{user.identity}</span>
-                      <span>{user.school}</span>
-                      <input
-                        aria-label={`${user.name} 积分`}
-                        min="0"
-                        type="number"
-                        value={user.points}
-                        onChange={(event) =>
-                          updateUserPoints(user.id, Math.max(0, Number.parseInt(event.target.value, 10) || 0))
-                        }
-                      />
-                      <div className="admin-actions">
-                        <button type="button" onClick={() => updateUserPoints(user.id, user.points + 50)}>
-                          +50
-                        </button>
-                        <button type="button" onClick={() => updateUserPoints(user.id, Math.max(0, user.points - 50))}>
-                          -50
-                        </button>
-                        <button className="danger-button" type="button" onClick={() => removeUser(user.id)}>
-                          删除
+                <aside className="admin-account-detail">
+                  {selectedAdminUser ? (
+                    <>
+                      <div className="admin-detail-head">
+                        <div>
+                          <span>账号详情</span>
+                          <strong>{selectedAdminUser.name}</strong>
+                          <small>{selectedAdminUser.email}</small>
+                        </div>
+                        <button type="button" onClick={() => setSelectedAdminUserId(null)}>
+                          收起
                         </button>
                       </div>
-                    </div>
-                  ))
-                )}
+                      <div className="admin-detail-grid">
+                        <div>
+                          <span>身份</span>
+                          <strong>{selectedAdminUser.identity}</strong>
+                        </div>
+                        <div>
+                          <span>学校</span>
+                          <strong>{selectedAdminUser.school}</strong>
+                        </div>
+                        <div>
+                          <span>注册时间</span>
+                          <strong>{new Date(selectedAdminUser.joinedAt).toLocaleDateString('zh-CN')}</strong>
+                        </div>
+                        <div>
+                          <span>当前积分</span>
+                          <strong>{selectedAdminUser.points}</strong>
+                        </div>
+                      </div>
+                      <div className="admin-control-row">
+                        <label>
+                          账号状态
+                          <select
+                            value={selectedAdminUser.status}
+                            onChange={(event) =>
+                              updateUserAccount(selectedAdminUser.id, { status: event.target.value as UserStatus })
+                            }
+                          >
+                            <option value="active">正常</option>
+                            <option value="muted">禁言</option>
+                            <option value="banned">封号</option>
+                          </select>
+                        </label>
+                        <label>
+                          认证状态
+                          <select
+                            value={selectedAdminUser.verificationStatus}
+                            onChange={(event) =>
+                              updateUserAccount(selectedAdminUser.id, {
+                                verificationStatus: event.target.value as VerificationStatus,
+                              })
+                            }
+                          >
+                            <option value="pending">待审核</option>
+                            <option value="approved">已通过</option>
+                            <option value="rejected">已驳回</option>
+                          </select>
+                        </label>
+                      </div>
+                      <div className="credential-panel">
+                        <div className="credential-panel-head">
+                          <strong>上传证件 / 认证材料</strong>
+                          <span>{selectedAdminUser.documents.length} 份</span>
+                        </div>
+                        {selectedAdminUser.documents.length ? (
+                          selectedAdminUser.documents.map((document) => (
+                            <div className="credential-item" key={document.id}>
+                              <div>
+                                <strong>{document.name}</strong>
+                                <small>
+                                  {document.type} · {new Date(document.uploadedAt).toLocaleDateString('zh-CN')}
+                                </small>
+                              </div>
+                              <span className={`account-badge ${document.status}`}>
+                                {verificationStatusLabel[document.status]}
+                              </span>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="admin-empty">该账号暂未上传认证材料。</p>
+                        )}
+                      </div>
+                      <div className="admin-actions detail-actions">
+                        <button
+                          type="button"
+                          onClick={() => updateUserDocuments(selectedAdminUser.id, 'approved', 'approved')}
+                        >
+                          审核通过
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updateUserDocuments(selectedAdminUser.id, 'rejected', 'rejected')}
+                        >
+                          驳回材料
+                        </button>
+                        <button type="button" onClick={() => updateUserAccount(selectedAdminUser.id, { status: 'muted' })}>
+                          禁言
+                        </button>
+                        <button
+                          className="danger-button"
+                          type="button"
+                          onClick={() => updateUserAccount(selectedAdminUser.id, { status: 'banned' })}
+                        >
+                          封号
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="admin-empty">点击左侧“查看账号”，即可审核证件、调整认证状态、禁言或封号。</p>
+                  )}
+                </aside>
               </div>
             ) : (
               <div className="admin-table admin-post-table">
@@ -2061,6 +2268,27 @@ function App() {
                       onChange={(event) => setAuthForm({ ...authForm, school: event.target.value })}
                       placeholder="例如：延世大学"
                     />
+                  </label>
+                  <label>
+                    上传认证材料
+                    <input
+                      multiple
+                      type="file"
+                      onChange={(event) => {
+                        const files = Array.from(event.target.files ?? [])
+                        setAuthForm({
+                          ...authForm,
+                          documents: files.map((file) => ({
+                            id: createId('doc'),
+                            name: file.name,
+                            type: file.type || '身份/学校认证材料',
+                            status: 'pending',
+                            uploadedAt: new Date().toISOString(),
+                          })),
+                        })
+                      }}
+                    />
+                    <small className="field-help">可上传学生证、在读证明、Offer、毕业证明等。演示版只保存文件名。</small>
                   </label>
                 </>
               )}
@@ -2244,6 +2472,7 @@ function App() {
                     <option>论文辅导机构</option>
                     <option>语学院 / 教育机构</option>
                     <option>招聘企业</option>
+                    <option>政府部门</option>
                     <option>品牌 / 广告合作</option>
                   </select>
                 </label>
