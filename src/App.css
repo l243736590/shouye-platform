@@ -57,7 +57,25 @@ main {
   display: inline-flex;
   height: 34px;
   justify-content: center;
+  position: relative;
   width: 34px;
+}
+
+.hidden-admin-button {
+  background: rgba(5, 12, 10, 0.08);
+  border: 0;
+  height: 7px;
+  left: 7px;
+  opacity: 0;
+  padding: 0;
+  position: absolute;
+  top: 14px;
+  width: 20px;
+}
+
+.brand-mark:hover .hidden-admin-button,
+.hidden-admin-button:focus-visible {
+  opacity: 0.18;
 }
 
 .nav-links {
@@ -76,15 +94,6 @@ main {
   display: inline-flex;
   height: 72px;
   letter-spacing: 0;
-}
-
-.nav-admin-button {
-  background: transparent;
-  border: 0;
-  color: inherit;
-  font: inherit;
-  font-weight: 800;
-  padding: 0;
 }
 
 .nav-dropdown {

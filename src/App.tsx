@@ -1369,11 +1369,26 @@ function App() {
     setMessage('页面数据已重置。')
   }
 
+  const scrollToPartnerSection = () => {
+    document.getElementById('partner-apply')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <main>
       <header className="site-header" aria-label="Main navigation">
         <a className="brand" href="#top" aria-label="售业平台首页">
-          <span className="brand-mark">售</span>
+          <span className="brand-mark">
+            售
+            <button
+              aria-label="打开后台管理"
+              className="hidden-admin-button"
+              type="button"
+              onClick={(event) => {
+                event.preventDefault()
+                setAdminOpen(true)
+              }}
+            />
+          </span>
           <span>售业平台</span>
         </a>
         <nav className="nav-links" aria-label="Primary">
@@ -1411,16 +1426,6 @@ function App() {
           <a href="#posts">经验库</a>
           <a href="#workspace">合作入口</a>
           <a href="#points">积分</a>
-          <button
-            className="nav-admin-button"
-            type="button"
-            onClick={() => {
-              setAdminOpen(true)
-              setMegaMenuOpen(false)
-            }}
-          >
-            后台
-          </button>
         </nav>
         {currentUser ? (
           <div className="user-pill">
@@ -1432,15 +1437,9 @@ function App() {
             >
               退出
             </button>
-            <button type="button" onClick={() => setAdminOpen(true)}>
-              后台
-            </button>
           </div>
         ) : (
           <div className="header-actions">
-            <button className="quiet-button" type="button" onClick={() => setAdminOpen(true)}>
-              后台
-            </button>
             <button className="quiet-button" type="button" onClick={() => setAuthMode('login')}>
               登录
             </button>
@@ -1483,7 +1482,7 @@ function App() {
               申请入驻 / 发布经验
               <PenLine size={18} aria-hidden="true" />
             </button>
-            <button className="secondary-link" type="button" onClick={() => setAuthMode('register')}>
+            <button className="secondary-link" type="button" onClick={scrollToPartnerSection}>
               查看合作入口
               <ArrowRight size={18} aria-hidden="true" />
             </button>
@@ -1858,7 +1857,7 @@ function App() {
         </div>
       </section>
 
-      <section className="cta-section">
+      <section className="cta-section" id="partner-apply">
         <p className="eyebrow dark">合作提案</p>
         <h2>先聚焦韩国留学内容，再扩展机构服务和留学生人才连接。</h2>
         <button className="primary-link dark-link" type="button" onClick={() => setPartnerOpen(true)}>
