@@ -66,6 +66,12 @@ type SchoolProfile = {
   source: string
 }
 
+type CampusLink = {
+  label: string
+  url: string
+  icon: 'pin' | 'building'
+}
+
 type StoredState = {
   users: User[]
   posts: Post[]
@@ -651,6 +657,101 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
 
 const allSchoolProfiles = schoolRegions.flatMap((group) => group.schools)
 
+const schoolOfficialUrls: Record<string, string> = {
+  snu: 'https://www.snu.ac.kr/',
+  yonsei: 'https://www.yonsei.ac.kr/en_sc/',
+  korea: 'https://www.korea.edu/mbshome/mbs/en/index.do',
+  'skku-seoul': 'https://www.skku.edu/eng/',
+  hanyang: 'https://www.hanyang.ac.kr/web/eng/home',
+  kyunghee: 'https://www.khu.ac.kr/eng/main/index.do',
+  sejong: 'https://eng.sejong.ac.kr/',
+  cau: 'https://www.cau.ac.kr/index.do',
+  ewha: 'https://www.ewha.ac.kr/ewhaen/index.do',
+  sogang: 'https://www.sogang.ac.kr/en/',
+  dongguk: 'https://www.dongguk.edu/eng/main',
+  konkuk: 'https://www.konkuk.ac.kr/en',
+  hufs: 'https://www.hufs.ac.kr/',
+  uos: 'https://english.uos.ac.kr/',
+  'dankook-seoul': 'https://www.dankook.ac.kr/web/international',
+  seoultech: 'https://en.seoultech.ac.kr/',
+  kookmin: 'https://english.kookmin.ac.kr/',
+  soongsil: 'https://eng.ssu.ac.kr/',
+  sookmyung: 'https://e.sookmyung.ac.kr/',
+  kwangwoon: 'https://www.kw.ac.kr/en/',
+  myongji: 'https://www.mju.ac.kr/us/index.do',
+  sangmyung: 'https://www.smu.ac.kr/eng/index.do',
+  hansung: 'https://www.hansung.ac.kr/global_en/index.do',
+  sungshin: 'https://www.sungshin.ac.kr/sites/main_eng/main.jsp',
+  dongduk: 'https://www.dongduk.ac.kr/eng/main.do',
+  duksung: 'https://www.duksung.ac.kr/eng/main.do',
+  swu: 'https://www.swu.ac.kr/english/index.html',
+  knua: 'https://www.karts.ac.kr/en/main.do',
+  knsu: 'https://www.knsu.ac.kr/eng/index.do',
+  sahmyook: 'https://www.syu.ac.kr/eng/',
+  hongik: 'https://en.hongik.ac.kr/',
+  skku: 'https://www.skku.edu/eng/',
+  ajou: 'https://www.ajou.ac.kr/en/index.do',
+  'hanyang-erica': 'https://www.hanyang.ac.kr/web/eng/erica-campus',
+  'cau-anseong': 'https://www.cau.ac.kr/index.do',
+  pnu: 'https://www.pusan.ac.kr/eng/Main.do',
+  donga: 'https://english.donga.ac.kr/',
+  knu: 'https://en.knu.ac.kr/',
+  keimyung: 'https://www.kmu.ac.kr/uni/eng/main.jsp',
+  kaist: 'https://www.kaist.ac.kr/en/',
+  chungnam: 'https://plus.cnu.ac.kr/html/en/',
+}
+
+const campusLinksBySchool: Record<string, CampusLink[]> = {
+  'skku-seoul': [
+    { label: '明伦校区官网 · 首尔', url: 'https://www.skku.edu/eng/', icon: 'pin' },
+    { label: '自然科学校区官网 · 水原', url: 'https://www.skku.edu/eng/', icon: 'building' },
+  ],
+  hanyang: [
+    { label: '首尔校区官网 · 往十里', url: 'https://www.hanyang.ac.kr/web/eng/seoul', icon: 'pin' },
+    { label: 'ERICA校区官网 · 安山', url: 'https://www.hanyang.ac.kr/web/eng/erica-campus', icon: 'building' },
+  ],
+  cau: [
+    { label: '首尔校区官网 · 黑石', url: 'https://www.cau.ac.kr/index.do', icon: 'pin' },
+    { label: '安城校区官网', url: 'https://www.cau.ac.kr/index.do', icon: 'building' },
+  ],
+  'dankook-seoul': [
+    { label: '竹田校区官网', url: 'https://www.dankook.ac.kr/web/international', icon: 'pin' },
+    { label: '天安校区官网', url: 'https://www.dankook.ac.kr/web/international', icon: 'building' },
+  ],
+  hufs: [
+    { label: '首尔校区官网', url: 'https://www.hufs.ac.kr/', icon: 'pin' },
+    { label: 'Global校区官网', url: 'https://www.hufs.ac.kr/', icon: 'building' },
+  ],
+  myongji: [
+    { label: '人文校区官网 · 首尔', url: 'https://www.mju.ac.kr/us/index.do', icon: 'pin' },
+    { label: '自然校区官网 · 龙仁', url: 'https://www.mju.ac.kr/us/index.do', icon: 'building' },
+  ],
+  sangmyung: [
+    { label: '首尔校区官网', url: 'https://www.smu.ac.kr/eng/index.do', icon: 'pin' },
+    { label: '天安校区官网', url: 'https://www.smu.ac.kr/eng/index.do', icon: 'building' },
+  ],
+  knua: [
+    { label: '石串洞校区官网', url: 'https://www.karts.ac.kr/en/main.do', icon: 'pin' },
+    { label: '瑞草校区官网', url: 'https://www.karts.ac.kr/en/main.do', icon: 'building' },
+  ],
+  skku: [
+    { label: '自然科学校区官网 · 水原', url: 'https://www.skku.edu/eng/', icon: 'pin' },
+    { label: '明伦校区官网 · 首尔', url: 'https://www.skku.edu/eng/', icon: 'building' },
+  ],
+  'hanyang-erica': [
+    { label: 'ERICA校区官网 · 安山', url: 'https://www.hanyang.ac.kr/web/eng/erica-campus', icon: 'pin' },
+    { label: '首尔校区官网 · 往十里', url: 'https://www.hanyang.ac.kr/web/eng/seoul', icon: 'building' },
+  ],
+  'cau-anseong': [
+    { label: '安城校区官网', url: 'https://www.cau.ac.kr/index.do', icon: 'pin' },
+    { label: '首尔校区官网 · 黑石', url: 'https://www.cau.ac.kr/index.do', icon: 'building' },
+  ],
+  donga: [
+    { label: '胜学校区官网', url: 'https://english.donga.ac.kr/', icon: 'pin' },
+    { label: '富民/九德校区官网', url: 'https://english.donga.ac.kr/', icon: 'building' },
+  ],
+}
+
 const schoolBrochureUrls: Record<string, string> = {
   snu: 'https://en.snu.ac.kr/admission/undergraduate/application',
   yonsei: 'https://admission.yonsei.ac.kr/seoul/admission/html/counsel/dataView.asp?BBS_NO=3457&s_code=B&s_data=&s_page=1&s_type=',
@@ -698,6 +799,17 @@ const schoolBrochureUrls: Record<string, string> = {
 const getBrochureUrl = (school: SchoolProfile) =>
   schoolBrochureUrls[school.id] ??
   `https://www.google.com/search?q=${encodeURIComponent(`${school.name} 외국인 입학 모집요강`)}`
+
+const getCampusLinks = (school: SchoolProfile): CampusLink[] => {
+  const officialUrl = schoolOfficialUrls[school.id] ?? school.source
+
+  return (
+    campusLinksBySchool[school.id] ?? [
+      { label: `${school.region} · ${school.city}`, url: officialUrl, icon: 'pin' },
+      { label: `${school.landmark}官网`, url: officialUrl, icon: 'building' },
+    ]
+  )
+}
 
 const getParentRegion = (schoolId: string) =>
   schoolRegions.find((group) => group.schools.some((school) => school.id === schoolId))?.region
@@ -886,6 +998,7 @@ function App() {
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
   const selectedSchool =
     allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
+  const selectedCampusLinks = getCampusLinks(selectedSchool)
 
   const filteredPosts = useMemo(() => {
     return appState.posts.filter((post) => {
@@ -1332,14 +1445,16 @@ function App() {
           <p className="school-english">{selectedSchool.englishName}</p>
           <p className="school-description">{selectedSchool.description}</p>
           <div className="school-page-meta">
-            <span>
-              <MapPin size={17} aria-hidden="true" />
-              {selectedSchool.region} · {selectedSchool.city}
-            </span>
-            <span>
-              <Building2 size={17} aria-hidden="true" />
-              {selectedSchool.landmark}
-            </span>
+            {selectedCampusLinks.map((campus) => {
+              const Icon = campus.icon === 'pin' ? MapPin : Building2
+
+              return (
+                <a href={campus.url} key={campus.label} target="_blank" rel="noreferrer">
+                  <Icon size={17} aria-hidden="true" />
+                  {campus.label}
+                </a>
+              )
+            })}
           </div>
           <div className="school-programs">
             {selectedSchool.programs.map((program) => (

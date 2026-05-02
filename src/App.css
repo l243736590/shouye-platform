@@ -658,6 +658,7 @@ h3 {
   margin-top: 28px;
 }
 
+.school-page-meta a,
 .school-page-meta span,
 .school-programs span,
 .school-brochure-chip,
@@ -670,6 +671,22 @@ h3 {
   gap: 7px;
   min-height: 38px;
   padding: 8px 11px;
+}
+
+.school-page-meta a {
+  color: #fffdf0;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    transform 160ms ease;
+}
+
+.school-page-meta a:hover {
+  background: rgba(255, 253, 240, 0.2);
+  border-color: rgba(255, 253, 240, 0.56);
+  transform: translateY(-1px);
 }
 
 .school-brochure-chip {
