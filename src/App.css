@@ -625,8 +625,8 @@ h3 {
   color: var(--ink);
   display: grid;
   gap: 22px;
-  grid-template-columns: minmax(0, 1fr) 142px;
-  min-height: 112px;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  min-height: 118px;
   padding: 18px 20px;
   text-align: left;
   transition:
@@ -668,18 +668,22 @@ h3 {
 
 .school-logo-mark {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid rgba(23, 63, 53, 0.12);
-  border-radius: 8px;
-  box-shadow: 0 12px 26px rgba(23, 33, 29, 0.08);
+  background:
+    radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 0.96), rgba(250, 251, 247, 0.9)),
+    #ffffff;
+  border: 1px solid rgba(23, 63, 53, 0.16);
+  border-radius: 999px;
+  box-shadow:
+    0 14px 30px rgba(23, 33, 29, 0.1),
+    inset 0 0 0 7px rgba(255, 255, 255, 0.7);
   color: var(--forest);
   display: inline-flex;
   flex: none;
-  height: 72px;
+  height: 92px;
   justify-content: center;
   overflow: hidden;
   position: relative;
-  width: 142px;
+  width: 92px;
 }
 
 .school-logo-mark span {
@@ -689,12 +693,10 @@ h3 {
 }
 
 .school-logo-mark img {
-  background: #ffffff;
-  height: 100%;
+  height: 82%;
   object-fit: contain;
-  padding: 10px 12px;
   position: absolute;
-  width: 100%;
+  width: 82%;
 }
 
 .school-pagination {
@@ -2396,14 +2398,14 @@ h3 {
 
   .school-menu-card {
     gap: 14px;
-    grid-template-columns: minmax(0, 1fr) 112px;
+    grid-template-columns: minmax(0, 1fr) 82px;
     min-height: 104px;
     padding: 16px;
   }
 
   .school-logo-mark {
-    height: 62px;
-    width: 112px;
+    height: 76px;
+    width: 76px;
   }
 
   .school-pagination {
