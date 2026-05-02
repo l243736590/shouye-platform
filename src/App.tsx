@@ -651,6 +651,53 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
 
 const allSchoolProfiles = schoolRegions.flatMap((group) => group.schools)
 
+const schoolBrochureUrls: Record<string, string> = {
+  snu: 'https://en.snu.ac.kr/admission',
+  yonsei: 'https://admission.yonsei.ac.kr',
+  korea: 'https://oia.korea.ac.kr',
+  'skku-seoul': 'https://admission-global.skku.edu/eng/',
+  hanyang: 'https://www.hanyang.ac.kr/web/eng/admissions',
+  kyunghee: 'https://ipsi.khu.ac.kr',
+  sejong: 'https://eng.sejong.ac.kr/eng/admission.do',
+  cau: 'https://admission.cau.ac.kr',
+  ewha: 'https://admission.ewha.ac.kr',
+  sogang: 'https://admission.sogang.ac.kr',
+  dongguk: 'https://ipsi.dongguk.edu',
+  konkuk: 'https://enter.konkuk.ac.kr',
+  hufs: 'https://adms.hufs.ac.kr',
+  uos: 'https://admission.uos.ac.kr',
+  'dankook-seoul': 'https://ipsi.dankook.ac.kr',
+  seoultech: 'https://admission.seoultech.ac.kr',
+  kookmin: 'https://admission.kookmin.ac.kr',
+  soongsil: 'https://iphak.ssu.ac.kr',
+  sookmyung: 'https://admission.sookmyung.ac.kr',
+  kwangwoon: 'https://iphak.kw.ac.kr',
+  myongji: 'https://iphak.mju.ac.kr',
+  sangmyung: 'https://admission.smu.ac.kr',
+  hansung: 'https://enter.hansung.ac.kr',
+  sungshin: 'https://ipsi.sungshin.ac.kr',
+  dongduk: 'https://ipsi.dongduk.ac.kr',
+  duksung: 'https://enter.duksung.ac.kr',
+  swu: 'https://admission.swu.ac.kr',
+  knua: 'https://www.karts.ac.kr/en/admission/',
+  knsu: 'https://www.knsu.ac.kr/web/eng/admission',
+  sahmyook: 'https://ipsi.syu.ac.kr',
+  hongik: 'https://admission.hongik.ac.kr',
+  skku: 'https://admission-global.skku.edu/eng/',
+  ajou: 'https://www.ajou.ac.kr/en/admission/',
+  'hanyang-erica': 'https://www.hanyang.ac.kr/web/eng/admissions',
+  'cau-anseong': 'https://admission.cau.ac.kr',
+  pnu: 'https://go.pusan.ac.kr',
+  donga: 'https://ent.donga.ac.kr',
+  knu: 'https://ipsi.knu.ac.kr',
+  keimyung: 'https://www.kmu.ac.kr/uni/eng/main.jsp',
+  kaist: 'https://admission.kaist.ac.kr/intl-undergraduate/',
+  chungnam: 'https://ipsi.cnu.ac.kr',
+}
+
+const getBrochureUrl = (school: SchoolProfile) =>
+  schoolBrochureUrls[school.id] ?? `https://www.google.com/search?q=${encodeURIComponent(`${school.englishName} admissions`)}`
+
 const getParentRegion = (schoolId: string) =>
   schoolRegions.find((group) => group.schools.some((school) => school.id === schoolId))?.region
 
@@ -883,11 +930,6 @@ function App() {
 
   const changeSchoolPage = (region: string, page: number) => {
     setSchoolPages((pages) => ({ ...pages, [region]: page }))
-  }
-
-  const openBrochurePage = () => {
-    setMessage(`已进入 ${selectedSchool.name} 招生简章获取页。`)
-    document.getElementById('brochure-page')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleAuth = (event: FormEvent<HTMLFormElement>) => {
@@ -1302,10 +1344,15 @@ function App() {
             {selectedSchool.programs.map((program) => (
               <span key={program}>{program}</span>
             ))}
-            <button type="button" className="school-brochure-chip" onClick={openBrochurePage}>
+            <a
+              className="school-brochure-chip"
+              href={getBrochureUrl(selectedSchool)}
+              target="_blank"
+              rel="noreferrer"
+            >
               获取招生简章
               <BookOpenCheck size={18} aria-hidden="true" />
-            </button>
+            </a>
           </div>
           <div className="school-strengths">
             {selectedSchool.strengths.map((strength) => (
@@ -1324,43 +1371,6 @@ function App() {
             <a className="image-source-link" href={selectedSchool.source} target="_blank" rel="noreferrer">
               背景图来源
             </a>
-          </div>
-        </div>
-      </section>
-
-      <section className="brochure-section" id="brochure-page">
-        <div className="section-heading">
-          <p className="eyebrow dark">招生简章获取</p>
-          <h2>{selectedSchool.name} 招生简章与申请信息。</h2>
-          <p>
-            汇总本科、大学院、语学堂、奖学金和材料节点，后续可接入官方简章下载、机构顾问跟进和付费咨询。
-          </p>
-        </div>
-        <div className="brochure-layout">
-          <div className="brochure-main">
-            <BookOpenCheck size={34} aria-hidden="true" />
-            <span>{selectedSchool.englishName}</span>
-            <h3>{selectedSchool.name} 简章获取页</h3>
-            <p>
-              当前页面会根据所选学校切换，适合后续沉淀官网招生链接、PDF 简章、申请时间线和顾问领取入口。
-            </p>
-            <button type="button" onClick={() => setAuthMode('register')}>
-              登录后获取完整简章
-              <ArrowRight size={18} aria-hidden="true" />
-            </button>
-          </div>
-          <div className="brochure-items">
-            {[
-              ['招生项目', selectedSchool.programs.join(' / ')],
-              ['申请材料', '学历证明、成绩单、语言成绩、学习计划书、推荐材料'],
-              ['重点关注', selectedSchool.strengths.join(' / ')],
-              ['后续服务', '官方链接、PDF 简章、申请节点提醒、经验帖推荐'],
-            ].map(([label, value]) => (
-              <div className="brochure-item" key={label}>
-                <strong>{label}</strong>
-                <p>{value}</p>
-              </div>
-            ))}
           </div>
         </div>
       </section>
