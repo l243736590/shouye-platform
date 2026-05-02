@@ -48,32 +48,44 @@ main {
   align-items: center;
   display: inline-flex;
   font-weight: 800;
-  gap: 10px;
+  gap: 12px;
   white-space: nowrap;
 }
 
 .brand-mark {
   align-items: center;
-  background: var(--forest);
-  border-radius: 6px;
-  color: #f7f3df;
   display: inline-flex;
-  height: 34px;
+  height: 44px;
   justify-content: center;
   position: relative;
-  width: 34px;
+  width: 74px;
+}
+
+.brand-logo-image {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  width: 100%;
+}
+
+.brand-tagline {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .hidden-admin-button {
   background: rgba(5, 12, 10, 0.08);
   border: 0;
-  height: 7px;
-  left: 7px;
+  height: 8px;
+  left: 16px;
   opacity: 0;
   padding: 0;
   position: absolute;
-  top: 14px;
-  width: 20px;
+  top: 19px;
+  width: 34px;
 }
 
 .brand-mark:hover .hidden-admin-button,

@@ -1903,7 +1903,7 @@ function App() {
         <a
           className="brand"
           href="/"
-          aria-label="售业 Sell UR skills 首页"
+          aria-label="售业 sell what you know 首页"
           onClick={(event) => {
             event.preventDefault()
             setMegaMenuOpen(false)
@@ -1913,7 +1913,7 @@ function App() {
           }}
         >
           <span className="brand-mark">
-            售
+            <img className="brand-logo-image" src="/shouye-logo-wordmark.png" alt="" aria-hidden="true" />
             <button
               aria-label="打开后台管理"
               className="hidden-admin-button"
@@ -1924,7 +1924,7 @@ function App() {
               }}
             />
           </span>
-          <span>售业 Sell UR skills</span>
+          <span className="brand-tagline">sell what you know</span>
         </a>
         <nav className="nav-links" aria-label="Primary">
           <div
