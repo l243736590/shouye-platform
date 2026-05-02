@@ -652,51 +652,52 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
 const allSchoolProfiles = schoolRegions.flatMap((group) => group.schools)
 
 const schoolBrochureUrls: Record<string, string> = {
-  snu: 'https://en.snu.ac.kr/admission',
-  yonsei: 'https://admission.yonsei.ac.kr',
-  korea: 'https://oia.korea.ac.kr',
+  snu: 'https://en.snu.ac.kr/admission/undergraduate/application',
+  yonsei: 'https://admission.yonsei.ac.kr/seoul/admission/html/counsel/dataView.asp?BBS_NO=3457&s_code=B&s_data=&s_page=1&s_type=',
+  korea: 'https://oia.korea.ac.kr/oia/under/admission.do',
   'skku-seoul': 'https://admission-global.skku.edu/eng/',
-  hanyang: 'https://www.hanyang.ac.kr/web/eng/admissions',
-  kyunghee: 'https://ipsi.khu.ac.kr',
-  sejong: 'https://eng.sejong.ac.kr/eng/admission.do',
-  cau: 'https://admission.cau.ac.kr',
-  ewha: 'https://admission.ewha.ac.kr',
-  sogang: 'https://admission.sogang.ac.kr',
-  dongguk: 'https://ipsi.dongguk.edu',
-  konkuk: 'https://enter.konkuk.ac.kr',
-  hufs: 'https://adms.hufs.ac.kr',
-  uos: 'https://admission.uos.ac.kr',
-  'dankook-seoul': 'https://ipsi.dankook.ac.kr',
-  seoultech: 'https://admission.seoultech.ac.kr',
-  kookmin: 'https://admission.kookmin.ac.kr',
-  soongsil: 'https://iphak.ssu.ac.kr',
-  sookmyung: 'https://admission.sookmyung.ac.kr',
-  kwangwoon: 'https://iphak.kw.ac.kr',
-  myongji: 'https://iphak.mju.ac.kr',
-  sangmyung: 'https://admission.smu.ac.kr',
-  hansung: 'https://enter.hansung.ac.kr',
-  sungshin: 'https://ipsi.sungshin.ac.kr',
-  dongduk: 'https://ipsi.dongduk.ac.kr',
-  duksung: 'https://enter.duksung.ac.kr',
-  swu: 'https://admission.swu.ac.kr',
+  hanyang: 'https://oia.hanyang.ac.kr',
+  kyunghee: 'https://ciss.khu.ac.kr/index/sub_admission/requirements.php',
+  sejong: 'https://sos.sejong.ac.kr/kor/admission/guide/univ.do',
+  cau: 'https://oia.cau.ac.kr/k_intro.php',
+  ewha: 'https://rwcms.ewha.ac.kr/oisa/1444/subview.do',
+  sogang: 'https://oisa-admission.sogang.ac.kr/',
+  dongguk: 'https://www.dongguk.edu/eng/page/407',
+  konkuk: 'https://ciss.konkuk.ac.kr/',
+  hufs: 'https://international.hufs.ac.kr/sites/international/index.do',
+  uos: 'https://oia.uos.ac.kr/koia/web/contents/OIAKR_Admission_01',
+  'dankook-seoul': 'https://www.dku.ac.kr/-329',
+  seoultech: 'https://global.seoultech.ac.kr',
+  kookmin: 'https://iat.kookmin.ac.kr/admission',
+  soongsil: 'https://study.ssu.ac.kr/en/program/admissions.do',
+  sookmyung: 'https://www.sookmyung.ac.kr/kr/admission/admission-guide.do',
+  kwangwoon: 'https://oia.kw.ac.kr/admission/faculty.php',
+  myongji: 'https://abroadeng.mju.ac.kr/application/application.php?sMenu=eng31',
+  sangmyung: 'https://www.smu.ac.kr/oia/admission/recruitment_eng.do',
+  hansung: 'https://www.hansung.ac.kr/global_en/885/subview.do',
+  sungshin: 'https://ipsi.sungshin.ac.kr/guide/dataroom.htm?bbsid=dataroom&bltn_seq=33917&ctg_cd=susi&keyword=&mode=view&page=2&skey=',
+  dongduk: 'https://ipsi.dongduk.ac.kr/ipsi/contents/overseas-doc.do?etc1=67&id=90120&page=1&schBdcode=_ipsi_admdoc03&schGroupCode=&schM=view&viewCount=10',
+  duksung: 'https://enter.duksung.ac.kr/notice/view.php?bn=5306&m_type=JEOEGUK',
+  swu: 'https://www.swu.ac.kr/ir/admiisionsa.html',
   knua: 'https://www.karts.ac.kr/en/admission/',
-  knsu: 'https://www.knsu.ac.kr/web/eng/admission',
-  sahmyook: 'https://ipsi.syu.ac.kr',
-  hongik: 'https://admission.hongik.ac.kr',
+  knsu: 'https://www.knsu.ac.kr/eng/admission/foreign-applicants.do',
+  sahmyook: 'https://ipsi.syu.ac.kr/2016_syu/pages/index.asp?mj=12&p=42',
+  hongik: 'https://www.hongik.ac.kr/kr/admission/recruitment-is.do?article.offset=0&mode=list',
   skku: 'https://admission-global.skku.edu/eng/',
-  ajou: 'https://www.ajou.ac.kr/en/admission/',
-  'hanyang-erica': 'https://www.hanyang.ac.kr/web/eng/admissions',
-  'cau-anseong': 'https://admission.cau.ac.kr',
-  pnu: 'https://go.pusan.ac.kr',
-  donga: 'https://ent.donga.ac.kr',
-  knu: 'https://ipsi.knu.ac.kr',
-  keimyung: 'https://www.kmu.ac.kr/uni/eng/main.jsp',
+  ajou: 'https://www.ajou.ac.kr/iadmissions/index.do',
+  'hanyang-erica': 'https://oia.hanyang.ac.kr',
+  'cau-anseong': 'https://oia.cau.ac.kr/k_intro.php',
+  pnu: 'https://international.pusan.ac.kr/international/15257/subview.do',
+  donga: 'https://global.donga.ac.kr/global/CMS/Contents/Contents.do?mCode=MN039',
+  knu: 'https://en.knu.ac.kr/admission/under01.htm',
+  keimyung: 'https://www.kmu.ac.kr/page.jsp?mnu_uid=532',
   kaist: 'https://admission.kaist.ac.kr/intl-undergraduate/',
-  chungnam: 'https://ipsi.cnu.ac.kr',
+  chungnam: 'https://plus.chungnam.ac.kr/html/en/sub03/sub03_0302.html',
 }
 
 const getBrochureUrl = (school: SchoolProfile) =>
-  schoolBrochureUrls[school.id] ?? `https://www.google.com/search?q=${encodeURIComponent(`${school.englishName} admissions`)}`
+  schoolBrochureUrls[school.id] ??
+  `https://www.google.com/search?q=${encodeURIComponent(`${school.name} 외국인 입학 모집요강`)}`
 
 const getParentRegion = (schoolId: string) =>
   schoolRegions.find((group) => group.schools.some((school) => school.id === schoolId))?.region
@@ -1350,7 +1351,7 @@ function App() {
               target="_blank"
               rel="noreferrer"
             >
-              获取招生简章
+              获取外国人招生简章
               <BookOpenCheck size={18} aria-hidden="true" />
             </a>
           </div>
