@@ -1014,6 +1014,7 @@ function App() {
   )
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null)
   const [publishOpen, setPublishOpen] = useState(false)
+  const [partnerOpen, setPartnerOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
   const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
   const [activePost, setActivePost] = useState<Post | null>(null)
@@ -1041,6 +1042,15 @@ function App() {
     excerpt: '',
     body: '',
     price: '0',
+  })
+  const [partnerForm, setPartnerForm] = useState({
+    company: '',
+    type: '留学机构',
+    contact: '',
+    phone: '',
+    direction: '内容入驻',
+    budget: '',
+    detail: '',
   })
 
   useEffect(() => {
@@ -1300,6 +1310,26 @@ function App() {
     })
     setPublishOpen(false)
     setMessage('发布成功，系统已奖励 30 积分。')
+  }
+
+  const handlePartnerApply = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!partnerForm.company.trim() || !partnerForm.contact.trim() || !partnerForm.phone.trim()) {
+      setMessage('请填写机构名称、联系人和联系方式。')
+      return
+    }
+
+    setPartnerForm({
+      company: '',
+      type: '留学机构',
+      contact: '',
+      phone: '',
+      direction: '内容入驻',
+      budget: '',
+      detail: '',
+    })
+    setPartnerOpen(false)
+    setMessage('合作申请已提交。当前演示版会先保存在前端流程里，正式上线后接入后台数据库和通知。')
   }
 
   const openPost = (post: Post) => {
@@ -1831,7 +1861,7 @@ function App() {
       <section className="cta-section">
         <p className="eyebrow dark">合作提案</p>
         <h2>先聚焦韩国留学内容，再扩展机构服务和留学生人才连接。</h2>
-        <button className="primary-link dark-link" type="button" onClick={() => setPublishOpen(true)}>
+        <button className="primary-link dark-link" type="button" onClick={() => setPartnerOpen(true)}>
           申请成为首批合作方
           <Plus size={18} aria-hidden="true" />
         </button>
@@ -2182,6 +2212,93 @@ function App() {
                 />
               </label>
               <button type="submit">保存并发布</button>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {partnerOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-sheet wide-modal" aria-label="商家合作申请">
+            <button className="close-button" type="button" onClick={() => setPartnerOpen(false)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">商家合作申请</p>
+            <h2>提交机构入驻、内容合作或人才合作需求。</h2>
+            <form className="form-stack" onSubmit={handlePartnerApply}>
+              <div className="form-grid partner-form-grid">
+                <label>
+                  机构 / 公司名称
+                  <input
+                    value={partnerForm.company}
+                    onChange={(event) => setPartnerForm({ ...partnerForm, company: event.target.value })}
+                    placeholder="例如：首尔留学中心"
+                  />
+                </label>
+                <label>
+                  机构类型
+                  <select
+                    value={partnerForm.type}
+                    onChange={(event) => setPartnerForm({ ...partnerForm, type: event.target.value })}
+                  >
+                    <option>留学机构</option>
+                    <option>论文辅导机构</option>
+                    <option>语学院 / 教育机构</option>
+                    <option>招聘企业</option>
+                    <option>品牌 / 广告合作</option>
+                  </select>
+                </label>
+              </div>
+              <div className="form-grid partner-form-grid">
+                <label>
+                  联系人
+                  <input
+                    value={partnerForm.contact}
+                    onChange={(event) => setPartnerForm({ ...partnerForm, contact: event.target.value })}
+                    placeholder="姓名 / 称呼"
+                  />
+                </label>
+                <label>
+                  微信 / 电话 / 邮箱
+                  <input
+                    value={partnerForm.phone}
+                    onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })}
+                    placeholder="方便联系即可"
+                  />
+                </label>
+              </div>
+              <div className="form-grid partner-form-grid">
+                <label>
+                  合作方向
+                  <select
+                    value={partnerForm.direction}
+                    onChange={(event) => setPartnerForm({ ...partnerForm, direction: event.target.value })}
+                  >
+                    <option>内容入驻</option>
+                    <option>招生线索合作</option>
+                    <option>论文 / 课程辅导合作</option>
+                    <option>留学生人才推荐</option>
+                    <option>广告投放</option>
+                  </select>
+                </label>
+                <label>
+                  预算 / 合作规模
+                  <input
+                    value={partnerForm.budget}
+                    onChange={(event) => setPartnerForm({ ...partnerForm, budget: event.target.value })}
+                    placeholder="可选，例如：月预算 5000"
+                  />
+                </label>
+              </div>
+              <label>
+                合作需求说明
+                <textarea
+                  value={partnerForm.detail}
+                  onChange={(event) => setPartnerForm({ ...partnerForm, detail: event.target.value })}
+                  placeholder="请写一下你们想入驻的内容、目标学生群体、主推学校/专业、希望获取的线索或合作方式。"
+                />
+              </label>
+              <button type="submit">提交合作申请</button>
             </form>
           </section>
         </div>
