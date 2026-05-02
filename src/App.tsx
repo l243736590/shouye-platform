@@ -518,6 +518,7 @@ function App() {
     school: '',
   })
   const [pendingEmailCode, setPendingEmailCode] = useState('')
+  const [megaMenuOpen, setMegaMenuOpen] = useState(false)
 
   const [postForm, setPostForm] = useState({
     title: '',
@@ -565,6 +566,12 @@ function App() {
     window.setTimeout(() => {
       document.getElementById('school-page')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 60)
+  }
+
+  const openRegionSection = (region: string) => {
+    setOpenRegion(region)
+    setMegaMenuOpen(false)
+    document.getElementById('school-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const handleAuth = (event: FormEvent<HTMLFormElement>) => {
@@ -752,8 +759,37 @@ function App() {
           <span>售业平台</span>
         </a>
         <nav className="nav-links" aria-label="Primary">
-          <a href="#schools">韩国院校</a>
-          <a href="#school-browser">院校菜单</a>
+          <div
+            className={megaMenuOpen ? 'nav-dropdown is-open' : 'nav-dropdown'}
+            onMouseEnter={() => setMegaMenuOpen(true)}
+            onMouseLeave={() => setMegaMenuOpen(false)}
+            onFocus={() => setMegaMenuOpen(true)}
+            onBlur={() => setMegaMenuOpen(false)}
+          >
+            <a href="#school-browser" onClick={() => setMegaMenuOpen(false)}>
+              韩国院校
+            </a>
+            <div className="mega-menu" aria-label="韩国院校地区导航">
+              <div className="mega-menu-inner">
+                <div>
+                  <p className="mega-eyebrow">韩国主流院校导航</p>
+                  <h3>按地区进入院校库</h3>
+                </div>
+                <div className="mega-region-grid">
+                  {schoolRegions.map((group) => (
+                    <button
+                      key={group.region}
+                      type="button"
+                      onClick={() => openRegionSection(group.region)}
+                    >
+                      <span>{group.region}</span>
+                      <small>{group.schools.length} 所院校 · {group.summary}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
           <a href="#posts">经验库</a>
           <a href="#workspace">合作入口</a>
           <a href="#points">积分</a>
