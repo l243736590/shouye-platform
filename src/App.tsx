@@ -2522,7 +2522,7 @@ function App() {
             ))}
           </div>
           <div className="school-page-actions">
-            <button type="button" className="primary-link" onClick={() => setPublishOpen(true)}>
+            <button type="button" className="primary-link school-share-link" onClick={() => setPublishOpen(true)}>
               分享这所学校的经验
               <PenLine size={18} aria-hidden="true" />
             </button>
