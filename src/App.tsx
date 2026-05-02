@@ -97,6 +97,9 @@ const heroImage =
   'https://images.unsplash.com/photo-1742747215638-0105cbcd2645?auto=format&fit=crop&q=80&w=2200'
 
 const storageKey = 'shouye-platform-mvp-v1'
+const adminSessionKey = 'shouye-platform-admin-session'
+const adminUsername = 'l243736590'
+const adminPasswordHash = '8e20b592394cac7f7faf7b1df2d2e6295d8df4b926f14d96496c7573cb8bcf04'
 const categories = ['全部', '申请避坑', '学校评价', '教授课程', '毕业就业', '生活落地']
 const schoolPageSize = 8
 
@@ -995,6 +998,13 @@ const pathways = [
 
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 
+const hashText = async (value: string) => {
+  const digest = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
 const userStatusLabel: Record<UserStatus, string> = {
   active: '正常',
   muted: '禁言',
@@ -1056,6 +1066,10 @@ function App() {
   const [publishOpen, setPublishOpen] = useState(false)
   const [partnerOpen, setPartnerOpen] = useState(false)
   const [adminOpen, setAdminOpen] = useState(false)
+  const [adminLoginOpen, setAdminLoginOpen] = useState(false)
+  const [adminAuthenticated, setAdminAuthenticated] = useState(
+    () => typeof window !== 'undefined' && window.sessionStorage.getItem(adminSessionKey) === 'true',
+  )
   const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
@@ -1093,6 +1107,11 @@ function App() {
     direction: '内容入驻',
     budget: '',
     detail: '',
+  })
+  const [adminLoginForm, setAdminLoginForm] = useState({
+    username: '',
+    password: '',
+    error: '',
   })
 
   useEffect(() => {
@@ -1459,6 +1478,38 @@ function App() {
     document.getElementById('partner-apply')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const openAdminEntry = () => {
+    if (adminAuthenticated) {
+      setAdminOpen(true)
+      return
+    }
+    setAdminLoginOpen(true)
+  }
+
+  const handleAdminLogin = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const username = adminLoginForm.username.trim()
+    const passwordHash = await hashText(adminLoginForm.password)
+
+    if (username !== adminUsername || passwordHash !== adminPasswordHash) {
+      setAdminLoginForm((form) => ({ ...form, error: '管理员账号或密码不正确。' }))
+      return
+    }
+
+    window.sessionStorage.setItem(adminSessionKey, 'true')
+    setAdminAuthenticated(true)
+    setAdminLoginOpen(false)
+    setAdminOpen(true)
+    setAdminLoginForm({ username: '', password: '', error: '' })
+  }
+
+  const logoutAdmin = () => {
+    window.sessionStorage.removeItem(adminSessionKey)
+    setAdminAuthenticated(false)
+    setAdminOpen(false)
+    setSelectedAdminUserId(null)
+  }
+
   return (
     <main>
       <header className="site-header" aria-label="Main navigation">
@@ -1471,7 +1522,7 @@ function App() {
               type="button"
               onClick={(event) => {
                 event.preventDefault()
-                setAdminOpen(true)
+                openAdminEntry()
               }}
             />
           </span>
@@ -1952,6 +2003,53 @@ function App() {
         </button>
       </section>
 
+      {adminLoginOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-sheet" aria-label="管理员登录">
+            <button
+              className="close-button"
+              type="button"
+              onClick={() => {
+                setAdminLoginOpen(false)
+                setAdminLoginForm({ username: '', password: '', error: '' })
+              }}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">Admin Login</p>
+            <h2>登录管理员账号后进入后台。</h2>
+            <form className="form-stack" onSubmit={handleAdminLogin}>
+              <label>
+                管理员账号
+                <input
+                  autoComplete="username"
+                  value={adminLoginForm.username}
+                  onChange={(event) => setAdminLoginForm({ ...adminLoginForm, username: event.target.value, error: '' })}
+                  placeholder="请输入管理员账号"
+                />
+              </label>
+              <label>
+                管理员密码
+                <input
+                  autoComplete="current-password"
+                  type="password"
+                  value={adminLoginForm.password}
+                  onChange={(event) => setAdminLoginForm({ ...adminLoginForm, password: event.target.value, error: '' })}
+                  placeholder="请输入管理员密码"
+                />
+              </label>
+              {adminLoginForm.error && (
+                <p className="form-notice" role="status">
+                  {adminLoginForm.error}
+                </p>
+              )}
+              <p className="admin-login-note">当前为前端演示登录，正式上线后应接入服务端权限校验。</p>
+              <button type="submit">进入后台</button>
+            </form>
+          </section>
+        </div>
+      )}
+
       {adminOpen && (
         <div className="modal-backdrop" role="presentation">
           <section className="modal-sheet admin-modal" aria-label="后台管理">
@@ -1960,6 +2058,9 @@ function App() {
             </button>
             <p className="eyebrow dark">Admin Console</p>
             <h2>后台管理用户积分和帖子内容。</h2>
+            <button className="admin-logout-button" type="button" onClick={logoutAdmin}>
+              退出后台登录
+            </button>
             <div className="admin-summary" aria-label="后台数据概览">
               <div>
                 <span>注册用户</span>

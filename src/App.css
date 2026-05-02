@@ -1138,6 +1138,22 @@ h3 {
   width: min(100%, 1180px);
 }
 
+.admin-login-note {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.55;
+  margin: -2px 0 0;
+}
+
+.admin-logout-button {
+  background: #eef5ee;
+  color: var(--forest);
+  margin: -10px 0 18px;
+  min-height: 38px;
+  padding: 0 12px;
+}
+
 .modal-sheet h2 {
   font-size: clamp(28px, 4vw, 48px);
   margin-bottom: 24px;
