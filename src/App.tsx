@@ -1046,6 +1046,8 @@ const initialState = (): StoredState => {
 }
 
 function App() {
+  const isAdminRoute = typeof window !== 'undefined' && window.location.pathname === '/admin'
+  const initialAdminToken = typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''
   const [appState, setAppState] = useState<StoredState>(() => initialState())
   const [selectedCategory, setSelectedCategory] = useState('全部')
   const [query, setQuery] = useState('')
@@ -1056,11 +1058,9 @@ function App() {
   const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null)
   const [publishOpen, setPublishOpen] = useState(false)
   const [partnerOpen, setPartnerOpen] = useState(false)
-  const [adminOpen, setAdminOpen] = useState(false)
-  const [adminLoginOpen, setAdminLoginOpen] = useState(false)
-  const [adminToken, setAdminToken] = useState(
-    () => (typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''),
-  )
+  const [adminOpen, setAdminOpen] = useState(() => isAdminRoute && Boolean(initialAdminToken))
+  const [adminLoginOpen, setAdminLoginOpen] = useState(() => isAdminRoute && !initialAdminToken)
+  const [adminToken, setAdminToken] = useState(initialAdminToken)
   const [adminTab, setAdminTab] = useState<'users' | 'posts'>('users')
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
@@ -1661,7 +1661,7 @@ function App() {
   }
 
   return (
-    <main>
+    <main className={isAdminRoute ? 'admin-route' : undefined}>
       <header className="site-header" aria-label="Main navigation">
         <a className="brand" href="#top" aria-label="售业平台首页">
           <span className="brand-mark">
@@ -2168,6 +2168,9 @@ function App() {
             </button>
             <p className="eyebrow dark">Admin Login</p>
             <h2>登录管理员账号后进入后台。</h2>
+            {isAdminRoute && (
+              <p className="admin-login-note">后台地址：/admin。登录后可管理注册账号、认证材料、积分和帖子。</p>
+            )}
             <form className="form-stack" onSubmit={handleAdminLogin}>
               <label>
                 管理员账号
@@ -2208,6 +2211,7 @@ function App() {
             </button>
             <p className="eyebrow dark">Admin Console</p>
             <h2>后台管理用户积分和帖子内容。</h2>
+            {isAdminRoute && <p className="admin-page-url">后台网页：/admin</p>}
             <button className="admin-logout-button" type="button" onClick={logoutAdmin}>
               退出后台登录
             </button>

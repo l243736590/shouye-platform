@@ -373,7 +373,15 @@ export default {
     const url = new URL(request.url)
 
     if (!url.pathname.startsWith('/api/')) {
-      return env.ASSETS.fetch(request)
+      const response = await env.ASSETS.fetch(request)
+      if (
+        response.status === 404 &&
+        request.headers.get('accept')?.includes('text/html')
+      ) {
+        return env.ASSETS.fetch(new Request(new URL('/', request.url), request))
+      }
+
+      return response
     }
 
     if (url.pathname === '/api/health') return json({ ok: true })
