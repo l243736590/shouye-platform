@@ -512,9 +512,12 @@ function App() {
     name: '',
     email: '',
     password: '',
+    confirmPassword: '',
+    emailCode: '',
     identity: '准备申请',
     school: '',
   })
+  const [pendingEmailCode, setPendingEmailCode] = useState('')
 
   const [postForm, setPostForm] = useState({
     title: '',
@@ -573,6 +576,7 @@ function App() {
     event.preventDefault()
     const email = authForm.email.trim().toLowerCase()
     const password = authForm.password.trim()
+    const confirmPassword = authForm.confirmPassword.trim()
 
     if (!email || !password) {
       setMessage('请填写邮箱和密码。')
@@ -590,6 +594,21 @@ function App() {
       setAppState((state) => ({ ...state, currentUserId: matched.id }))
       setAuthMode(null)
       setMessage(`欢迎回来，${matched.name}。`)
+      return
+    }
+
+    if (password.length < 6) {
+      setMessage('密码至少需要 6 位。')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setMessage('两次输入的密码不一致。')
+      return
+    }
+
+    if (!pendingEmailCode || authForm.emailCode.trim() !== pendingEmailCode) {
+      setMessage('请先发送邮箱验证码，并输入正确的验证码。')
       return
     }
 
@@ -616,7 +635,33 @@ function App() {
       unlockedPostIds: { ...state.unlockedPostIds, [user.id]: [] },
     }))
     setAuthMode(null)
+    setPendingEmailCode('')
+    setAuthForm({
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      emailCode: '',
+      identity: '准备申请',
+      school: '',
+    })
     setMessage('注册成功，已赠送 80 积分用于体验加精内容。')
+  }
+
+  const sendEmailCode = () => {
+    const email = authForm.email.trim().toLowerCase()
+    if (!email) {
+      setMessage('请先填写邮箱，再发送验证码。')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setMessage('邮箱格式不正确。')
+      return
+    }
+    const code = String(Math.floor(100000 + Math.random() * 900000))
+    setPendingEmailCode(code)
+    setAuthForm((form) => ({ ...form, emailCode: '' }))
+    setMessage(`演示版验证码已生成：${code}。正式版会发送到 ${email}。`)
   }
 
   const handlePublish = (event: FormEvent<HTMLFormElement>) => {
@@ -1149,22 +1194,55 @@ function App() {
               )}
               <label>
                 邮箱
-                <input
-                  type="email"
-                  value={authForm.email}
-                  onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
-                  placeholder="you@example.com"
-                />
+                <div className="inline-field">
+                  <input
+                    type="email"
+                    value={authForm.email}
+                    onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                  {authMode === 'register' && (
+                    <button type="button" onClick={sendEmailCode}>
+                      发送验证码
+                    </button>
+                  )}
+                </div>
               </label>
+              {authMode === 'register' && (
+                <label>
+                  邮箱验证码
+                  <input
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={authForm.emailCode}
+                    onChange={(event) => setAuthForm({ ...authForm, emailCode: event.target.value })}
+                    placeholder="请输入 6 位验证码"
+                  />
+                </label>
+              )}
               <label>
                 密码
                 <input
                   type="password"
                   value={authForm.password}
                   onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
-                  placeholder="演示版密码"
+                  placeholder="至少 6 位"
+                  autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                 />
               </label>
+              {authMode === 'register' && (
+                <label>
+                  再次输入密码
+                  <input
+                    type="password"
+                    value={authForm.confirmPassword}
+                    onChange={(event) => setAuthForm({ ...authForm, confirmPassword: event.target.value })}
+                    placeholder="请再次输入密码"
+                    autoComplete="new-password"
+                  />
+                </label>
+              )}
               <button type="submit">{authMode === 'login' ? '登录' : '注册并领取 80 积分'}</button>
             </form>
             <button

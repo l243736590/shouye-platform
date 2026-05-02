@@ -975,6 +975,20 @@ h3 {
   width: 100%;
 }
 
+.inline-field {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.inline-field button {
+  background: var(--forest);
+  color: #fffdf0;
+  min-height: 44px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
 .form-stack textarea {
   min-height: 160px;
   resize: vertical;
@@ -1097,6 +1111,10 @@ h3 {
   }
 
   .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-field {
     grid-template-columns: 1fr;
   }
 
