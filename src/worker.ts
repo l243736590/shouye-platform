@@ -448,6 +448,7 @@ const injectSeoHtml = (html: string, requestUrl: URL) => {
       /<meta\s+name="keywords"\s+content="[\s\S]*?"\s*\/?>/i,
       `<meta name="keywords" content="${safeKeywords}" />`,
     )
+    .replace(/\s*<noscript\s+id="seo-prerender-[^"]*">[\s\S]*?<\/noscript>/gi, '')
 
   const socialMeta = `
     <link rel="canonical" href="${canonicalUrl}" />
