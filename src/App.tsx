@@ -2742,11 +2742,6 @@ function App() {
   }
 
   const openSchoolPage = (school: SchoolProfile) => {
-    if (school.id === 'konkuk') {
-      navigateToPath('/schools/konkuk')
-      return
-    }
-
     const parentRegion = schoolRegions.find((group) =>
       group.schools.some((item) => item.id === school.id),
     )
@@ -4770,19 +4765,14 @@ function App() {
               背景图来源
             </a>
           </div>
-          {selectedSchool.id === 'konkuk' && (
-            <button
-              type="button"
-              className="school-topic-link"
-              onClick={() => {
-                window.history.pushState(null, '', '/schools/konkuk')
-                window.dispatchEvent(new PopStateEvent('popstate'))
-              }}
-            >
-              进入建国大学专题页
-              <ArrowRight size={18} aria-hidden="true" />
-            </button>
-          )}
+          <button
+            type="button"
+            className="school-topic-link"
+            onClick={() => navigateToPath(`/schools/${selectedSchool.id}`)}
+          >
+            {selectedSchool.name}专题贴
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
         </div>
       </section>
 
