@@ -25,7 +25,7 @@ import {
   X,
 } from 'lucide-react'
 import './App.css'
-import { getSchoolTopicBySlug } from './data/schools'
+import { getSchoolTopicBySlug, type SchoolTopic } from './data/schools'
 
 type UserStatus = 'active' | 'muted' | 'banned'
 type VerificationStatus = 'pending' | 'approved' | 'rejected'
@@ -853,6 +853,236 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
 ]
 
 const allSchoolProfiles = schoolRegions.flatMap((group) => group.schools)
+
+const schoolTopicQuickEntries = [
+  '入学与选课',
+  '签证与外国人登录证',
+  '租房与保证金',
+  '银行卡与手机卡',
+  '打工与劳动问题',
+  '医院与保险',
+  '毕业与论文',
+  '周边生活攻略',
+]
+
+const getSchoolTopicSeed = (school: SchoolProfile) =>
+  school.id.split('').reduce((total, char) => total + char.charCodeAt(0), school.name.length * 97)
+
+const makeGenericSchoolTopic = (school: SchoolProfile): SchoolTopic => {
+  const seed = getSchoolTopicSeed(school)
+  const schoolName = school.name
+  const location = school.city.replace(/\s+/g, ' ')
+  const city = school.region.split('/')[0].trim()
+  const baseViews = 900 + (seed % 1700)
+  const topicTags = [
+    '韩国',
+    city,
+    schoolName,
+    '大学院',
+    '本科',
+    '语学院',
+    '2026更新',
+    ...school.programs.slice(0, 2),
+  ]
+
+  return {
+    id: school.id,
+    slug: school.id,
+    nameZh: schoolName,
+    nameKo: '待补充',
+    nameEn: school.englishName,
+    country: '韩国',
+    city,
+    district: location,
+    tags: [...new Set(topicTags)],
+    seoTitle: `${schoolName}留学生生活攻略 - 留学生首页`,
+    seoDescription: `${schoolName}留学生生活攻略，整理${schoolName}入学、选课、租房、签证、外国人登录证、打工、医院、银行卡和校园生活相关经验，帮助韩国留学生少走弯路。`,
+    heroTitle: `${schoolName}留学生生活攻略`,
+    heroSubtitle: `整理${schoolName}留学生在入学、选课、签证、租房、打工、生活和毕业过程中最常遇到的问题与真实经验。`,
+    quickEntries: schoolTopicQuickEntries,
+    suitableContent: [...new Set(['语学院', '本科', '大学院', '租房', '生活', '打工', '毕业', ...school.programs])],
+    hotQuestions: [
+      {
+        title: `${schoolName}附近哪里租房比较方便？`,
+        category: '租房/搬家/保证金',
+        rewardPoints: 80 + (seed % 5) * 20,
+        answersCount: 8 + (seed % 7),
+        views: baseViews + 820,
+        status: 'open',
+        tags: [location, '保证金', '通勤'],
+        updatedAt: '2026-05-03',
+      },
+      {
+        title: `${schoolName}语学院转本科需要准备什么？`,
+        category: '语学院/本科/大学院',
+        rewardPoints: 100 + (seed % 4) * 20,
+        answersCount: 6 + (seed % 6),
+        views: baseViews + 540,
+        status: 'solved',
+        tags: ['语学院', '本科申请', '材料'],
+        updatedAt: '2026-05-02',
+      },
+      {
+        title: `${schoolName}大学院选课有什么坑？`,
+        category: '入学/选课/学分',
+        rewardPoints: 60 + (seed % 3) * 30,
+        answersCount: 5 + (seed % 8),
+        views: baseViews + 260,
+        status: 'open',
+        tags: ['大学院', '选课', '学分'],
+        updatedAt: '2026-05-01',
+      },
+      {
+        title: `${schoolName}附近保证金租房要注意什么？`,
+        category: '租房/搬家/保证金',
+        rewardPoints: 100,
+        answersCount: 10 + (seed % 5),
+        views: baseViews + 980,
+        status: 'solved',
+        tags: ['保证金', '合同', '中介'],
+        updatedAt: '2026-04-29',
+      },
+      {
+        title: `${schoolName}留学生办理外国人登录证要多久？`,
+        category: '签证/滞留资格',
+        rewardPoints: 70,
+        answersCount: 5 + (seed % 5),
+        views: baseViews + 620,
+        status: 'open',
+        tags: ['外国人登录证', 'HiKorea', '预约'],
+        updatedAt: '2026-04-28',
+      },
+      {
+        title: `${schoolName}附近哪个银行开户方便？`,
+        category: '银行卡/手机卡/保险',
+        rewardPoints: 40 + (seed % 3) * 10,
+        answersCount: 4 + (seed % 5),
+        views: baseViews + 330,
+        status: 'solved',
+        tags: ['银行卡', '手机认证', '校园周边'],
+        updatedAt: '2026-04-26',
+      },
+      {
+        title: `${schoolName}学生可以在哪里打工？`,
+        category: '打工/劳动纠纷',
+        rewardPoints: 90,
+        answersCount: 8 + (seed % 6),
+        views: baseViews + 760,
+        status: 'open',
+        tags: ['打工', '兼职', '时间制就业'],
+        updatedAt: '2026-04-24',
+      },
+      {
+        title: `${schoolName}毕业论文流程怎么走？`,
+        category: '毕业/论文/延毕',
+        rewardPoints: 150,
+        answersCount: 4 + (seed % 4),
+        views: baseViews + 180,
+        status: 'open',
+        tags: ['毕业', '论文', '大学院'],
+        updatedAt: '2026-04-22',
+      },
+    ],
+    featuredPosts: [
+      {
+        title: `${schoolName}留学生新生入学 checklist`,
+        summary: `从到校前材料、宿舍和租房准备，到学生证、校园系统、银行卡和手机卡办理，整理${schoolName}新生第一周常见事项。`,
+        author: `${schoolName}在读前辈`,
+        views: baseViews + 1800,
+        likes: 160 + (seed % 90),
+        bookmarks: 260 + (seed % 180),
+        isFeatured: true,
+        tags: ['新生', '入学', 'checklist'],
+        updatedAt: '2026-05-02',
+      },
+      {
+        title: `${schoolName}周边租房避坑指南`,
+        summary: `按通勤距离、保证金、管理费和合同注意事项拆解${schoolName}周边租房选择，避免只看照片就交定金。`,
+        author: `${location}租房过来人`,
+        views: baseViews + 2500,
+        likes: 190 + (seed % 120),
+        bookmarks: 340 + (seed % 260),
+        isFeatured: true,
+        tags: ['租房', '保证金', '合同'],
+        updatedAt: '2026-05-01',
+      },
+      {
+        title: `${schoolName}附近生活圈介绍`,
+        summary: `整理${schoolName}周边餐饮、超市、交通、银行、医院和日常采购动线，适合刚到韩国的同学快速熟悉环境。`,
+        author: `${city}生活记录员`,
+        views: baseViews + 1320,
+        likes: 110 + (seed % 80),
+        bookmarks: 220 + (seed % 160),
+        isFeatured: true,
+        tags: ['生活圈', '交通', '购物'],
+        updatedAt: '2026-04-30',
+      },
+      {
+        title: `${schoolName}大学院选课经验`,
+        summary: `从课程容量、教授沟通、学分安排和毕业计划角度，复盘${schoolName}大学院选课前需要确认的问题。`,
+        author: `${schoolName}大学院在读`,
+        views: baseViews + 860,
+        likes: 88 + (seed % 70),
+        bookmarks: 150 + (seed % 110),
+        isFeatured: false,
+        tags: ['大学院', '选课', '教授'],
+        updatedAt: '2026-04-28',
+      },
+      {
+        title: `${schoolName}语学院生活经验`,
+        summary: `整理语学院上课节奏、分班、课后复习和转本科准备经验，适合刚来韩国并计划继续升学的同学参考。`,
+        author: '语学院毕业生',
+        views: baseViews + 970,
+        likes: 92 + (seed % 60),
+        bookmarks: 170 + (seed % 130),
+        isFeatured: true,
+        tags: ['语学院', '本科申请', '韩语'],
+        updatedAt: '2026-04-27',
+      },
+      {
+        title: `${schoolName}附近银行开户攻略`,
+        summary: `说明开户前要准备的身份信息、手机认证、转账限额和银行卡使用中的常见问题，具体要求以银行窗口为准。`,
+        author: `${schoolName}本科生`,
+        views: baseViews + 650,
+        likes: 72 + (seed % 40),
+        bookmarks: 120 + (seed % 80),
+        isFeatured: false,
+        tags: ['银行卡', '手机卡', '认证'],
+        updatedAt: '2026-04-25',
+      },
+      {
+        title: `${schoolName}附近医院看病流程`,
+        summary: `整理预约、挂号、保险使用和药店取药的基础流程，医疗判断请以医院专业意见为准。`,
+        author: '在韩生活五年',
+        views: baseViews + 520,
+        likes: 66 + (seed % 40),
+        bookmarks: 118 + (seed % 80),
+        isFeatured: false,
+        tags: ['医院', '保险', '药店'],
+        updatedAt: '2026-04-23',
+      },
+      {
+        title: `${schoolName}毕业论文流程整理`,
+        summary: `按时间线整理导师沟通、选题、开题、中期和提交前的常见节点，具体要求以院系公告为准。`,
+        author: '大学院毕业生',
+        views: baseViews + 430,
+        likes: 58 + (seed % 40),
+        bookmarks: 110 + (seed % 70),
+        isFeatured: true,
+        tags: ['毕业', '论文', '时间线'],
+        updatedAt: '2026-04-20',
+      },
+    ],
+  }
+}
+
+const getSchoolTopicForSlug = (slug: string) => {
+  const savedTopic = getSchoolTopicBySlug(slug)
+  if (savedTopic) return savedTopic
+
+  const school = allSchoolProfiles.find((profile) => profile.id === slug)
+  return school ? makeGenericSchoolTopic(school) : undefined
+}
 
 const schoolOfficialUrls: Record<string, string> = {
   snu: 'https://www.snu.ac.kr/',
@@ -2376,7 +2606,7 @@ function App() {
       '留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。'
     const routeSlug =
       currentPath.match(/^\/schools\/([^/]+)$/)?.[1] ?? currentPath.match(/^\/school\/([^/]+)$/)?.[1] ?? ''
-    const currentSchoolTopic = routeSlug ? getSchoolTopicBySlug(decodeURIComponent(routeSlug)) : undefined
+    const currentSchoolTopic = routeSlug ? getSchoolTopicForSlug(decodeURIComponent(routeSlug)) : undefined
 
     document.title = currentSchoolTopic?.seoTitle ?? defaultTitle
     document
@@ -2405,7 +2635,7 @@ function App() {
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
   const decodedSchoolRouteId = schoolRouteId ? decodeURIComponent(schoolRouteId) : ''
-  const schoolTopic = decodedSchoolRouteId ? getSchoolTopicBySlug(decodedSchoolRouteId) : undefined
+  const schoolTopic = decodedSchoolRouteId ? getSchoolTopicForSlug(decodedSchoolRouteId) : undefined
   const routeSchool = decodedSchoolRouteId
     ? allSchoolProfiles.find((school) => school.id === decodedSchoolRouteId)
     : null
@@ -4401,7 +4631,7 @@ function App() {
                     setPublishOpen(true)
                   }}
                 >
-                  分享建国大学经验
+                  分享{schoolTopic.nameZh}经验
                   <PenLine size={18} aria-hidden="true" />
                 </button>
               </div>
@@ -4411,7 +4641,7 @@ function App() {
           <section className="school-topic-section school-topic-quick">
             <div className="section-heading">
               <p className="eyebrow dark">快速入口</p>
-              <h2>按问题类型进入建国大学专题。</h2>
+              <h2>按问题类型进入{schoolTopic.nameZh}专题。</h2>
             </div>
             <div className="school-topic-entry-grid">
               {schoolTopic.quickEntries.map((entry) => (
@@ -4426,7 +4656,7 @@ function App() {
           <section className="school-topic-section">
             <div className="section-heading">
               <p className="eyebrow dark">热门问题</p>
-              <h2>建国大学留学生正在问什么。</h2>
+              <h2>{schoolTopic.nameZh}留学生正在问什么。</h2>
             </div>
             <div className="school-question-grid">
               {schoolTopic.hotQuestions.map((question) => (
@@ -4457,7 +4687,7 @@ function App() {
           <section className="school-topic-section school-topic-featured">
             <div className="section-heading">
               <p className="eyebrow dark">精华经验</p>
-              <h2>能直接拿来参考的建国大学经验帖。</h2>
+              <h2>能直接拿来参考的{schoolTopic.nameZh}经验帖。</h2>
             </div>
             <div className="school-featured-grid">
               {schoolTopic.featuredPosts.map((post) => (
@@ -4530,11 +4760,11 @@ function App() {
           <section className="school-topic-section school-topic-cta">
             <div>
               <p className="eyebrow">没有找到你的问题？</p>
-              <h2>发布建国大学相关问题，让同校或同地区的留学生回答。</h2>
+              <h2>发布{schoolTopic.nameZh}相关问题，让同校或同地区的留学生回答。</h2>
               <p>高质量回答被采纳后可以获得积分奖励，平台会继续完善身份审核和内容风控。</p>
             </div>
             <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
-              发布建国大学问题
+              发布{schoolTopic.nameZh}问题
               <MessageSquareText size={18} aria-hidden="true" />
             </button>
           </section>
