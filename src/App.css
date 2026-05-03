@@ -667,14 +667,30 @@ h3 {
   grid-template-columns: repeat(4, 1fr);
 }
 
-.proof-band div {
+.proof-band button {
+  background: #ffffff;
   border-right: 1px solid var(--line);
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
+  color: inherit;
+  cursor: pointer;
   display: grid;
   gap: 6px;
+  justify-items: start;
   padding: 26px clamp(20px, 4vw, 56px);
+  text-align: left;
+  transition:
+    background 180ms ease,
+    transform 180ms ease;
 }
 
-.proof-band div:last-child {
+.proof-band button:hover {
+  background: #f2f7f4;
+  transform: translateY(-2px);
+}
+
+.proof-band button:last-child {
   border-right: 0;
 }
 
@@ -687,6 +703,148 @@ h3 {
 .proof-band span {
   color: var(--muted);
   font-weight: 700;
+}
+
+.journey-topic-page {
+  display: grid;
+  gap: 54px;
+}
+
+.journey-topic-hero {
+  align-items: end;
+  display: grid;
+  gap: 26px;
+  grid-template-columns: minmax(0, 1fr) 360px;
+}
+
+.journey-topic-hero > div:first-child > p:not(.eyebrow) {
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1.7;
+  margin-top: 22px;
+  max-width: 860px;
+}
+
+.journey-topic-panel {
+  background: var(--forest);
+  border-radius: 10px;
+  color: #fffdf0;
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+
+.journey-topic-panel strong {
+  font-size: 26px;
+  line-height: 1.15;
+}
+
+.journey-topic-panel > span {
+  color: rgba(255, 253, 240, 0.74);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.journey-step-grid {
+  display: grid;
+  gap: 1px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.journey-step-grid article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding: 26px;
+}
+
+.journey-step-grid span {
+  color: var(--coral);
+  font-weight: 900;
+}
+
+.journey-step-grid h3 {
+  color: var(--forest);
+  font-size: 24px;
+}
+
+.journey-step-grid p {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.65;
+}
+
+.journey-topic-section {
+  display: grid;
+  gap: 26px;
+}
+
+.journey-card-grid.question-card-grid,
+.journey-card-grid.experience-card-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0;
+}
+
+.journey-guide-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.journey-guide-grid article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  padding: 22px;
+}
+
+.journey-guide-grid article > span {
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.journey-guide-grid h3 {
+  color: var(--forest);
+  font-size: 24px;
+}
+
+.journey-guide-grid p {
+  color: var(--muted);
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.journey-guide-grid small {
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.journey-topic-cta {
+  align-items: center;
+  background: var(--forest);
+  border-radius: 10px;
+  color: #fffdf0;
+  display: flex;
+  gap: 24px;
+  justify-content: space-between;
+  padding: 32px;
+}
+
+.journey-topic-cta h2 {
+  color: #fffdf0;
+  font-size: clamp(30px, 4vw, 58px);
+  line-height: 1.08;
+  max-width: 820px;
+}
+
+.journey-topic-cta > div:last-child {
+  display: flex;
+  flex: none;
+  gap: 12px;
 }
 
 .community-home-section {
@@ -3282,6 +3440,20 @@ h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .journey-topic-hero,
+  .journey-topic-cta {
+    align-items: stretch;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .journey-step-grid,
+  .journey-card-grid.question-card-grid,
+  .journey-card-grid.experience-card-grid,
+  .journey-guide-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .partner-showcase-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -3659,9 +3831,21 @@ h3 {
     grid-template-columns: 1fr;
   }
 
-  .proof-band div {
+  .proof-band button {
     border-bottom: 1px solid var(--line);
     border-right: 0;
+  }
+
+  .journey-step-grid,
+  .journey-card-grid.question-card-grid,
+  .journey-card-grid.experience-card-grid,
+  .journey-guide-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .journey-topic-cta > div:last-child {
+    display: grid;
+    width: 100%;
   }
 
   .school-row {

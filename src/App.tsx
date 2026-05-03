@@ -133,6 +133,18 @@ type CityGuide = {
   updatedAt: string
 }
 
+type JourneyTopic = {
+  slug: string
+  title: string
+  shortTitle: string
+  summary: string
+  heroTitle: string
+  heroCopy: string
+  categories: string[]
+  tags: string[]
+  steps: { title: string; text: string }[]
+}
+
 type SchoolProfile = {
   id: string
   name: string
@@ -2396,6 +2408,75 @@ const hotQuestions = seedQuestions
 const featuredExperiences = seedPosts.filter((post) => post.featured)
 const latestPosts = [...seedPosts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
+const journeyTopics: JourneyTopic[] = [
+  {
+    slug: 'admission',
+    title: '语学院/本科/硕博入学相关',
+    shortTitle: '入学相关',
+    summary: '申请材料、入学流程、选课和学分确认',
+    heroTitle: '从申请到入学，把材料和流程一次看清。',
+    heroCopy:
+      '集中整理语学院、本科、大学院申请、入学材料、选课、学分确认和新生到校流程，适合准备申请和刚入学的学生先看。',
+    categories: ['入学/选课/学分', '语学院/本科/大学院', '学校评价'],
+    tags: ['申请材料', '入学流程', '选课', '学分确认', '语学院', '大学院'],
+    steps: [
+      { title: '申请前', text: '确认招生简章、语言要求、学历材料、财产证明和公证认证时间。' },
+      { title: '录取后', text: '核对学费缴纳、标准入学许可书、住宿、保险和入境时间线。' },
+      { title: '到校后', text: '处理学生证、门户系统、选课、学分承认和院系办公室确认。' },
+    ],
+  },
+  {
+    slug: 'student-life',
+    title: '在学期间相关',
+    shortTitle: '在学生活',
+    summary: '签证、租房、打工、保险、银行卡和校园生活',
+    heroTitle: '在韩国读书期间，先解决生活里的硬问题。',
+    heroCopy:
+      '覆盖 D-2/D-4 延签、外国人登录证、租房保证金、银行卡、手机卡、医保、打工许可和校园生活，优先整理可执行的步骤。',
+    categories: ['签证/滞留资格', '租房/搬家/保证金', '银行卡/手机卡/保险', '打工/劳动纠纷', '医院/看病/药店', '城市生活攻略'],
+    tags: ['签证', '租房', '保证金', '打工', '保险', '银行卡', '手机卡'],
+    steps: [
+      { title: '证件优先', text: '确认外国人登录证、滞留期限、HiKorea 预约和学校材料窗口。' },
+      { title: '生活落地', text: '按租房、手机号、银行卡、医保、医院和交通卡顺序补齐基础生活能力。' },
+      { title: '合规打工', text: '打工前先确认签证类型、学校确认、时间制就业许可和工作限制。' },
+    ],
+  },
+  {
+    slug: 'graduation',
+    title: '毕业问题相关',
+    shortTitle: '毕业问题',
+    summary: '论文、延毕、毕业审查和材料节点',
+    heroTitle: '毕业不是只写完论文，还要踩准学校流程。',
+    heroCopy:
+      '围绕论文、延毕、毕业审查、材料节点、研究注册、答辩窗口和签证衔接，整理最容易被忽略的毕业问题。',
+    categories: ['毕业/论文/延毕', '入学/选课/学分', '学校评价'],
+    tags: ['论文', '延毕', '毕业审查', '答辩', '研究注册', '材料节点'],
+    steps: [
+      { title: '毕业条件', text: '先确认学分、外语、综合考试、论文资格和院系特殊要求。' },
+      { title: '论文节点', text: '盯住指导教授确认、审查申请、答辩、修改提交和图书馆上传时间。' },
+      { title: '延毕风险', text: '提前问清研究注册费、签证延长、宿舍、医保和奖学金影响。' },
+    ],
+  },
+  {
+    slug: 'career',
+    title: '毕业后签证/就业相关',
+    shortTitle: '毕业后就业',
+    summary: 'D-10、求职、实习、简历和就业衔接',
+    heroTitle: '毕业后怎么留下、求职和转签，先把路径想清楚。',
+    heroCopy:
+      '整理 D-10 求职签证、实习、简历、面试、企业招聘、转 E 系列签证和回国就业衔接，帮助毕业生少走弯路。',
+    categories: ['求职/实习/简历', '签证/滞留资格', '打工/劳动纠纷'],
+    tags: ['D-10', '求职', '实习', '简历', '面试', '就业签证'],
+    steps: [
+      { title: '毕业前', text: '准备成绩、毕业证明、作品/简历、求职计划和签证衔接材料。' },
+      { title: '求职中', text: '记录投递、面试、实习和求职活动证明，避免签证材料断档。' },
+      { title: '录用后', text: '确认雇主资质、岗位匹配、合同、工资和后续转签要求。' },
+    ],
+  },
+]
+
+const getJourneyTopicBySlug = (slug: string) => journeyTopics.find((topic) => topic.slug === slug)
+
 const pathways = [
   {
     icon: Search,
@@ -2537,8 +2618,16 @@ function App() {
   const isRewardsRoute = currentPath === '/rewards'
   const isCategoriesRoute = currentPath === '/categories'
   const isAboutRoute = currentPath === '/about'
+  const topicRouteSlug = typeof window !== 'undefined' ? currentPath.match(/^\/topics\/([^/]+)$/)?.[1] : undefined
+  const isTopicRoute = Boolean(topicRouteSlug)
   const isInfoRoute =
-    isQuestionsRoute || isQuestionDetailRoute || isPostDetailRoute || isRewardsRoute || isCategoriesRoute || isAboutRoute
+    isQuestionsRoute ||
+    isQuestionDetailRoute ||
+    isPostDetailRoute ||
+    isRewardsRoute ||
+    isCategoriesRoute ||
+    isAboutRoute ||
+    isTopicRoute
   const schoolRouteId =
     typeof window !== 'undefined'
       ? currentPath.match(/^\/schools\/([^/]+)$/)?.[1] ?? currentPath.match(/^\/school\/([^/]+)$/)?.[1]
@@ -2668,11 +2757,14 @@ function App() {
     const routeSlug =
       currentPath.match(/^\/schools\/([^/]+)$/)?.[1] ?? currentPath.match(/^\/school\/([^/]+)$/)?.[1] ?? ''
     const currentSchoolTopic = routeSlug ? getSchoolTopicForSlug(decodeURIComponent(routeSlug)) : undefined
+    const currentJourneyTopic = currentPath.match(/^\/topics\/([^/]+)$/)?.[1]
+      ? getJourneyTopicBySlug(decodeURIComponent(currentPath.match(/^\/topics\/([^/]+)$/)?.[1] ?? ''))
+      : undefined
 
-    document.title = currentSchoolTopic?.seoTitle ?? defaultTitle
+    document.title = currentSchoolTopic?.seoTitle ?? (currentJourneyTopic ? `${currentJourneyTopic.title} - 留学生首页` : defaultTitle)
     document
       .querySelector('meta[name="description"]')
-      ?.setAttribute('content', currentSchoolTopic?.seoDescription ?? defaultDescription)
+      ?.setAttribute('content', currentSchoolTopic?.seoDescription ?? currentJourneyTopic?.heroCopy ?? defaultDescription)
   }, [currentPath])
 
   useEffect(() => {
@@ -2793,6 +2885,28 @@ function App() {
     ? appState.posts.find((post) => post.id === decodeURIComponent(postRouteId)) ??
       seedPosts.find((post) => post.id === decodeURIComponent(postRouteId))
     : undefined
+  const selectedJourneyTopic = topicRouteSlug ? getJourneyTopicBySlug(decodeURIComponent(topicRouteSlug)) : undefined
+  const selectedJourneyQuestions = selectedJourneyTopic
+    ? hotQuestions.filter(
+        (question) =>
+          selectedJourneyTopic.categories.includes(question.category) ||
+          question.tags.some((tag) => selectedJourneyTopic.tags.includes(tag)),
+      )
+    : []
+  const selectedJourneyPosts = selectedJourneyTopic
+    ? appState.posts.filter(
+        (post) =>
+          selectedJourneyTopic.categories.includes(post.category) ||
+          (post.tags ?? []).some((tag) => selectedJourneyTopic.tags.includes(tag)),
+      )
+    : []
+  const selectedJourneyGuides = selectedJourneyTopic
+    ? cityGuides.filter(
+        (guide) =>
+          selectedJourneyTopic.categories.includes(guide.category) ||
+          guide.tags.some((tag) => selectedJourneyTopic.tags.includes(tag)),
+      )
+    : []
   const siteContent = normalizeSiteContent(appState.siteContent)
   const activeSiteContent = inlineEditMode ? contentDraft : siteContent
   const heroStyle = {
@@ -3880,22 +3994,12 @@ function App() {
       </section>
 
       <section className="proof-band" aria-label="留学生问题阶段导航">
-        <div>
-          <strong>语学院/本科/硕博入学相关</strong>
-          <span>申请材料、入学流程、选课和学分确认</span>
-        </div>
-        <div>
-          <strong>在学期间相关</strong>
-          <span>签证、租房、打工、保险、银行卡和校园生活</span>
-        </div>
-        <div>
-          <strong>毕业问题相关</strong>
-          <span>论文、延毕、毕业审查和材料节点</span>
-        </div>
-        <div>
-          <strong>毕业后签证/就业相关</strong>
-          <span>D-10、求职、实习、简历和就业衔接</span>
-        </div>
+        {journeyTopics.map((topic) => (
+          <button key={topic.slug} type="button" onClick={() => navigateToPath(`/topics/${topic.slug}`)}>
+            <strong>{topic.title}</strong>
+            <span>{topic.summary}</span>
+          </button>
+        ))}
       </section>
 
       <section className="community-home-section" id="questions">
@@ -4667,6 +4771,168 @@ function App() {
               内容围绕真实留学问题，提供可执行步骤、材料提醒和亲身经历边界。平台会优先奖励被收藏、点赞、加精和能解决问题的经验帖，抄袭、AI水文和无效内容不奖励。
             </p>
           </section>
+        </section>
+      )}
+
+      {isTopicRoute && selectedJourneyTopic && (
+        <section className="info-page journey-topic-page">
+          <div className="journey-topic-hero">
+            <div>
+              <p className="eyebrow dark">专项页面</p>
+              <h1>{selectedJourneyTopic.heroTitle}</h1>
+              <p>{selectedJourneyTopic.heroCopy}</p>
+            </div>
+            <div className="journey-topic-panel">
+              <strong>{selectedJourneyTopic.title}</strong>
+              <span>{selectedJourneyTopic.summary}</span>
+              <div className="school-card-tags">
+                {selectedJourneyTopic.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="journey-step-grid">
+            {selectedJourneyTopic.steps.map((step, index) => (
+              <article key={step.title}>
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <h3>{step.title}</h3>
+                <p>{step.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <section className="journey-topic-section">
+            <div className="section-heading section-heading-action">
+              <div>
+                <p className="eyebrow dark">相关问题</p>
+                <h2>{selectedJourneyTopic.shortTitle}里最常被问到的事。</h2>
+              </div>
+              <button className="text-arrow-button" type="button" onClick={() => navigateToPath('/questions')}>
+                去问题列表
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="question-card-grid compact-grid journey-card-grid">
+              {selectedJourneyQuestions.slice(0, 6).map((question) => (
+                <article
+                  className="question-card clickable-card"
+                  key={question.id}
+                  onClick={() => navigateToPath(`/questions/${question.id}`)}
+                >
+                  <div className="tag-line">
+                    <span>{question.category}</span>
+                    <span>{question.school}</span>
+                    {question.status === 'solved' ? (
+                      <span className="solved-tag">已解决</span>
+                    ) : (
+                      <span className="bounty-tag">悬赏 {question.rewardPoints} 积分</span>
+                    )}
+                  </div>
+                  <h3>{question.title}</h3>
+                  <div className="question-stats">
+                    <span>{question.views.toLocaleString()} 浏览</span>
+                    <span>{question.answersCount} 个回答</span>
+                    <span>{question.createdAt}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="journey-topic-section">
+            <div className="section-heading section-heading-action">
+              <div>
+                <p className="eyebrow dark">相关经验</p>
+                <h2>按这个阶段整理的真实经验帖。</h2>
+              </div>
+              <button className="text-arrow-button" type="button" onClick={() => navigateToPath('/posts')}>
+                去经验列表
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            </div>
+            <div className="experience-card-grid journey-card-grid">
+              {selectedJourneyPosts.slice(0, 6).map((post) => (
+                <article
+                  className="experience-card clickable-card"
+                  key={post.id}
+                  onClick={() => navigateToPath(`/posts/${post.id}`)}
+                >
+                  <div className="tag-line">
+                    <span>{post.category}</span>
+                    <span>{post.school}</span>
+                    {post.featured && <span className="featured-tag">精华</span>}
+                    {post.price > 0 && <span className="paid-tag">{post.price} 积分</span>}
+                  </div>
+                  <h3>{post.title}</h3>
+                  <p>{post.excerpt}</p>
+                  <div className="question-stats">
+                    <span>{post.author}</span>
+                    <span>{(post.views ?? 0).toLocaleString()} 阅读</span>
+                    <span>{post.bookmarks ?? 0} 收藏</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="journey-topic-section journey-guide-section">
+            <div className="section-heading">
+              <p className="eyebrow dark">攻略索引</p>
+              <h2>适合继续补内容的运营方向。</h2>
+            </div>
+            <div className="journey-guide-grid">
+              {selectedJourneyGuides.length ? (
+                selectedJourneyGuides.slice(0, 4).map((guide) => (
+                  <article key={guide.id}>
+                    <span>{guide.category}</span>
+                    <h3>{guide.title}</h3>
+                    <p>{guide.summary}</p>
+                    <small>{guide.city} · {guide.updatedAt}</small>
+                  </article>
+                ))
+              ) : (
+                selectedJourneyTopic.categories.slice(0, 4).map((category) => (
+                  <article key={category}>
+                    <span>{category}</span>
+                    <h3>{category}问题合集</h3>
+                    <p>后续可以沉淀这个阶段的高频问题、学校差异和真实材料清单。</p>
+                    <small>持续更新</small>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className="journey-topic-cta">
+            <div>
+              <p className="eyebrow">没有找到答案？</p>
+              <h2>把你的具体阶段、学校和时间线写清楚，让有经验的人回答。</h2>
+            </div>
+            <div>
+              <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
+                我要提问
+                <MessageSquareText size={18} aria-hidden="true" />
+              </button>
+              <button className="secondary-link" type="button" onClick={() => setPublishOpen(true)}>
+                分享这个阶段的经验
+                <PenLine size={18} aria-hidden="true" />
+              </button>
+            </div>
+          </section>
+        </section>
+      )}
+
+      {isTopicRoute && !selectedJourneyTopic && (
+        <section className="info-page">
+          <div className="posts-page-head">
+            <div>
+              <p className="eyebrow dark">专项页面</p>
+              <h1>这个专题还没有开通。</h1>
+              <p>可以先从入学、在学、毕业和就业四个阶段进入。</p>
+            </div>
+          </div>
         </section>
       )}
 
