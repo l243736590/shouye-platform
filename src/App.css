@@ -70,10 +70,13 @@ main {
 
 .brand-tagline {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.25;
+  max-width: 260px;
+  text-transform: none;
+  white-space: normal;
 }
 
 .hidden-admin-button {
@@ -317,7 +320,7 @@ button {
   align-self: center;
   color: #fffdf0;
   margin-left: clamp(22px, 7vw, 96px);
-  max-width: 1040px;
+  max-width: 920px;
   padding: 132px 22px 72px 0;
   z-index: 2;
 }
@@ -368,6 +371,15 @@ h1 {
   line-height: 0.86;
 }
 
+.hero-content h1 {
+  color: #fffdf0;
+  font-size: clamp(62px, 7.5vw, 108px);
+  line-height: 0.98;
+  max-width: none;
+  text-shadow: 0 18px 44px rgba(1, 8, 6, 0.34);
+  white-space: nowrap;
+}
+
 .hero-title-logo-wrap {
   line-height: 0;
 }
@@ -393,16 +405,16 @@ h3 {
 }
 
 .hero-copy {
-  color: rgba(255, 253, 240, 0.84);
-  font-size: clamp(28px, 3vw, 46px);
+  color: rgba(255, 253, 240, 0.94);
+  font-size: clamp(26px, 2.5vw, 40px);
   font-weight: 800;
   line-height: 1.22;
-  margin: 32px 0 34px;
-  max-width: 1080px;
+  margin: 28px 0 28px;
+  max-width: 880px;
 }
 
 .hero-subcopy {
-  color: rgba(255, 253, 240, 0.78);
+  color: rgba(255, 253, 240, 0.9);
   font-size: clamp(14px, 1.45vw, 23px);
   font-weight: 800;
   line-height: 1.45;
@@ -528,6 +540,176 @@ h3 {
 .proof-band span {
   color: var(--muted);
   font-weight: 700;
+}
+
+.community-home-section {
+  background: #fbfbf5;
+  border-bottom: 1px solid var(--line);
+  padding: clamp(76px, 9vw, 120px) clamp(20px, 5vw, 72px);
+}
+
+.community-home-section:nth-of-type(odd) {
+  background: #f2f7f4;
+}
+
+.question-card-grid,
+.experience-card-grid,
+.income-rule-grid,
+.category-navigation-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 42px;
+}
+
+.question-card-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.experience-card-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.question-card,
+.experience-card,
+.income-rule-grid article,
+.reward-rule-list article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 14px;
+  min-height: 190px;
+  padding: 20px;
+}
+
+.question-card h3,
+.experience-card h3,
+.income-rule-grid h3,
+.reward-rule-list h3 {
+  color: var(--ink);
+  font-size: clamp(20px, 1.6vw, 26px);
+}
+
+.question-card p,
+.experience-card p,
+.income-rule-grid p,
+.reward-rule-list p,
+.reward-mechanism-copy p,
+.reward-mechanism-list p {
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.tag-line,
+.question-stats {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-line span,
+.question-stats span,
+.category-navigation-grid button {
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.tag-line span {
+  background: #edf5ee;
+  color: var(--forest);
+  padding: 6px 10px;
+}
+
+.tag-line .bounty-tag {
+  background: #fff4d7;
+  color: #8c6417;
+}
+
+.tag-line .solved-tag,
+.tag-line .featured-tag {
+  background: #e7f0ff;
+  color: var(--blue);
+}
+
+.question-stats {
+  color: var(--muted);
+  font-size: 13px;
+  margin-top: auto;
+}
+
+.reward-mechanism-section {
+  align-items: center;
+  display: grid;
+  gap: 48px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(280px, 1.05fr);
+}
+
+.reward-mechanism-copy {
+  max-width: 780px;
+}
+
+.reward-mechanism-copy h2 {
+  line-height: 1.18;
+}
+
+.reward-mechanism-copy .primary-link {
+  display: inline-flex;
+  margin-top: 26px;
+  width: fit-content;
+}
+
+.reward-mechanism-list {
+  display: grid;
+  gap: 1px;
+}
+
+.reward-mechanism-list div {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  display: grid;
+  gap: 8px;
+  padding: 22px;
+}
+
+.reward-mechanism-list span,
+.reward-rule-list span {
+  align-items: center;
+  background: var(--forest);
+  border-radius: 50%;
+  color: #fffdf0;
+  display: inline-flex;
+  font-weight: 900;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.income-rule-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.income-rule-grid svg {
+  color: var(--blue);
+}
+
+.category-navigation-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.category-navigation-grid button {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  color: var(--forest);
+  min-height: 52px;
+  padding: 0 16px;
+  text-align: left;
+}
+
+.category-navigation-grid button:hover {
+  background: var(--forest);
+  color: #fffdf0;
 }
 
 .intro-section,
@@ -1395,6 +1577,7 @@ h3 {
 
 .profile-route,
 .posts-route,
+.info-route,
 .school-route {
   background: #eef5ee;
   min-height: 100svh;
@@ -1402,6 +1585,7 @@ h3 {
 
 .profile-route > :not(.site-header):not(.profile-page):not(.modal-backdrop),
 .posts-route > :not(.site-header):not(.posts-page):not(.modal-backdrop),
+.info-route > :not(.site-header):not(.info-page):not(.modal-backdrop),
 .school-route > :not(.site-header):not(.school-posts-page):not(.modal-backdrop) {
   display: none !important;
 }
@@ -1416,6 +1600,42 @@ h3 {
   margin: 0 auto;
   max-width: 1480px;
   padding: 124px clamp(14px, 4vw, 56px) 72px;
+}
+
+.info-page {
+  margin: 0 auto;
+  max-width: 1480px;
+  padding: 124px clamp(18px, 5vw, 72px) 80px;
+}
+
+.info-page h1 {
+  font-size: clamp(48px, 7vw, 104px);
+  line-height: 1.06;
+  max-width: 980px;
+}
+
+.info-page .posts-page-head p:not(.eyebrow),
+.rewards-heading p {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.65;
+  margin-top: 18px;
+  max-width: 780px;
+}
+
+.info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reward-rule-list {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 48px;
+}
+
+.category-page-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .posts-page-head {
@@ -2246,6 +2466,20 @@ h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .question-card-grid,
+  .experience-card-grid,
+  .income-rule-grid,
+  .reward-rule-list,
+  .category-navigation-grid,
+  .info-grid,
+  .category-page-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .reward-mechanism-section {
+    grid-template-columns: 1fr;
+  }
+
   .school-browser {
     grid-template-columns: 1fr;
   }
@@ -2309,6 +2543,16 @@ h3 {
     display: none;
   }
 
+  .brand {
+    gap: 8px;
+  }
+
+  .brand-tagline {
+    font-size: 12px;
+    max-width: 168px;
+    white-space: normal;
+  }
+
   .mega-menu {
     display: none;
   }
@@ -2342,6 +2586,16 @@ h3 {
     padding: 110px 20px 42px;
   }
 
+  .hero-content h1 {
+    font-size: clamp(42px, 12vw, 50px);
+    line-height: 1;
+  }
+
+  .hero-copy {
+    font-size: clamp(22px, 7vw, 32px);
+    line-height: 1.18;
+  }
+
   .hero-title-logo {
     max-height: 190px;
     width: min(88vw, 430px);
@@ -2368,6 +2622,20 @@ h3 {
 
   .posts-page {
     padding: 86px 10px 42px;
+  }
+
+  .info-page {
+    padding: 86px 14px 48px;
+  }
+
+  .question-card-grid,
+  .experience-card-grid,
+  .income-rule-grid,
+  .reward-rule-list,
+  .category-navigation-grid,
+  .info-grid,
+  .category-page-grid {
+    grid-template-columns: 1fr;
   }
 
   .posts-page-head {

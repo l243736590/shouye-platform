@@ -189,10 +189,10 @@ const sendVerificationEmail = async (env: Env, email: string, code: string) => {
 
   const response = await fetch('https://api.resend.com/emails', {
     body: JSON.stringify({
-      from: env.MAIL_FROM || '售业平台 <noreply@shouye.fun>',
+      from: env.MAIL_FROM || '留学生经验分享与问题解决平台 <noreply@shouye.fun>',
       to: [email],
-      subject: '售业平台注册验证码',
-      html: `<p>你的售业平台注册验证码是：</p><h2>${code}</h2><p>验证码 10 分钟内有效。</p>`,
+      subject: '留学生经验分享与问题解决平台验证码',
+      html: `<p>你的平台注册验证码是：</p><h2>${code}</h2><p>验证码 10 分钟内有效。</p>`,
     }),
     headers: {
       authorization: `Bearer ${env.RESEND_API_KEY}`,

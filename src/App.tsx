@@ -120,7 +120,22 @@ const postApprovedBonusPoints = 10
 const rechargePointsPerYuan = 10
 const cashoutPointsPerYuan = 100 / 6
 const minimumCashoutPoints = 1700
-const categories = ['全部', '申请避坑', '学校评价', '教授课程', '毕业就业', '生活落地']
+const categories = [
+  '签证/滞留资格',
+  '入学/选课/学分',
+  '语学院/本科/大学院',
+  '租房/搬家/保证金',
+  '银行卡/手机卡/保险',
+  '打工/劳动纠纷',
+  '医院/看病/药店',
+  '毕业/论文/延毕',
+  '求职/实习/简历',
+  '二手交易/搬家处理',
+  '学校评价',
+  '城市生活攻略',
+]
+const allCategoryLabel = '全部'
+const categoryFilters = [allCategoryLabel, ...categories]
 const schoolPageSize = 8
 
 const fileImage = (fileName: string) =>
@@ -1103,19 +1118,35 @@ const seedPosts: Post[] = [
 const pathways = [
   {
     icon: Search,
-    title: '先搜学校和专业',
-    text: '按韩国院校、地区、专业、申请季和学位筛选真实经验。',
+    title: '先搜问题和场景',
+    text: '按签证、租房、打工、毕业和城市生活筛选真实经验。',
   },
   {
     icon: BadgeCheck,
-    title: '看身份认证内容',
-    text: '区分在读、毕业、已录取、申请中，内容标记年份和项目。',
+    title: '看真实可验证经验',
+    text: '区分在读、毕业、已录取和申请中，重点沉淀可复用步骤。',
   },
   {
     icon: Coins,
-    title: '积分解锁深度帖',
-    text: '优质复盘、教授避坑、选课攻略可用积分查看，创作者获得激励。',
+    title: '解决问题获得收益',
+    text: '优质回答、被采纳答案和精华攻略可获得平台激励。',
   },
+]
+
+const hotQuestions = [
+  { title: '韩国D-2签证延长需要哪些材料？', category: '签证', views: '2.4k', answers: 18, bounty: 60, solved: true },
+  { title: '韩国租房保证金怎么避免被骗？', category: '租房', views: '3.1k', answers: 26, bounty: 100, solved: true },
+  { title: '外国人登录证办理流程是什么？', category: '滞留资格', views: '1.8k', answers: 12, bounty: 0, solved: false },
+  { title: '留学生在韩国可以合法打工多久？', category: '打工', views: '2.0k', answers: 15, bounty: 80, solved: true },
+  { title: '大学院论文延期怎么办？', category: '毕业论文', views: '1.5k', answers: 9, bounty: 120, solved: false },
+]
+
+const featuredExperiences = [
+  { title: '韩国银行卡开户完整攻略', author: '在韩学姐', category: '银行卡', saves: 326, reads: '4.8k', featured: true },
+  { title: '韩国留学生租房避坑指南', author: '首尔租房记录', category: '租房', saves: 418, reads: '6.2k', featured: true },
+  { title: '语学院转本科申请流程', author: '延世申请复盘', category: '入学', saves: 214, reads: '3.1k', featured: true },
+  { title: '韩国医院看病与保险使用流程', author: '釜山生活笔记', category: '保险', saves: 189, reads: '2.7k', featured: true },
+  { title: '大学院毕业论文流程整理', author: '研究生小组', category: '毕业', saves: 242, reads: '3.6k', featured: true },
 ]
 
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -1178,12 +1209,17 @@ function App() {
   const isAdminRoute = currentPath === '/admin'
   const isProfileRoute = currentPath === '/me'
   const isPostsRoute = currentPath === '/posts'
+  const isQuestionsRoute = currentPath === '/questions'
+  const isRewardsRoute = currentPath === '/rewards'
+  const isCategoriesRoute = currentPath === '/categories'
+  const isAboutRoute = currentPath === '/about'
+  const isInfoRoute = isQuestionsRoute || isRewardsRoute || isCategoriesRoute || isAboutRoute
   const schoolRouteId =
     typeof window !== 'undefined' ? currentPath.match(/^\/school\/([^/]+)$/)?.[1] : undefined
   const initialAdminToken = typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''
   const [appState, setAppState] = useState<StoredState>(() => initialState())
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
-  const [selectedCategory, setSelectedCategory] = useState('全部')
+  const [selectedCategory, setSelectedCategory] = useState(allCategoryLabel)
   const [query, setQuery] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : '',
   )
@@ -1226,7 +1262,7 @@ function App() {
   const [postForm, setPostForm] = useState({
     title: '',
     school: allSchoolProfiles[0].name,
-    category: '申请避坑',
+    category: '签证/滞留资格',
     excerpt: '',
     body: '',
     price: '0',
@@ -1341,7 +1377,7 @@ function App() {
 
   const filteredPosts = useMemo(() => {
     return appState.posts.filter((post) => {
-      const matchesCategory = selectedCategory === '全部' || post.category === selectedCategory
+      const matchesCategory = selectedCategory === allCategoryLabel || post.category === selectedCategory
       const matchesSchool = postSchoolFilter === '全部学校' || post.school === postSchoolFilter
       const text = `${post.title}${post.school}${post.category}${post.excerpt}${post.author}`
       const matchesQuery = text.toLowerCase().includes(query.toLowerCase())
@@ -1356,6 +1392,12 @@ function App() {
     const trimmedQuery = nextQuery.trim()
     const nextUrl = trimmedQuery ? `/posts?q=${encodeURIComponent(trimmedQuery)}` : '/posts'
     window.history.pushState(null, '', nextUrl)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
+  }
+
+  const navigateToPath = (path: string) => {
+    window.history.pushState(null, '', path)
     window.dispatchEvent(new PopStateEvent('popstate'))
     window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
   }
@@ -1804,7 +1846,7 @@ function App() {
     setPostForm({
       title: '',
       school: allSchoolProfiles[0].name,
-      category: '申请避坑',
+      category: '签证/滞留资格',
       excerpt: '',
       body: '',
       price: '0',
@@ -2029,9 +2071,11 @@ function App() {
       ? 'profile-route'
       : isPostsRoute
         ? 'posts-route'
-        : schoolRouteId
-          ? 'school-route'
-          : undefined
+        : isInfoRoute
+          ? 'info-route'
+          : schoolRouteId
+            ? 'school-route'
+            : undefined
 
   return (
     <main className={mainClassName}>
@@ -2039,7 +2083,7 @@ function App() {
         <a
           className="brand"
           href="/"
-          aria-label="售业 sell what you know 首页"
+          aria-label="留学生经验分享与问题解决平台首页"
           onClick={(event) => {
             event.preventDefault()
             setMegaMenuOpen(false)
@@ -2060,7 +2104,7 @@ function App() {
               }}
             />
           </span>
-          <span className="brand-tagline">sell what you know</span>
+          <span className="brand-tagline">留学生经验分享与问题解决平台</span>
         </a>
         <nav className="nav-links" aria-label="Primary">
           <div
@@ -2071,7 +2115,7 @@ function App() {
             onBlur={() => setMegaMenuOpen(false)}
           >
             <a href="#school-browser" onClick={() => setMegaMenuOpen(false)}>
-              韩国院校
+              院校入口
             </a>
             <div className="mega-menu" aria-label="韩国院校地区导航">
               <div className="mega-menu-inner">
@@ -2095,16 +2139,41 @@ function App() {
             </div>
           </div>
           <a
+            href="/questions"
+            onClick={(event) => {
+              event.preventDefault()
+              navigateToPath('/questions')
+            }}
+          >
+            我要提问
+          </a>
+          <a
             href="/posts"
             onClick={(event) => {
               event.preventDefault()
               openPostsPage('')
             }}
           >
-            经验库
+            经验分享
           </a>
-          <a href="#workspace">合作入口</a>
-          <a href="#points">积分</a>
+          <a
+            href="/rewards"
+            onClick={(event) => {
+              event.preventDefault()
+              navigateToPath('/rewards')
+            }}
+          >
+            收益规则
+          </a>
+          <a
+            href="/categories"
+            onClick={(event) => {
+              event.preventDefault()
+              navigateToPath('/categories')
+            }}
+          >
+            分类
+          </a>
         </nav>
         {currentUser ? (
           <div className="user-pill">
@@ -2156,18 +2225,13 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
-          <p className="eyebrow hero-eyebrow">韩国留学与生活经验平台</p>
-          <h1 className="hero-title-logo-wrap">
-            <span className="sr-only">售业</span>
-            <img
-              className="hero-title-logo"
-              src="/brand/shouye-logo-text-light.png"
-              alt=""
-              aria-hidden="true"
-            />
-          </h1>
+          <p className="eyebrow hero-eyebrow">留学生经验分享与问题解决平台</p>
+          <h1>留学生的第一站</h1>
           <p className="hero-copy">
-            技能与经验的变现平台
+            签证、租房、入学、打工、保险、银行卡、毕业、就业，真实留学生经验帮你少走弯路。
+          </p>
+          <p className="hero-subcopy hero-subcopy-top">
+            你可以在这里提问，也可以分享自己的留学经验，通过高质量回答和经验帖获得收益。
           </p>
 
           <form
@@ -2182,58 +2246,288 @@ function App() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="搜索：延世大学、经营学、教授、毕业论文、签证..."
-              aria-label="搜索学校、专业、教授和经验"
+              placeholder="搜索：D-2签证、租房保证金、外国人登录证、打工、论文延期..."
+              aria-label="搜索留学问题、经验和分类"
             />
             <button type="submit">搜索</button>
           </form>
 
           <div className="hero-actions" aria-label="Quick actions">
-            <button className="primary-link" type="button" onClick={() => setPublishOpen(true)}>
-              申请入驻 / 发布经验
-              <PenLine size={18} aria-hidden="true" />
+            <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
+              我要提问
+              <MessageSquareText size={18} aria-hidden="true" />
             </button>
-            <button className="secondary-link" type="button" onClick={scrollToPartnerSection}>
-              商家合作申请
-              <ArrowRight size={18} aria-hidden="true" />
+            <button className="secondary-link" type="button" onClick={() => setPublishOpen(true)}>
+              我要分享经验赚钱
+              <PenLine size={18} aria-hidden="true" />
             </button>
           </div>
           <div className="hero-metrics" aria-label="平台能力概览">
             <div>
-              <strong>留学</strong>
-              <span>韩国主流院校避坑&经验分享</span>
+              <strong>提问</strong>
+              <span>把签证、租房、入学和生活问题讲清楚</span>
             </div>
             <div className="metric-stacked">
-              <strong>生活</strong>
-              <span>你身边的在韩种草专家</span>
+              <strong>经验</strong>
+              <span>真实留学生复盘避坑、流程和材料细节</span>
             </div>
             <div>
-              <strong>商家机构</strong>
-              <span>敢于直面客户点评的企业</span>
+              <strong>收益</strong>
+              <span>被采纳回答、悬赏问答和精华攻略获得回报</span>
             </div>
           </div>
-          <p className="hero-subcopy">面向韩国留学&生活提供便利，机构商家精准对接目标客户。</p>
         </motion.div>
       </section>
 
       <section className="proof-band" aria-label="Platform highlights">
         <div>
-          <strong>KR</strong>
-          <span>垂直聚焦韩国院校、专业和申请链路</span>
+          <strong>Q&A</strong>
+          <span>围绕真实留学问题给出可执行答案</span>
         </div>
         <div>
-          <strong>{allSchoolProfiles.length}+</strong>
-          <span>首批主流院校内容入口</span>
+          <strong>{categories.length}</strong>
+          <span>覆盖签证、租房、打工、毕业和生活分类</span>
         </div>
         <div>
-          <strong>隐私</strong>
-          <span>售业严格保护用户隐私</span>
+          <strong>经验</strong>
+          <span>真实经历沉淀成可检索的解决方案</span>
         </div>
         <div>
-          <strong>B2B</strong>
-          <span>机构内容入驻与企业人才合作</span>
+          <strong>收益</strong>
+          <span>高质量回答和精华攻略获得激励</span>
         </div>
       </section>
+
+      <section className="community-home-section" id="questions">
+        <div className="section-heading">
+          <p className="eyebrow dark">热门问题</p>
+          <h2>留学生最常遇到的问题，先看真实回答。</h2>
+        </div>
+        <div className="question-card-grid">
+          {hotQuestions.map((question) => (
+            <article className="question-card" key={question.title}>
+              <div className="tag-line">
+                <span>{question.category}</span>
+                {question.solved && <span className="solved-tag">已解决</span>}
+                {question.bounty > 0 && <span className="bounty-tag">悬赏 {question.bounty} 积分</span>}
+              </div>
+              <h3>{question.title}</h3>
+              <div className="question-stats">
+                <span>{question.views} 浏览</span>
+                <span>{question.answers} 个回答</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="community-home-section featured-experience-section" id="featured-experience">
+        <div className="section-heading">
+          <p className="eyebrow dark">精华经验</p>
+          <h2>不是泛泛聊天，而是能直接帮你办事的经验帖。</h2>
+        </div>
+        <div className="experience-card-grid">
+          {featuredExperiences.map((experience) => (
+            <article className="experience-card" key={experience.title}>
+              <div className="tag-line">
+                <span>{experience.category}</span>
+                {experience.featured && <span className="featured-tag">精华</span>}
+              </div>
+              <h3>{experience.title}</h3>
+              <p>{experience.author}</p>
+              <div className="question-stats">
+                <span>{experience.saves} 收藏</span>
+                <span>{experience.reads} 阅读</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="community-home-section reward-mechanism-section">
+        <div className="reward-mechanism-copy">
+          <p className="eyebrow dark">问题悬赏</p>
+          <h2>不是发帖就赚钱，而是帮助别人解决真实问题才有收益。</h2>
+          <p>
+            用户发布问题时可以设置悬赏，被采纳的回答者获得收益，平台只抽取少量服务费，用来维护审核、隐私保护和内容质量。
+          </p>
+          <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
+            查看悬赏问题
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="reward-mechanism-list">
+          <div>
+            <span>1</span>
+            <strong>提问者设置悬赏</strong>
+            <p>把问题、学校、时间线和材料背景写清楚。</p>
+          </div>
+          <div>
+            <span>2</span>
+            <strong>回答者给出解决方案</strong>
+            <p>回答要可执行，尽量附流程、材料、窗口和注意事项。</p>
+          </div>
+          <div>
+            <span>3</span>
+            <strong>答案被采纳后结算</strong>
+            <p>收益进入创作者收益积分，后续可按规则申请提现。</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="community-home-section creator-income-section">
+        <div className="section-heading">
+          <p className="eyebrow dark">分享赚钱</p>
+          <h2>平台奖励真实、有用、可验证的经验。</h2>
+        </div>
+        <div className="income-rule-grid">
+          <article>
+            <BadgeCheck size={22} aria-hidden="true" />
+            <h3>被采纳回答获得悬赏收益</h3>
+            <p>解决提问者的具体问题后，收益归入创作者账户。</p>
+          </article>
+          <article>
+            <Sparkles size={22} aria-hidden="true" />
+            <h3>高质量经验帖获得平台奖励</h3>
+            <p>被收藏、点赞、加精的内容会获得更多曝光和激励。</p>
+          </article>
+          <article>
+            <BookOpenCheck size={22} aria-hidden="true" />
+            <h3>精华攻略可分成或买断</h3>
+            <p>签证、租房、打工、毕业等专题内容可以进入平台专题库。</p>
+          </article>
+          <article>
+            <TrendingUp size={22} aria-hidden="true" />
+            <h3>作者等级越高，曝光越高</h3>
+            <p>持续贡献有效答案和真实经验，会提升内容推荐权重。</p>
+          </article>
+        </div>
+      </section>
+
+      <section className="community-home-section category-navigation-section">
+        <div className="section-heading">
+          <p className="eyebrow dark">分类导航</p>
+          <h2>按问题场景进入，不用在群聊里反复翻记录。</h2>
+        </div>
+        <div className="category-navigation-grid">
+          {categories.map((category) => (
+            <button key={category} type="button" onClick={() => openPostsPage(category)}>
+              {category}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      {isQuestionsRoute && (
+        <section className="info-page">
+          <div className="posts-page-head">
+            <div>
+              <p className="eyebrow dark">问题悬赏</p>
+              <h1>把留学问题讲清楚，让有经验的人来解决。</h1>
+              <p>签证、租房、入学、打工、保险、毕业和就业问题都可以在这里提问。先按分类找到相近问题，再补充自己的学校、时间线和材料背景。</p>
+            </div>
+            <button className="primary-link" type="button" onClick={() => navigateToPath('/categories')}>
+              按分类找问题
+              <ArrowRight size={18} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="question-card-grid info-grid">
+            {hotQuestions.map((question) => (
+              <article className="question-card" key={question.title}>
+                <div className="tag-line">
+                  <span>{question.category}</span>
+                  {question.solved && <span className="solved-tag">已解决</span>}
+                  {question.bounty > 0 && <span className="bounty-tag">悬赏 {question.bounty} 积分</span>}
+                </div>
+                <h3>{question.title}</h3>
+                <p>回答需要给出可执行步骤、材料清单、时间线和注意事项。</p>
+                <div className="question-stats">
+                  <span>{question.views} 浏览</span>
+                  <span>{question.answers} 个回答</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isRewardsRoute && (
+        <section className="info-page">
+          <div className="section-heading rewards-heading">
+            <p className="eyebrow dark">收益规则</p>
+            <h1>如何通过分享经验获得收益？</h1>
+            <p>平台奖励的是“真实、有用、可验证的经验”，不是单纯发帖数量。</p>
+          </div>
+          <div className="reward-rule-list">
+            <article>
+              <span>1</span>
+              <h3>回答悬赏问题</h3>
+              <p>回答被提问者采纳后获得悬赏收益。</p>
+            </article>
+            <article>
+              <span>2</span>
+              <h3>发布高质量经验帖</h3>
+              <p>内容被收藏、点赞、加精后可获得平台奖励。</p>
+            </article>
+            <article>
+              <span>3</span>
+              <h3>贡献专题攻略</h3>
+              <p>签证、租房、打工、毕业等高价值内容可参与分成或买断。</p>
+            </article>
+            <article>
+              <span>4</span>
+              <h3>防止垃圾内容</h3>
+              <p>复制内容、AI水文、无效回答不会获得收益，严重者限制账号。</p>
+            </article>
+          </div>
+        </section>
+      )}
+
+      {isCategoriesRoute && (
+        <section className="info-page">
+          <div className="section-heading rewards-heading">
+            <p className="eyebrow dark">分类</p>
+            <h1>按留学问题场景查找经验。</h1>
+            <p>从签证到就业，从租房到医院，把零散经验整理成可检索的问题分类。</p>
+          </div>
+          <div className="category-navigation-grid category-page-grid">
+            {categories.map((category) => (
+              <button key={category} type="button" onClick={() => openPostsPage(category)}>
+                {category}
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {isAboutRoute && (
+        <section className="info-page">
+          <div className="section-heading rewards-heading">
+            <p className="eyebrow dark">平台介绍</p>
+            <h1>留学生经验分享与问题解决平台</h1>
+            <p>
+              留学生的第一站，真实经验帮你少走弯路。这里不是普通论坛，而是把签证、入学、租房、打工、生活和就业经验沉淀成可搜索、可验证、可解决问题的社区。
+            </p>
+          </div>
+          <div className="income-rule-grid">
+            <article>
+              <Search size={22} aria-hidden="true" />
+              <h3>先解决真实问题</h3>
+              <p>每条内容都围绕具体场景：要办什么、去哪办、准备什么、怎么避坑。</p>
+            </article>
+            <article>
+              <ShieldCheck size={22} aria-hidden="true" />
+              <h3>保护分享者隐私</h3>
+              <p>平台会继续完善匿名展示、身份审核和敏感信息保护。</p>
+            </article>
+            <article>
+              <Coins size={22} aria-hidden="true" />
+              <h3>让有用经验获得回报</h3>
+              <p>高质量回答、被采纳答案和精华攻略会进入收益体系。</p>
+            </article>
+          </div>
+        </section>
+      )}
 
       {isProfileRoute && (
         <section className="profile-page">
@@ -2366,10 +2660,10 @@ function App() {
       {isPostsRoute && (
         <section className="posts-page">
           <div className="posts-page-head">
-            <div>
-              <p className="eyebrow dark">经验社区</p>
-              <h1>经验库</h1>
-              <p>集中浏览韩国院校、教授、课程、申请和生活经验。</p>
+          <div>
+              <p className="eyebrow dark">经验分享</p>
+              <h1>真实经验帖</h1>
+              <p>集中浏览签证、租房、入学、打工、保险、毕业和就业经验，优先展示能解决具体问题的内容。</p>
             </div>
             <button className="primary-link" type="button" onClick={() => setPublishOpen(true)}>
               发布经验
@@ -2409,7 +2703,7 @@ function App() {
               <div>
                 <span>分类</span>
                 <div className="posts-filter-tabs">
-                  {categories.map((category) => (
+                  {categoryFilters.map((category) => (
                     <button
                       className={selectedCategory === category ? 'active' : ''}
                       key={category}
@@ -2726,7 +3020,7 @@ function App() {
       <section className="schools-section" id="schools">
         <div className="section-heading">
           <p className="eyebrow dark">School Graph</p>
-          <h2>以韩国院校库建立用户入口，再围绕学校沉淀内容、服务和商业合作。</h2>
+          <h2>以韩国院校库建立问题入口，再围绕学校沉淀真实经验和解决方案。</h2>
         </div>
         <div className="school-list">
           {schools.map((school) => (
@@ -2759,13 +3053,13 @@ function App() {
 
       <section className="workspace-section" id="workspace">
         <div className="section-heading">
-          <p className="eyebrow dark">Partner OS</p>
-          <h2>{currentUser ? `${currentUser.name}，管理你的创作与认证。` : '为学生、留学服务商和企业设计清晰的合作入口。'}</h2>
+          <p className="eyebrow dark">Community Account</p>
+          <h2>{currentUser ? `${currentUser.name}，管理你的提问、经验和认证。` : '为留学生设计清晰的提问、分享和认证入口。'}</h2>
         </div>
         <div className="workspace-grid">
           <article className="workspace-panel">
             <LogIn size={24} aria-hidden="true" />
-            <h3>{currentUser ? '创作者账户' : '学生创作者'}</h3>
+            <h3>{currentUser ? '社区账户' : '留学生账号'}</h3>
             {currentUser ? (
               <>
                 <p>{currentUser.identity} · {currentUser.school}</p>
@@ -2780,22 +3074,22 @@ function App() {
               </>
             ) : (
               <>
-                <p>学生完成认证后，可匿名分享学校、教授、课程和申请经验，并通过积分获得内容收益。</p>
-                <button type="button" onClick={() => setAuthMode('register')}>创建创作者账号</button>
+                <p>学生完成认证后，可提问、回答悬赏问题、匿名分享经验，并通过高质量内容获得收益。</p>
+                <button type="button" onClick={() => setAuthMode('register')}>创建社区账号</button>
               </>
             )}
           </article>
           <article className="workspace-panel">
             <PenLine size={24} aria-hidden="true" />
-            <h3>商家合作申请</h3>
+            <h3>机构合作申请</h3>
             <p>留学机构、语学院、论文辅导、政府部门和职业规划机构可提交合作表单，由后台统一跟进。</p>
             <button type="button" onClick={scrollToPartnerSection}>提交合作表单</button>
           </article>
           <article className="workspace-panel">
             <Coins size={24} aria-hidden="true" />
-            <h3>企业人才合作</h3>
-            <p>认证用户积累后，可为跨境企业、韩企和教育品牌提供实习、招聘与校园推广入口。</p>
-            <button type="button" onClick={scrollToPartnerSection}>查看合作入口</button>
+            <h3>资源与人才合作</h3>
+            <p>认证用户积累后，可为教育机构、跨境企业和韩企提供实习、招聘与校园服务入口。</p>
+            <button type="button" onClick={scrollToPartnerSection}>查看机构合作</button>
           </article>
         </div>
       </section>
@@ -2807,7 +3101,7 @@ function App() {
             <h2>每篇经验都对应真实的择校、申请和服务转化场景。</h2>
           </div>
           <div className="category-tabs" aria-label="Post categories">
-            {categories.map((category) => (
+                  {categoryFilters.map((category) => (
               <button
                 className={selectedCategory === category ? 'active' : ''}
                 key={category}
@@ -2864,15 +3158,15 @@ function App() {
       <section className="points-section" id="points">
         <div className="points-copy">
           <p className="eyebrow dark">Business Model</p>
-          <h2>消费积分和收益积分分账，平台保留稳定毛利。</h2>
+          <h2>收益来自解决真实问题，而不是制造低质量内容。</h2>
           <p>
-            用户充值积分只用于消费，创作者通过内容解锁获得收益积分；收益积分按平台规则提现，避免套利，也让优质内容长期有回报。
+            用户可以用积分解锁深度经验或发布悬赏问题，回答者和经验作者通过被采纳答案、精华内容和专题攻略获得收益积分。
           </p>
         </div>
         <div className="points-economy" aria-label="积分经济系统">
           <article>
             <Coins size={22} aria-hidden="true" />
-            <span>充值上分</span>
+            <span>充值积分</span>
             <strong>¥1 = {rechargePointsPerYuan} 积分</strong>
             <p>充值积分只能消费，用于解锁加精帖、资料和问答。</p>
           </article>
@@ -2880,7 +3174,7 @@ function App() {
             <Sparkles size={22} aria-hidden="true" />
             <span>内容收益</span>
             <strong>100 收益积分 ≈ ¥6</strong>
-            <p>读者解锁 100 积分，作者入账 100 收益积分，提现时平台保留约 40% 毛利。</p>
+            <p>读者解锁深度内容，作者获得收益积分；无效回答和复制内容不会获得收益。</p>
           </article>
           <article>
             <MessageSquareText size={22} aria-hidden="true" />
@@ -2895,13 +3189,13 @@ function App() {
         <div className="trust-panel">
           <img
             className="trust-brand-logo"
-            src="/brand/shouye-logo-full-light.png"
-            alt="售业 Sell what you know"
+            src="/brand/shouye-logo-text-light.png"
+            alt="留学生经验分享与问题解决平台"
           />
           <ShieldCheck size={30} aria-hidden="true" />
-          <h2>真实性审核和匿名保护，是商家愿意合作的前提。</h2>
+          <h2>真实、匿名、可验证，是留学生敢分享的前提。</h2>
           <p>
-            平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和加精人工审核，让内容可信，也让发帖人更安全。
+            平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和人工审核，让内容可信，也让提问者和分享者更安全。
           </p>
         </div>
         <div className="trust-list">
@@ -2922,7 +3216,7 @@ function App() {
 
       <section className="cta-section" id="partner-apply">
         <p className="eyebrow dark">Partner Application</p>
-        <h2>欢迎留学机构、语学院、论文辅导、政府部门和招聘方申请成为首批合作方。</h2>
+        <h2>欢迎能解决留学生真实问题的机构和服务方申请合作。</h2>
         <button className="primary-link dark-link" type="button" onClick={() => setPartnerOpen(true)}>
           申请成为首批合作方
           <Plus size={18} aria-hidden="true" />
@@ -3256,7 +3550,7 @@ function App() {
                       value={post.category}
                       onChange={(event) => updatePost(post.id, { category: event.target.value })}
                     >
-                      {categories.filter((category) => category !== '全部').map((category) => (
+                      {categories.map((category) => (
                         <option key={category}>{category}</option>
                       ))}
                     </select>
@@ -3514,7 +3808,7 @@ function App() {
                     value={postForm.category}
                     onChange={(event) => setPostForm({ ...postForm, category: event.target.value })}
                   >
-                    {categories.filter((category) => category !== '全部').map((category) => (
+                    {categories.map((category) => (
                       <option key={category}>{category}</option>
                     ))}
                   </select>
@@ -3553,11 +3847,11 @@ function App() {
 
       {partnerOpen && (
         <div className="modal-backdrop" role="presentation">
-          <section className="modal-sheet wide-modal" aria-label="商家合作申请">
+          <section className="modal-sheet wide-modal" aria-label="机构合作申请">
             <button className="close-button" type="button" onClick={() => setPartnerOpen(false)}>
               <X size={20} aria-hidden="true" />
             </button>
-            <p className="eyebrow dark">商家合作申请</p>
+            <p className="eyebrow dark">机构合作申请</p>
             <h2>提交机构入驻、内容合作或人才合作需求。</h2>
             <form className="form-stack" onSubmit={handlePartnerApply}>
               <div className="form-grid partner-form-grid">
