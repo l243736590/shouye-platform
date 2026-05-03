@@ -1254,16 +1254,17 @@ h3 {
 }
 
 .school-page-content {
-  max-width: min(1120px, 62vw);
-  min-width: min(760px, 52vw);
+  max-width: min(1360px, 86vw);
+  min-width: min(980px, 72vw);
 }
 
 .school-page-content h2 {
-  font-size: clamp(58px, 9vw, 132px);
+  font-size: clamp(60px, 7.4vw, 118px);
   line-height: 0.9;
   margin-bottom: 16px;
   max-width: 100%;
   overflow-wrap: normal;
+  white-space: nowrap;
   word-break: keep-all;
 }
 
@@ -3536,6 +3537,11 @@ h3 {
   .school-page-content {
     max-width: 100%;
     min-width: 0;
+  }
+
+  .school-page-content h2 {
+    font-size: clamp(44px, 18vw, 72px);
+    white-space: normal;
   }
 
   .category-tabs {
