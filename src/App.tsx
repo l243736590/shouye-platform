@@ -25,7 +25,6 @@ import {
   X,
 } from 'lucide-react'
 import './App.css'
-import { getSchoolTopicBySlug } from './data/schools'
 
 type UserStatus = 'active' | 'muted' | 'banned'
 type VerificationStatus = 'pending' | 'approved' | 'rejected'
@@ -311,11 +310,11 @@ const schoolRegions: { region: string; summary: string; schools: SchoolProfile[]
         region: '首尔',
         city: '广津区',
         landmark: '一鉴湖与首尔校区',
-        image: '/schools/konkuk-lake.jpg',
+        image: fileImage('Konkuk University Lake.jpg'),
         description: '商科、传媒、设计、兽医、房地产和生命科学方向讨论度高，周边商圈成熟。',
         programs: ['经营', '传媒', '设计', '生命科学'],
         strengths: ['校园生活强', '专业覆盖广', '商圈成熟'],
-        source: 'https://commons.wikimedia.org/wiki/File:Konkukuniversitylake.JPG',
+        source: 'https://commons.wikimedia.org/wiki/Category:Konkuk_University',
       },
       {
         id: 'hufs',
@@ -1216,9 +1215,7 @@ function App() {
   const isAboutRoute = currentPath === '/about'
   const isInfoRoute = isQuestionsRoute || isRewardsRoute || isCategoriesRoute || isAboutRoute
   const schoolRouteId =
-    typeof window !== 'undefined'
-      ? currentPath.match(/^\/schools\/([^/]+)$/)?.[1] ?? currentPath.match(/^\/school\/([^/]+)$/)?.[1]
-      : undefined
+    typeof window !== 'undefined' ? currentPath.match(/^\/school\/([^/]+)$/)?.[1] : undefined
   const initialAdminToken = typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''
   const [appState, setAppState] = useState<StoredState>(() => initialState())
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
@@ -1309,45 +1306,6 @@ function App() {
   }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    const hashSchoolId = window.location.hash.match(/^#school-(.+)$/)?.[1]
-    if (!hashSchoolId) return
-    window.history.replaceState(null, '', `/schools/${encodeURIComponent(hashSchoolId)}`)
-    window.dispatchEvent(new PopStateEvent('popstate'))
-  }, [])
-
-  useEffect(() => {
-    if (typeof document === 'undefined') return
-
-    const defaultTitle = '留学生首页 - 留学生经验分享与问题解决平台'
-    const defaultDescription =
-      '留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。'
-    const keywords =
-      '留学生, 留学经验, 韩国留学, 留学生生活, 签证, 租房, 打工, 大学院, 外国人登录证, 留学问答'
-    const routeSlug =
-      currentPath.match(/^\/schools\/([^/]+)$/)?.[1] ?? currentPath.match(/^\/school\/([^/]+)$/)?.[1] ?? ''
-    const currentSchoolTopic = routeSlug ? getSchoolTopicBySlug(decodeURIComponent(routeSlug)) : undefined
-    const nextTitle = currentSchoolTopic?.seoTitle ?? defaultTitle
-    const nextDescription = currentSchoolTopic?.seoDescription ?? defaultDescription
-    const canonicalPath = currentSchoolTopic ? `/schools/${currentSchoolTopic.slug}` : '/'
-    const canonicalUrl = `https://shouye.fun${canonicalPath === '/' ? '' : canonicalPath}`
-    const setMeta = (selector: string, attribute: 'content' | 'href', value: string) => {
-      const element = document.querySelector(selector)
-      if (element) element.setAttribute(attribute, value)
-    }
-
-    document.title = nextTitle
-    setMeta('meta[name="description"]', 'content', nextDescription)
-    setMeta('meta[name="keywords"]', 'content', keywords)
-    setMeta('meta[property="og:title"]', 'content', nextTitle)
-    setMeta('meta[property="og:description"]', 'content', nextDescription)
-    setMeta('meta[property="og:url"]', 'content', canonicalUrl)
-    setMeta('meta[name="twitter:title"]', 'content', nextTitle)
-    setMeta('meta[name="twitter:description"]', 'content', nextDescription)
-    setMeta('link[rel="canonical"]', 'href', canonicalUrl)
-  }, [currentPath])
-
-  useEffect(() => {
     fetch('/api/posts')
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { posts?: Post[] } | null) => {
@@ -1362,10 +1320,8 @@ function App() {
 
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
-  const decodedSchoolRouteId = schoolRouteId ? decodeURIComponent(schoolRouteId) : ''
-  const schoolTopic = decodedSchoolRouteId ? getSchoolTopicBySlug(decodedSchoolRouteId) : undefined
-  const routeSchool = decodedSchoolRouteId
-    ? allSchoolProfiles.find((school) => school.id === decodedSchoolRouteId)
+  const routeSchool = schoolRouteId
+    ? allSchoolProfiles.find((school) => school.id === decodeURIComponent(schoolRouteId))
     : null
   const selectedSchool =
     routeSchool ?? allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
@@ -1609,22 +1565,17 @@ function App() {
     )
     setSelectedSchoolId(school.id)
     setOpenRegion(parentRegion?.region ?? school.region)
-    window.history.pushState(null, '', `/schools/${school.id}`)
-    window.dispatchEvent(new PopStateEvent('popstate'))
-    window.setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 0)
+    window.history.replaceState(null, '', `#school-${school.id}`)
+    window.setTimeout(() => {
+      document.getElementById('school-page')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 60)
   }
 
   const openRegionSection = (region: string) => {
     setOpenRegion(region)
     setSchoolPages((pages) => ({ ...pages, [region]: pages[region] ?? 1 }))
     setMegaMenuOpen(false)
-    if (currentPath !== '/') {
-      window.history.pushState(null, '', '/')
-      window.dispatchEvent(new PopStateEvent('popstate'))
-    }
-    window.setTimeout(() => {
-      document.getElementById('school-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 0)
+    document.getElementById('school-browser')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const openRegionMenu = (region: string) => {
@@ -2163,13 +2114,7 @@ function App() {
             onFocus={() => setMegaMenuOpen(true)}
             onBlur={() => setMegaMenuOpen(false)}
           >
-            <a
-              href="/#school-browser"
-              onClick={(event) => {
-                event.preventDefault()
-                openRegionSection(openRegion)
-              }}
-            >
+            <a href="#school-browser" onClick={() => setMegaMenuOpen(false)}>
               院校入口
             </a>
             <div className="mega-menu" aria-label="韩国院校地区导航">
@@ -2830,177 +2775,7 @@ function App() {
         </section>
       )}
 
-      {schoolRouteId && schoolTopic && (
-        <section className="school-posts-page school-topic-page">
-          <div
-            className="school-topic-hero"
-            style={{
-              backgroundImage: `linear-gradient(90deg, rgba(6, 15, 13, 0.9), rgba(6, 15, 13, 0.62), rgba(6, 15, 13, 0.18)), url("${selectedSchool.image}")`,
-            }}
-          >
-            <div className="school-topic-hero-content">
-              <p className="eyebrow">韩国学校专题</p>
-              <h1>{schoolTopic.heroTitle}</h1>
-              <p>{schoolTopic.heroSubtitle}</p>
-              <div className="school-topic-tags">
-                {schoolTopic.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
-              </div>
-              <div className="school-topic-actions">
-                <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
-                  我要提问
-                  <MessageSquareText size={18} aria-hidden="true" />
-                </button>
-                <button
-                  className="secondary-link"
-                  type="button"
-                  onClick={() => {
-                    setPostForm((form) => ({ ...form, school: schoolTopic.nameZh, category: '学校评价' }))
-                    setPublishOpen(true)
-                  }}
-                >
-                  分享建国大学经验
-                  <PenLine size={18} aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <section className="school-topic-section school-topic-quick">
-            <div className="section-heading">
-              <p className="eyebrow dark">快速入口</p>
-              <h2>按问题类型进入建国大学专题。</h2>
-            </div>
-            <div className="school-topic-entry-grid">
-              {schoolTopic.quickEntries.map((entry) => (
-                <button key={entry} type="button" onClick={() => openPostsPage(`${schoolTopic.nameZh} ${entry}`)}>
-                  <span>{entry}</span>
-                  <ArrowRight size={18} aria-hidden="true" />
-                </button>
-              ))}
-            </div>
-          </section>
-
-          <section className="school-topic-section">
-            <div className="section-heading">
-              <p className="eyebrow dark">热门问题</p>
-              <h2>建国大学留学生正在问什么。</h2>
-            </div>
-            <div className="school-question-grid">
-              {schoolTopic.hotQuestions.map((question) => (
-                <article className="school-question-card" key={question.title}>
-                  <div className="tag-line">
-                    <span>{question.category}</span>
-                    <span className={question.status === 'solved' ? 'solved-tag' : 'bounty-tag'}>
-                      {question.status === 'solved' ? '已解决' : '待回答'}
-                    </span>
-                  </div>
-                  <h3>{question.title}</h3>
-                  <div className="school-card-tags">
-                    {question.tags.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
-                  </div>
-                  <div className="school-question-stats">
-                    <span>悬赏 {question.rewardPoints} 积分</span>
-                    <span>{question.answersCount} 个回答</span>
-                    <span>{question.views} 浏览</span>
-                    <span>{question.updatedAt}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="school-topic-section school-topic-featured">
-            <div className="section-heading">
-              <p className="eyebrow dark">精华经验</p>
-              <h2>能直接拿来参考的建国大学经验帖。</h2>
-            </div>
-            <div className="school-featured-grid">
-              {schoolTopic.featuredPosts.map((post) => (
-                <article className="school-featured-card" key={post.title}>
-                  <div className="tag-line">
-                    <span>{post.tags[0]}</span>
-                    {post.isFeatured && <span className="featured-tag">精华</span>}
-                  </div>
-                  <h3>{post.title}</h3>
-                  <p>{post.summary}</p>
-                  <div className="school-card-tags">
-                    {post.tags.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
-                  </div>
-                  <div className="school-question-stats">
-                    <span>{post.author}</span>
-                    <span>{post.views} 阅读</span>
-                    <span>{post.likes} 赞</span>
-                    <span>{post.bookmarks} 收藏</span>
-                    <span>{post.updatedAt}</span>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="school-topic-section school-info-section">
-            <div className="school-info-panel">
-              <div>
-                <p className="eyebrow dark">学校信息</p>
-                <h2>{schoolTopic.nameZh}</h2>
-                <p className="school-policy-note">
-                  涉及签证、滞留资格、打工时间、毕业流程等内容，请以出入境和学校最新公告为准。
-                </p>
-              </div>
-              <dl>
-                <div>
-                  <dt>学校名称</dt>
-                  <dd>{schoolTopic.nameZh}</dd>
-                </div>
-                <div>
-                  <dt>韩文名</dt>
-                  <dd>{schoolTopic.nameKo}</dd>
-                </div>
-                <div>
-                  <dt>英文名</dt>
-                  <dd>{schoolTopic.nameEn}</dd>
-                </div>
-                <div>
-                  <dt>国家</dt>
-                  <dd>{schoolTopic.country}</dd>
-                </div>
-                <div>
-                  <dt>城市</dt>
-                  <dd>{schoolTopic.city}</dd>
-                </div>
-                <div>
-                  <dt>区域</dt>
-                  <dd>{schoolTopic.district}</dd>
-                </div>
-                <div>
-                  <dt>适合内容</dt>
-                  <dd>{schoolTopic.suitableContent.join('、')}</dd>
-                </div>
-              </dl>
-            </div>
-          </section>
-
-          <section className="school-topic-section school-topic-cta">
-            <div>
-              <p className="eyebrow">没有找到你的问题？</p>
-              <h2>发布建国大学相关问题，让同校或同地区的留学生回答。</h2>
-              <p>高质量回答被采纳后可以获得积分奖励，平台会继续完善身份审核和内容风控。</p>
-            </div>
-            <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
-              发布建国大学问题
-              <MessageSquareText size={18} aria-hidden="true" />
-            </button>
-          </section>
-        </section>
-      )}
-
-      {schoolRouteId && !schoolTopic && (
+      {schoolRouteId && (
         <section className="school-posts-page">
           <div className="school-posts-hero">
             <div className="school-gallery-strip" aria-hidden="true">
@@ -3110,14 +2885,7 @@ function App() {
                       <div className="school-menu-copy">
                         <em>#{startIndex + schoolIndex + 1}</em>
                         <span>{school.name}</span>
-                        <small>
-                          {school.id === 'konkuk'
-                            ? '查看建国大学入学、租房、签证、选课、打工和生活经验。'
-                            : `${school.city} · ${school.landmark}`}
-                        </small>
-                        <strong className="school-card-cta">
-                          {school.id === 'konkuk' ? '查看攻略' : '查看内容页'}
-                        </strong>
+                        <small>{school.city} · {school.landmark}</small>
                       </div>
                       <div className="school-logo-mark" aria-hidden="true">
                         <span>{school.name.slice(0, 1)}</span>
@@ -3220,7 +2988,7 @@ function App() {
               type="button"
               className="school-experience-link"
               onClick={() => {
-                window.history.pushState(null, '', `/schools/${selectedSchool.id}`)
+                window.history.pushState(null, '', `/school/${selectedSchool.id}`)
                 window.dispatchEvent(new PopStateEvent('popstate'))
               }}
             >
