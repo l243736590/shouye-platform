@@ -36,6 +36,30 @@ main {
   z-index: 20;
 }
 
+@media (prefers-color-scheme: dark) {
+  .site-header {
+    background: rgba(9, 18, 15, 0.9);
+    border-bottom-color: rgba(255, 253, 240, 0.14);
+  }
+
+  .brand-logo-dark {
+    display: none;
+  }
+
+  .brand-logo-light {
+    display: block;
+  }
+
+  .brand-tagline,
+  .nav-links {
+    color: #fffdf0;
+  }
+
+  .auth-actions button:first-child {
+    color: #fffdf0;
+  }
+}
+
 .brand,
 .nav-links a,
 .primary-link,
@@ -61,17 +85,16 @@ main {
   width: 74px;
 }
 
-.brand-logo-picture {
-  display: block;
-  height: 100%;
-  width: 100%;
-}
-
 .brand-logo-image {
   display: block;
   height: 100%;
   object-fit: contain;
+  position: absolute;
   width: 100%;
+}
+
+.brand-logo-light {
+  display: none;
 }
 
 .brand-tagline {
@@ -1010,6 +1033,7 @@ h3 {
 
 .intro-section,
 .schools-section,
+.partner-showcase-section,
 .school-browser-section,
 .workspace-section,
 .posts-section,
@@ -1462,6 +1486,125 @@ h3 {
 
 .schools-section {
   background: #f4f8f5;
+}
+
+.partner-showcase-section {
+  background: #07120f;
+  color: #fffdf0;
+}
+
+.partner-showcase-heading {
+  max-width: min(74vw, 1280px);
+}
+
+.partner-showcase-heading .eyebrow {
+  color: #ff6a4d;
+}
+
+.partner-showcase-heading h2 {
+  color: #fffdf0;
+  font-size: clamp(46px, 7vw, 104px);
+  letter-spacing: 0;
+  line-height: 1.12;
+}
+
+.partner-showcase-heading p {
+  color: rgba(255, 253, 240, 0.72);
+  font-size: 18px;
+  line-height: 1.7;
+  margin-top: 22px;
+  max-width: 760px;
+}
+
+.partner-showcase-grid {
+  border-top: 1px solid rgba(255, 253, 240, 0.18);
+  display: grid;
+  gap: 0;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin-top: 62px;
+}
+
+.partner-showcase-card {
+  border-right: 1px solid rgba(255, 253, 240, 0.18);
+  display: grid;
+  gap: 22px;
+  min-height: 420px;
+  padding: 34px clamp(20px, 2.5vw, 34px);
+}
+
+.partner-showcase-card:last-child {
+  border-right: 0;
+}
+
+.partner-logo-mark {
+  align-items: center;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+  color: #10241e;
+  display: inline-flex;
+  height: 74px;
+  justify-content: center;
+  width: 118px;
+}
+
+.partner-logo-mark span {
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.partner-logo-mark.tencent {
+  background: linear-gradient(135deg, #ffffff 0%, #e9f8ff 100%);
+  color: #0f7bdc;
+}
+
+.partner-logo-mark.orange {
+  background: linear-gradient(135deg, #fff7ee 0%, #ff7a18 100%);
+  color: #ffffff;
+}
+
+.partner-logo-mark.delivery {
+  background: linear-gradient(135deg, #ffcf33 0%, #ef3b2d 100%);
+  color: #ffffff;
+}
+
+.partner-logo-mark.food {
+  background: linear-gradient(135deg, #fff2c7 0%, #1f6b45 100%);
+  color: #fffdf0;
+}
+
+.partner-showcase-copy {
+  display: grid;
+  gap: 10px;
+}
+
+.partner-showcase-copy > span {
+  color: #f0d46b;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.partner-showcase-card h3 {
+  color: #fffdf0;
+  font-size: clamp(28px, 2.5vw, 42px);
+  line-height: 1.1;
+}
+
+.partner-showcase-card p {
+  color: rgba(255, 253, 240, 0.72);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.partner-showcase-card > p {
+  align-self: end;
+}
+
+.partner-showcase-card .tag-group span {
+  background: rgba(255, 253, 240, 0.08);
+  border: 1px solid rgba(255, 253, 240, 0.16);
+  color: #fffdf0;
 }
 
 .workspace-section {
@@ -3118,6 +3261,14 @@ h3 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .partner-showcase-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .partner-showcase-card:nth-child(2n) {
+    border-right: 0;
+  }
+
   .pathway-grid {
     grid-template-columns: 1fr;
   }
@@ -3498,6 +3649,20 @@ h3 {
 
   .school-meta {
     justify-content: flex-start;
+  }
+
+  .partner-showcase-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .partner-showcase-card {
+    border-bottom: 1px solid rgba(255, 253, 240, 0.18);
+    border-right: 0;
+    min-height: 320px;
+  }
+
+  .partner-showcase-card:last-child {
+    border-bottom: 0;
   }
 
   .posts-topline {

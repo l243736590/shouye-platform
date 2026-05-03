@@ -19,7 +19,6 @@ import {
   Search,
   ShieldCheck,
   Sparkles,
-  Star,
   TrendingUp,
   UserPlus,
   X,
@@ -1414,34 +1413,42 @@ const getInitialSchoolId = () => {
     : allSchoolProfiles[0].id
 }
 
-const schools = [
+const partnerShowcases = [
   {
-    name: '延世大学',
-    city: '首尔 · 新村',
-    score: '4.8',
-    posts: '326',
-    tags: ['语学堂', '经营学', '传媒'],
+    name: '腾讯招聘',
+    logo: '腾讯',
+    type: '招聘入口',
+    audience: '面向韩国留学生的实习、校招和海外岗位信息',
+    description: '适合展示大厂招聘、远程岗位、简历投递和校友内推入口，帮助高质量用户完成就业转化。',
+    tags: ['实习', '校招', '简历投递'],
+    tone: 'tencent',
   },
   {
-    name: '高丽大学',
-    city: '首尔 · 安岩',
-    score: '4.7',
-    posts: '284',
-    tags: ['商科', '工科', '交换'],
+    name: '58招聘',
+    logo: '58',
+    type: '兼职/招聘',
+    audience: '覆盖兼职、中文客服、翻译、运营和本地生活岗位',
+    description: '适合承接留学生打工、毕业后求职和短期项目需求，后续可接入企业认证和岗位审核。',
+    tags: ['兼职', '招聘', '本地岗位'],
+    tone: 'orange',
   },
   {
-    name: '成均馆大学',
-    city: '首尔 / 水原',
-    score: '4.6',
-    posts: '219',
-    tags: ['半导体', 'MBA', '奖学金'],
+    name: 'XX外卖广告',
+    logo: '外卖',
+    type: '生活服务广告',
+    audience: '面向校区周边学生的外卖优惠、夜宵和团购活动',
+    description: '适合在学校专题页和城市生活攻略里投放，按校区、地区和留学生常用场景精准展示。',
+    tags: ['外卖', '优惠券', '校区投放'],
+    tone: 'delivery',
   },
   {
-    name: '汉阳大学',
-    city: '首尔 · 往十里',
-    score: '4.5',
-    posts: '198',
-    tags: ['工科', '艺术', '实习'],
+    name: 'XX中餐广告',
+    logo: '中餐',
+    type: '餐饮商家',
+    audience: '面向新生、搬家、考试周和同乡聚餐场景',
+    description: '适合做店铺曝光、套餐活动、微信群引流和校园口碑评价，敢于接受点评的商家优先展示。',
+    tags: ['中餐', '聚餐', '真实点评'],
+    tone: 'food',
   },
 ]
 
@@ -3522,10 +3529,8 @@ function App() {
           }}
         >
           <span className="brand-mark">
-            <picture className="brand-logo-picture" aria-hidden="true">
-              <source srcSet="/brand/shouye-logo-text-light.png" media="(prefers-color-scheme: dark)" />
-              <img className="brand-logo-image" src="/brand/shouye-logo-text-dark.png" alt="" />
-            </picture>
+            <img className="brand-logo-image brand-logo-dark" src="/brand/shouye-logo-text-dark.png" alt="" aria-hidden="true" />
+            <img className="brand-logo-image brand-logo-light" src="/brand/shouye-logo-text-light.png" alt="" aria-hidden="true" />
             <button
               aria-label="打开后台管理"
               className="hidden-admin-button"
@@ -5081,34 +5086,35 @@ function App() {
         </div>
       </section>
 
-      <section className="schools-section" id="schools">
-        <div className="section-heading">
-          <p className="eyebrow dark">School Graph</p>
-          <h2>以韩国院校库建立问题入口，再围绕学校沉淀真实经验和解决方案。</h2>
+      <section className="partner-showcase-section" id="schools">
+        <div className="section-heading partner-showcase-heading">
+          <p className="eyebrow dark">入驻机构展示</p>
+          <h2>招聘、生活服务和本地商家，都可以围绕留学生真实需求展示。</h2>
+          <p>
+            先以示例机构展示合作形态：招聘入口、外卖广告、中餐商家和校区服务，后续可接入真实商家资料、评价和后台审核。
+          </p>
         </div>
-        <div className="school-list">
-          {schools.map((school) => (
+        <div className="partner-showcase-grid">
+          {partnerShowcases.map((partner) => (
             <motion.article
-              className="school-row"
-              key={school.name}
-              whileHover={{ x: 8 }}
+              className="partner-showcase-card"
+              key={partner.name}
+              whileHover={{ y: -6 }}
               transition={{ type: 'spring', stiffness: 260, damping: 22 }}
             >
-              <div>
-                <h3>{school.name}</h3>
-                <p>{school.city}</p>
+              <div className={`partner-logo-mark ${partner.tone}`}>
+                <span>{partner.logo}</span>
               </div>
+              <div className="partner-showcase-copy">
+                <span>{partner.type}</span>
+                <h3>{partner.name}</h3>
+                <p>{partner.audience}</p>
+              </div>
+              <p>{partner.description}</p>
               <div className="tag-group">
-                {school.tags.map((tag) => (
+                {partner.tags.map((tag) => (
                   <span key={tag}>{tag}</span>
                 ))}
-              </div>
-              <div className="school-meta">
-                <span>
-                  <Star size={16} fill="currentColor" aria-hidden="true" />
-                  {school.score}
-                </span>
-                <span>{school.posts} 篇</span>
               </div>
             </motion.article>
           ))}
