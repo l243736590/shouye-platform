@@ -1146,7 +1146,7 @@ const schoolOfficialUrls: Record<string, string> = {
   ewha: 'https://www.ewha.ac.kr/ewhaen/index.do',
   sogang: 'https://www.sogang.ac.kr/en/',
   dongguk: 'https://www.dongguk.edu/eng/main',
-  konkuk: 'https://www.konkuk.ac.kr/en',
+  konkuk: 'https://www.konkuk.ac.kr/',
   hufs: 'https://www.hufs.ac.kr/',
   uos: 'https://english.uos.ac.kr/',
   'dankook-seoul': 'https://www.dankook.ac.kr/web/international',
@@ -1224,7 +1224,7 @@ const schoolLanguageInstituteUrls: Record<string, string> = {
 
 const campusLinksBySchool: Record<string, CampusLink[]> = {
   konkuk: [
-    { label: '首尔校区官网 · 广津区', url: 'https://www.konkuk.ac.kr/en', icon: 'pin' },
+    { label: '首尔校区官网 · 广津区', url: 'https://www.konkuk.ac.kr/', icon: 'pin' },
     { label: '外国人招生 · CISS', url: 'https://ciss.konkuk.ac.kr/', icon: 'building' },
   ],
   'skku-seoul': [
