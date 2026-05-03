@@ -392,6 +392,10 @@ button {
   text-transform: none;
 }
 
+.hero-message-group {
+  transform: translateY(-46px);
+}
+
 .hero-mobile-wordmark {
   display: none;
 }
@@ -457,7 +461,7 @@ h3 {
   font-size: clamp(26px, 2.5vw, 40px);
   font-weight: 800;
   line-height: 1.22;
-  margin: 28px 0 28px;
+  margin: 28px 0 0;
   max-width: 880px;
 }
 
@@ -466,7 +470,7 @@ h3 {
   font-size: clamp(14px, 1.45vw, 23px);
   font-weight: 800;
   line-height: 1.45;
-  margin: 20px 0 16px;
+  margin: -20px 0 16px;
   max-width: min(1120px, 72vw);
 }
 
@@ -3768,6 +3772,10 @@ h3 {
     margin-bottom: 12px;
   }
 
+  .hero-message-group {
+    transform: translateY(-22px);
+  }
+
   .hero-content h1 {
     font-size: clamp(42px, 12vw, var(--mobile-hero-title-size, 50px));
     line-height: 1;
@@ -3780,7 +3788,7 @@ h3 {
   }
 
   .hero-subcopy {
-    margin-top: 36px;
+    margin-top: 14px;
   }
 
   .hero-title-logo {

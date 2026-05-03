@@ -3939,35 +3939,37 @@ function App() {
             alt="售业"
             aria-hidden="true"
           />
-          {inlineEditMode ? (
-            <EditableText
-              as="p"
-              className="eyebrow hero-eyebrow"
-              value={activeSiteContent.heroEyebrow}
-              onChange={(value) => updateContentDraft('heroEyebrow', value)}
-            />
-          ) : (
-            <p className="eyebrow hero-eyebrow">{activeSiteContent.heroEyebrow}</p>
-          )}
-          {inlineEditMode ? (
-            <EditableText
-              as="h1"
-              value={activeSiteContent.heroTitle}
-              onChange={(value) => updateContentDraft('heroTitle', value)}
-            />
-          ) : (
-            <h1>{activeSiteContent.heroTitle}</h1>
-          )}
-          {inlineEditMode ? (
-            <EditableText
-              as="p"
-              className="hero-copy"
-              value={activeSiteContent.heroCopy}
-              onChange={(value) => updateContentDraft('heroCopy', value)}
-            />
-          ) : (
-            <p className="hero-copy">{activeSiteContent.heroCopy}</p>
-          )}
+          <div className="hero-message-group">
+            {inlineEditMode ? (
+              <EditableText
+                as="p"
+                className="eyebrow hero-eyebrow"
+                value={activeSiteContent.heroEyebrow}
+                onChange={(value) => updateContentDraft('heroEyebrow', value)}
+              />
+            ) : (
+              <p className="eyebrow hero-eyebrow">{activeSiteContent.heroEyebrow}</p>
+            )}
+            {inlineEditMode ? (
+              <EditableText
+                as="h1"
+                value={activeSiteContent.heroTitle}
+                onChange={(value) => updateContentDraft('heroTitle', value)}
+              />
+            ) : (
+              <h1>{activeSiteContent.heroTitle}</h1>
+            )}
+            {inlineEditMode ? (
+              <EditableText
+                as="p"
+                className="hero-copy"
+                value={activeSiteContent.heroCopy}
+                onChange={(value) => updateContentDraft('heroCopy', value)}
+              />
+            ) : (
+              <p className="hero-copy">{activeSiteContent.heroCopy}</p>
+            )}
+          </div>
           {inlineEditMode ? (
             <EditableText
               as="p"
