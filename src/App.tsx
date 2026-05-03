@@ -1538,8 +1538,30 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-05-03',
     excerpt: '从保证金、管理费、合同主体、看房路线和退租时间线拆解第一套房怎么避坑。',
-    body:
-      '第一次在韩国租房，先不要被照片和低月租带着走。重点确认四件事：合同主体是谁、保证金如何返还、管理费包含哪些项目、退租提前多久通知。大额保证金尽量线下签约，转账对象要和合同信息一致。看房时记录水压、采光、噪音、霉味和通勤时间，入住前拍照留证。',
+    body: `第一次在韩国租房，最容易踩坑的不是房子丑，而是保证金、合同主体和退租规则没看清。
+
+一、看房前先筛掉高风险房源
+1. 明显低于周边价格的房源先警惕。新村、建大、弘大、安岩、黑石洞这种学生区，价格差异不会离谱到“又新又大又便宜”。
+2. 不要只看小红书/群聊图片。至少要视频看房，最好线下看房。房间要看水压、排水、霉味、窗户密封、采光、楼道、门锁、垃圾点、夜路安全。
+3. 先问清管理费包含什么。관리비 只写 10 万但不说水电气网暖是否包含，后面容易变成每月额外支出。
+
+二、签约前一定核对三件事
+1. 房东身份：合同出租人、登记簿所有人、收款账户名最好一致。如果是代理人，必须看委托书和身份证明。
+2. 登记簿誊本/등기부등본：看抵押、查封、债权、所有人信息。押金越高越要查，전세/半전세尤其不能省。
+3. 中介资格：正规 공인중개사 有登记信息。不要把大额定金打给“室长、管理员、朋友、代管人”。
+
+三、合同里要写清楚
+保证金、月租、管理费项目、入住日、退租提前通知期限、押金返还日期、维修责任、违约金、家具家电清单。口头承诺没有写进合同，就当不存在。
+
+四、入住后马上做保护动作
+1. 地址变更申报：外国人住址变更有期限要求，关系到签证、保险、银行和后续证明。
+2. 确定日期/확정일자：拿租赁合同办理固定日期，保留合同原件和付款记录。
+3. 入住当天拍照：墙面、地板、家电、门锁、水槽、卫生间、窗户都拍，发给房东或中介留痕。
+
+五、退租前的时间线
+提前按合同约定通知退租，最好文字通知。退租前确认水电气网结算、清洁要求、钥匙交接、押金返还日期。押金没有到账前，不要把所有聊天记录和合同资料删掉。
+
+红线：不能申报地址、不能做固定日期、拒绝给合同原件、收款人和合同主体不一致、要求大额现金、催你马上转定金。这些情况宁可放弃。`,
   },
   {
     id: 'post-d2-extension',
@@ -1560,8 +1582,45 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-05-02',
     excerpt: '按预约、材料准备、学校证明、现场提交和补件风险整理 D-2 延签步骤。',
-    body:
-      'D-2 延签建议提前看 HiKorea 可预约日期，再向学校开在学证明和成绩单。住宿证明、护照、外国人登录证、手续费是基础项，银行材料和额外说明要看个人情况。所有政策相关内容都以出入境和学校最新公告为准，本文只整理办理顺序和容易漏掉的节点。',
+    body: `D-2 延签不要等到到期前才准备。真正麻烦的地方不是填申请表，而是预约、学校证明、住宿证明、资金证明和补件时间。
+
+一、建议时间线
+到期前 6-8 周：查看外国人登录证背面滞留期限，登录 HiKorea 看可预约日期。
+到期前 4-6 周：向学校开在学证明、成绩单、学费缴纳证明或注册确认。
+到期前 2-4 周：整理住宿证明、银行材料、补充说明，确认是否能线上申请。
+到期前 1-2 周：去出入境或提交线上申请，避免补件时来不及。
+
+二、常见基础材料
+1. 护照
+2. 外国人登录证
+3. 申请书
+4. 手续费
+5. 在学证明
+6. 成绩单
+7. 学费缴纳证明或注册确认
+8. 住宿证明
+9. 证件照或系统要求的照片文件
+
+三、住宿证明怎么准备
+本人租房：租赁合同。
+宿舍：宿舍入住证明。
+住朋友/亲属家：居住确认书、对方身份证明、房屋合同等，具体以出入境要求为准。
+重点是地址要和你在出入境登记的地址一致，不一致要先处理地址变更。
+
+四、资金证明和补件风险
+银行余额证明是否需要、金额多少、是否必须韩国银行开具，会因学校、出入境办事处和个人情况不同而变化。成绩低、出勤异常、超学期、论文阶段、休复学、频繁换学校的人，更容易被要求补充学业计划、导师确认、资金证明或说明书。
+
+五、当天办理注意事项
+1. 原件和复印件都带。
+2. 学校证明尽量开近期版本。
+3. 银行证明注意开具日期。
+4. 现场如果被要求补件，先问清补件截止时间和提交方式。
+5. 留好受付证/申请回执。
+
+六、论文阶段或超学期
+如果已经进入论文阶段，提前问导师和院系办公室能否开论文进度、研究计划、导师确认。不要只拿一张在学证明就去碰运气。
+
+结论：D-2 延签的核心是证明你仍然正常在学、有明确住所、有能力负担在韩生活。政策会变，最终以 HiKorea、1345 和学校国际处最新公告为准。`,
   },
   {
     id: 'post-arc-process',
@@ -1582,8 +1641,38 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-05-01',
     excerpt: '从入境后预约、照片、申请表、学校材料到领取登录证的基础流程。',
-    body:
-      '外国人登录证通常需要提前预约，准备护照、照片、申请表、学校相关证明和居住证明。不同签证类型材料会有差异，建议先看出入境官方页面，再让学校国际处帮你确认。办理后到领取期间，尽量保存好申请回执。',
+    body: `外国人登录证是你在韩国生活的核心证件。银行、手机号、医保、签证延长、网购认证，基本都会用到它。
+
+一、什么时候办
+长期签证入境后通常需要在规定期限内办理外国人登录。学校一般会在新生说明会上提醒团体办理时间。如果错过学校团体办理，就要自己预约出入境。
+
+二、常见材料
+1. 护照
+2. 申请书
+3. 证件照
+4. 在学证明或标准入学许可相关材料
+5. 住所证明
+6. 手续费
+7. 学校或出入境额外要求的材料
+
+三、住所证明很重要
+租房合同、宿舍证明、居住确认书都可能用到。地址要真实可联系，因为医保通知、银行资料、出入境通知都可能寄到这个地址。
+
+四、办理流程
+1. HiKorea 预约，或按学校国际处安排参加团体办理。
+2. 到出入境提交材料。
+3. 拿申请回执。
+4. 等待制卡。
+5. 领取后核对姓名、生日、签证类型、滞留期限、地址。
+
+五、拿到证后马上做什么
+1. 办韩国手机号本人认证。
+2. 开银行账户或补全银行资料。
+3. 确认国民健康保险通知地址。
+4. 保存正反面照片，但不要随便发给陌生人。
+
+六、丢失怎么办
+先挂失银行卡和可能被冒用的账户，再按 HiKorea/出入境要求补办。很多学校提醒 Residence Card 丢失后要尽快处理，不要拖到延签时才发现不能办业务。`,
   },
   {
     id: 'post-bank-account',
@@ -1604,8 +1693,34 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-04-30',
     excerpt: '开户前先准备外国人登录证、手机号、学校信息和本人能解释清楚的使用目的。',
-    body:
-      '开户时银行会确认身份、联系方式和账户用途。建议先准备外国人登录证、护照、学生证或在学证明、韩国手机号。不同银行窗口要求会有差异，遇到说材料不够时，可以换网点或让学校国际处提供说明。',
+    body: `韩国银行卡开户不是只拿护照就一定能办。银行会看身份、手机号、住所、账户用途和风险等级。
+
+一、建议优先去哪里
+优先去学校合作银行，或者学校附近外国人业务多的支行。大学附近的 Hana、Woori、Shinhan、KB 等网点通常更熟悉留学生材料。
+
+二、常见材料
+1. 外国人登录证
+2. 护照
+3. 韩国手机号
+4. 学生证或在学证明
+5. 住所信息
+6. 金融交易目的证明：比如学生身份、学费/生活费收支说明
+
+三、刚到韩国还没 ARC 怎么办
+有些银行可能不给开，有些只给受限账户。可以先问学校是否有新生团体开户。没有 ARC 时，不要期待网银、转账限额、银行卡功能一次全开。
+
+四、开户时一定问清楚
+1. 每日转账限额
+2. 是否能开手机银行
+3. 是否需要 OTP 或 보안카드
+4. 银行卡是否支持交通卡
+5. 海外转账和海外刷卡是否开通
+6. 名字拼写是否和 ARC 完全一致
+
+五、最常见问题
+手机实名、银行实名、外国人登录证姓名不一致，会导致 Toss、KakaoPay、网购、外卖、医院预约认证失败。开户时就让柜员按 ARC 信息录入。
+
+建议：拿到 ARC 后再正式开户；如果被一家银行拒绝，可以去学校合作支行或让国际处开说明。`,
   },
   {
     id: 'post-phone-card',
@@ -1626,8 +1741,24 @@ const seedPosts: Post[] = [
     featured: false,
     createdAt: '2026-04-29',
     excerpt: '预付卡、알뜰폰、合约套餐怎么选，重点看认证、流量和解约成本。',
-    body:
-      '刚到韩国先解决能接验证码的手机号。短期可以先用预付卡，稳定后再看 알뜰폰 或合约套餐。不要只看月租，注意是否能本人认证、是否有合约期、解约费用和客服语言。',
+    body: `手机卡要按阶段选，不要刚落地就签贵的长期合约。
+
+一、刚到韩国
+先用预付卡或 eSIM 解决导航、联系房东、收验证码。这个阶段重点是能上网、能接电话，不要追求一步到位。
+
+二、拿到外国人登录证后
+建议办本人名义手机号。韩国很多服务需要 휴대폰 본인인증：银行、网购、外卖、医院预约、快递通关、租房平台都会用到。
+
+三、三种常见选择
+1. 预付卡：办理快，适合刚落地，但认证能力可能有限。
+2. 알뜰폰/MVNO：便宜，适合长期留学，先确认是否支持外国人 ARC 和本人认证。
+3. 三大运营商合约：稳定，线下门店多，但月租和违约成本更高。
+
+四、签约前问清楚
+是否有合约期、解约费、能否本人认证、流量限速规则、是否能线上改套餐、客服语言、回国停机怎么处理。
+
+五、避坑
+不要用别人名义手机号长期认证你的银行和账号。后面换号、找回账号、办金融业务都会非常麻烦。`,
   },
   {
     id: 'post-work-notes',
@@ -1648,8 +1779,29 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-04-28',
     excerpt: '打工前先确认许可、合同、工资结算和工时记录，别只听店长口头承诺。',
-    body:
-      '留学生打工要先确认自己签证类型和是否需要许可。工资、工时、休息时间和结算日尽量写进聊天或合同里。遇到拖欠工资时，保留排班、打卡、聊天记录和转账记录。具体合法工时和许可要求以韩国出入境最新公告为准。',
+    body: `留学生打工最重要的不是先找店，而是先确认自己能不能合法工作。
+
+一、先确认资格
+D-2、D-4 学生通常不是自动无限制打工。需要看签证类型、入境时间、成绩、出勤、韩语能力、是否超学期，以及学校是否同意。
+
+二、一般流程
+1. 找到雇主。
+2. 拿劳动合同或雇佣确认。
+3. 学校国际处或负责老师确认。
+4. 向 HiKorea/出入境申请时间制就业许可。
+5. 许可下来后再正式开始工作。
+
+三、常见材料
+护照、外国人登录证、在学证明、成绩或出勤材料、雇佣合同、雇主营业执照、学校确认书、韩语能力材料等。不同学校和窗口要求会变化。
+
+四、合同要写清
+工资、工作地点、工作内容、每周工时、结算日、休息时间、试用期、加班规则。口头说“到时候给你”最危险。
+
+五、拖欠工资怎么办
+保留排班表、打卡记录、聊天记录、工资转账、店铺信息、同事证言。不要只靠一句“老板答应我了”。必要时可以咨询学校国际处、劳动咨询机构或雇佣劳动部。
+
+六、不要碰高风险工作
+娱乐场所、身份不符工作、超时工作、未经许可换地点，都可能影响签证。具体允许行业和工时以出入境最新公告为准。`,
   },
   {
     id: 'post-hospital',
@@ -1670,8 +1822,27 @@ const seedPosts: Post[] = [
     featured: false,
     createdAt: '2026-04-27',
     excerpt: '挂号、问诊、缴费、拿药和保险使用的基础流程，医疗判断以医生意见为准。',
-    body:
-      '韩国看病一般先到前台挂号，问诊后结算，再拿处方去药店。带好外国人登录证和保险信息，第一次去可以提前查科室。本文只讲流程，不替代医疗建议，症状严重时优先去正规医院。',
+    body: `韩国看病流程和国内不太一样，医院费和药费通常分开。
+
+一、先确认保险
+留学生通常会纳入国民健康保险体系，但要确认是否已经生效、是否欠费、登记地址是否正确。保险通知经常寄到外国人登录证登记地址。
+
+二、小病先去诊所
+感冒、皮肤、肠胃、耳鼻喉这类问题，先去 동네의원 比直接去大学医院更快。大医院可能需要预约或转诊。
+
+三、看病流程
+1. 到前台挂号，出示外国人登录证。
+2. 说明症状，不会韩语可以提前写好关键词。
+3. 医生问诊。
+4. 前台缴费，医保适用部分会体现在账单里。
+5. 拿处方。
+6. 去附近药店买药。
+
+四、需要保留什么
+诊断书、收据、药费明细、处方记录。如果你还有学校保险或私人保险，后续报销可能需要这些文件。
+
+五、避坑
+急症直接去急诊，不要硬扛。普通小病不要一上来去大型综合医院，等待久、费用高。牙科、体检、整形、部分非必要项目不一定能报销。`,
   },
   {
     id: 'post-grad-course',
@@ -1692,8 +1863,25 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-04-26',
     excerpt: '第一学期别只看课程名，要把授课语言、评价方式、教授风格和毕业要求一起看。',
-    body:
-      '大学院选课最怕课程和研究方向脱节。选课前确认授课语言、作业密度、是否需要发表、是否能计入毕业学分。第一学期建议保守一点，先适应教授沟通方式和组会节奏。',
+    body: `大学院选课不能只看课程名，尤其是第一学期。
+
+一、先看毕业要求
+确认总学分、专业必修、选修、研究学分、论文资格考试、外语/综合考试要求。有些课看起来有用，但不能算入毕业学分。
+
+二、选课前问四件事
+1. 授课语言：韩语、英语还是混合。
+2. 评价方式：考试、报告、发表、项目、出勤。
+3. 作业密度：每周 reading、presentation、team project 是否很重。
+4. 教授风格：是否点名、是否要求课堂讨论、是否和你研究方向相关。
+
+三、和导师沟通
+如果你已经进实验室或研究室，先问导师推荐课程。有些课和研究方向、毕业论文、项目经费有关，不建议自己盲选。
+
+四、第一学期建议
+不要一口气选太满。先适应组会、研究室、韩语行政、论文阅读和生活节奏。留一门相对稳的课做缓冲。
+
+五、退课和改课
+记住 수강정정 和 철회 时间。韩国大学选课窗口很严格，错过时间不一定能特殊处理。`,
   },
   {
     id: 'post-secondhand',
@@ -1714,8 +1902,22 @@ const seedPosts: Post[] = [
     featured: false,
     createdAt: '2026-04-25',
     excerpt: '家具、电器、教材和搬家处理时，重点确认面交、付款和瑕疵记录。',
-    body:
-      '二手交易尽量面交，电器要现场确认能否开机，家具要量尺寸和搬运路线。付款前保留聊天记录和物品照片。搬家前处理大件物品要留出时间，不要最后一天才挂出去。',
+    body: `韩国二手交易常见平台有 당근마켓、学校群、微信群和二手论坛。便宜是好事，但别为了省几万韩元丢大钱。
+
+一、尽量面交
+教材、小家电、家具都建议面交。电器现场通电，家具现场看尺寸、破损、螺丝、抽屉、轮子。
+
+二、付款前保留证据
+聊天记录、商品照片、对方账号、约定价格、瑕疵说明都保存。不要只看卖家一句“没问题”。
+
+三、家具要提前量
+桌子、床垫、柜子要量房间、电梯、楼梯、门框。很多留学生买了才发现搬不进房间，或者搬运费比家具还贵。
+
+四、搬家处理时间线
+大件家具至少提前 2-3 周挂。临走前一天才卖，基本只能低价处理甚至付费丢弃。
+
+五、红线
+要求先全款邮寄贵重物、拒绝视频确认、价格离谱低、账号刚注册、催你马上转账，这些都不要碰。`,
   },
   {
     id: 'post-thesis-process',
@@ -1736,8 +1938,26 @@ const seedPosts: Post[] = [
     featured: true,
     createdAt: '2026-04-24',
     excerpt: '按导师沟通、选题、开题、中期、审查和提交节点整理论文时间线。',
-    body:
-      '论文流程要提前倒排。先确认院系毕业要求，再和导师定选题范围。开题、中期、查重、审查和最终提交都有固定窗口，不同学校和院系不同。不要等到最后一学期才第一次问办公室。',
+    body: `韩国大学院论文流程要提前倒排，不然很容易卡在行政节点。
+
+一、先确认毕业条件
+总学分、平均绩点、外语考试、综合考试、论文资格、伦理教育、查重标准、发表要求，每个院系都可能不一样。
+
+二、时间线建议
+毕业前 2-3 学期：确定研究方向和导师沟通。
+毕业前 1-2 学期：完成资格考试、外语要求、论文计划。
+毕业学期前半段：提交论文审查申请、缴审查费、确认审查委员。
+毕业学期中后段：预答辩、查重、修改、正式答辩。
+答辩后：提交最终论文、印刷本或电子版、图书馆系统上传。
+
+三、导师沟通
+不要只问“老师我能毕业吗”。要带着目录、研究问题、数据、进度表去沟通。每次会后把修改意见整理成文字，避免口头理解偏差。
+
+四、行政节点
+论文审查申请、查重提交、答辩时间、最终上传都有截止日。办公室公告比同学经验更重要。
+
+五、延期风险
+如果错过论文窗口，可能要延到下学期，涉及研究注册费、签证延长、医保、奖学金和宿舍资格。论文不是写完就毕业，行政流程也要完成。`,
   },
 ]
 
@@ -1856,6 +2076,7 @@ const cityGuides: CityGuide[] = [
 
 const hotQuestions = seedQuestions
 const featuredExperiences = seedPosts.filter((post) => post.featured)
+const latestPosts = [...seedPosts].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 
 const pathways = [
   {
@@ -2916,52 +3137,7 @@ function App() {
   }
 
   const openPost = (post: Post) => {
-    if (post.price === 0 || (currentUser && currentUnlocks.includes(post.id))) {
-      setActivePost(post)
-      return
-    }
-
-    if (!currentUser) {
-      setAuthMode('login')
-      setMessage('这篇是加精内容，请先登录后用积分解锁。')
-      return
-    }
-
-    if (currentUser.points < post.price) {
-      setMessage(`消费积分不足，还差 ${post.price - currentUser.points} 积分。可通过发布经验或充值获取积分。`)
-      return
-    }
-
-    setAppState((state) => ({
-      ...state,
-      users: state.users.map((user) =>
-        user.id === currentUser.id
-          ? { ...user, points: user.points - post.price }
-          : user.id === post.authorId
-            ? { ...user, earningPoints: user.earningPoints + post.price }
-            : user,
-      ),
-      unlockedPostIds: {
-        ...state.unlockedPostIds,
-        [currentUser.id]: [...(state.unlockedPostIds[currentUser.id] ?? []), post.id],
-      },
-    }))
-    fetch(`/api/posts/${encodeURIComponent(post.id)}/unlock`, {
-      body: JSON.stringify({ userId: currentUser.id }),
-      headers: { 'content-type': 'application/json' },
-      method: 'POST',
-    })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((data: { users?: User[] } | null) => {
-        if (data?.users?.length) {
-          setAppState((state) => ({ ...state, users: data.users ?? state.users }))
-        }
-      })
-      .catch(() => {
-        // Keep the optimistic local unlock when the API is unavailable.
-      })
-    setActivePost(post)
-    setMessage(`已使用 ${post.price} 消费积分解锁：${post.title}`)
+    navigateToPath(`/posts/${post.id}`)
   }
 
   const scrollToPartnerSection = () => {
@@ -3399,9 +3575,15 @@ function App() {
       </section>
 
       <section className="community-home-section" id="questions">
-        <div className="section-heading">
-          <p className="eyebrow dark">热门问题</p>
-          <h2>留学生最常遇到的问题，先看真实回答。</h2>
+        <div className="section-heading section-heading-action">
+          <div>
+            <p className="eyebrow dark">常见问题免费贴</p>
+            <h2>留学生最常遇到的问题。</h2>
+          </div>
+          <button className="text-arrow-button" type="button" onClick={() => navigateToPath('/questions')}>
+            查看全部
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
         </div>
         <div className="question-card-grid">
           {hotQuestions.slice(0, 5).map((question) => (
@@ -3428,9 +3610,15 @@ function App() {
       </section>
 
       <section className="community-home-section featured-experience-section" id="featured-experience">
-        <div className="section-heading">
-          <p className="eyebrow dark">精华经验</p>
-          <h2>不是泛泛聊天，而是能直接帮你办事的经验帖。</h2>
+        <div className="section-heading section-heading-action">
+          <div>
+            <p className="eyebrow dark">付费精华经验</p>
+            <h2>真人真实经验分享。</h2>
+          </div>
+          <button className="text-arrow-button" type="button" onClick={() => navigateToPath('/posts')}>
+            查看全部
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
         </div>
         <div className="experience-card-grid">
           {featuredExperiences.slice(0, 5).map((experience) => (
@@ -3443,6 +3631,7 @@ function App() {
                 <span>{experience.category}</span>
                 <span>{experience.city}</span>
                 {experience.featured && <span className="featured-tag">精华</span>}
+                {experience.price > 0 && <span className="paid-tag">{experience.price} 积分</span>}
               </div>
               <h3>{experience.title}</h3>
               <p>{experience.excerpt}</p>
@@ -3450,6 +3639,44 @@ function App() {
                 <span>{experience.author}</span>
                 <span>{(experience.views ?? 0).toLocaleString()} 阅读</span>
                 <span>{experience.bookmarks ?? 0} 收藏</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="community-home-section latest-posts-section">
+        <div className="section-heading section-heading-action">
+          <div>
+            <p className="eyebrow dark">最新帖子</p>
+            <h2>最近更新的留学经验和问题记录。</h2>
+          </div>
+          <button className="text-arrow-button" type="button" onClick={() => navigateToPath('/posts')}>
+            进入帖子页
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+        </div>
+        <div className="latest-post-list">
+          {latestPosts.slice(0, 6).map((post) => (
+            <article
+              className="latest-post-row clickable-card"
+              key={post.id}
+              onClick={() => navigateToPath(`/posts/${post.id}`)}
+            >
+              <div>
+                <div className="tag-line">
+                  <span>{post.category}</span>
+                  <span>{post.school}</span>
+                  {post.featured && <span className="featured-tag">精华</span>}
+                  {post.price > 0 && <span className="paid-tag">{post.price} 积分</span>}
+                </div>
+                <h3>{post.title}</h3>
+                <p>{post.excerpt}</p>
+              </div>
+              <div className="latest-post-meta">
+                <strong>{post.author}</strong>
+                <span>{post.createdAt}</span>
+                <span>{(post.views ?? 0).toLocaleString()} 阅读</span>
               </div>
             </article>
           ))}
