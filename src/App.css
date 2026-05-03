@@ -393,7 +393,7 @@ button {
 }
 
 .hero-message-group {
-  transform: translateY(-46px);
+  transform: translateY(-210px);
 }
 
 .hero-mobile-wordmark {
@@ -470,7 +470,7 @@ h3 {
   font-size: clamp(14px, 1.45vw, 23px);
   font-weight: 800;
   line-height: 1.45;
-  margin: -20px 0 16px;
+  margin: -184px 0 16px;
   max-width: min(1120px, 72vw);
 }
 
