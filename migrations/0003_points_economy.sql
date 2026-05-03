@@ -1,0 +1,2 @@
+ALTER TABLE users ADD COLUMN earning_points INTEGER NOT NULL DEFAULT 0;
+

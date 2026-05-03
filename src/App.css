@@ -1208,6 +1208,46 @@ h3 {
   font-weight: 800;
 }
 
+.points-economy {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.points-economy article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--forest);
+  display: grid;
+  gap: 12px;
+  min-height: 210px;
+  padding: 22px;
+}
+
+.points-economy svg {
+  color: var(--blue);
+}
+
+.points-economy span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.points-economy strong {
+  color: var(--forest);
+  font-size: clamp(24px, 2.2vw, 34px);
+  line-height: 1.1;
+}
+
+.points-economy p {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+}
+
 .trust-section {
   background: #0b1d18;
   color: #fffdf0;
@@ -1945,7 +1985,7 @@ h3 {
   align-items: start;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(720px, 1fr) minmax(360px, 0.72fr);
+  grid-template-columns: minmax(840px, 1fr) minmax(360px, 0.72fr);
 }
 
 .admin-row {
@@ -1963,7 +2003,7 @@ h3 {
 }
 
 .admin-user-table .admin-row {
-  grid-template-columns: minmax(190px, 1.15fr) 74px 84px 84px 260px;
+  grid-template-columns: minmax(190px, 1.15fr) 74px 84px 92px 92px 260px;
 }
 
 .admin-post-table .admin-row {
@@ -2480,6 +2520,10 @@ h3 {
   .points-flow > svg {
     justify-self: center;
     transform: rotate(90deg);
+  }
+
+  .points-economy {
+    grid-template-columns: 1fr;
   }
 
   .profile-page,

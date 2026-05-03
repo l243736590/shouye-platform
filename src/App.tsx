@@ -45,6 +45,7 @@ type User = {
   identity: string
   school: string
   points: number
+  earningPoints: number
   joinedAt: string
   status: UserStatus
   verificationStatus: VerificationStatus
@@ -114,6 +115,11 @@ const heroImage =
 
 const storageKey = 'shouye-platform-mvp-v1'
 const adminSessionKey = 'shouye-platform-admin-session'
+const registerBonusPoints = 30
+const postApprovedBonusPoints = 10
+const rechargePointsPerYuan = 10
+const cashoutPointsPerYuan = 100 / 6
+const minimumCashoutPoints = 1700
 const categories = ['全部', '申请避坑', '学校评价', '教授课程', '毕业就业', '生活落地']
 const schoolPageSize = 8
 
@@ -1134,6 +1140,7 @@ const normalizeUser = (user: Partial<User>): User => ({
   identity: user.identity ?? '准备申请',
   school: user.school ?? '暂未填写',
   points: user.points ?? 0,
+  earningPoints: user.earningPoints ?? 0,
   joinedAt: user.joinedAt ?? new Date().toISOString(),
   status: user.status ?? 'active',
   verificationStatus: user.verificationStatus ?? (user.documents?.length ? 'pending' : 'pending'),
@@ -1212,6 +1219,7 @@ function App() {
   })
   const [pendingEmail, setPendingEmail] = useState('')
   const [pointDrafts, setPointDrafts] = useState<Record<string, string>>({})
+  const [earningPointDrafts, setEarningPointDrafts] = useState<Record<string, string>>({})
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
   const [schoolGalleries, setSchoolGalleries] = useState<Record<string, string[]>>({})
 
@@ -1370,6 +1378,27 @@ function App() {
         },
         method: 'PATCH',
       }).catch(() => setMessage('积分更新失败，请稍后重试。'))
+    }
+  }
+
+  const updateUserEarningPoints = (userId: string, nextEarningPoints: number) => {
+    const normalizedEarningPoints = Math.max(0, Number.isFinite(nextEarningPoints) ? nextEarningPoints : 0)
+    setAppState((state) => ({
+      ...state,
+      users: state.users.map((user) =>
+        user.id === userId ? { ...user, earningPoints: normalizedEarningPoints } : user,
+      ),
+    }))
+    setEarningPointDrafts((drafts) => ({ ...drafts, [userId]: String(normalizedEarningPoints) }))
+    if (adminToken) {
+      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+        body: JSON.stringify({ earningPoints: normalizedEarningPoints }),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      }).catch(() => setMessage('收益积分更新失败，请稍后重试。'))
     }
   }
 
@@ -1622,7 +1651,8 @@ function App() {
       password,
       identity: authForm.identity,
       school: authForm.school.trim() || '暂未填写',
-      points: 80,
+      points: registerBonusPoints,
+      earningPoints: 0,
       joinedAt: new Date().toISOString(),
       status: 'active',
       verificationStatus: authForm.documents.length ? 'pending' : 'pending',
@@ -1670,7 +1700,7 @@ function App() {
       bio: '',
       documents: [],
     })
-    setMessage('注册成功，已获得 80 初始积分，可用于解锁加精内容。')
+    setMessage(`注册成功，已获得 ${registerBonusPoints} 消费积分，可用于解锁加精内容。`)
   }
 
   const sendEmailCode = async () => {
@@ -1768,7 +1798,7 @@ function App() {
       ...state,
       posts: [post, ...state.posts],
       users: state.users.map((user) =>
-        user.id === currentUser.id ? { ...user, points: user.points + 30 } : user,
+        user.id === currentUser.id ? { ...user, points: user.points + postApprovedBonusPoints } : user,
       ),
     }))
     setPostForm({
@@ -1780,7 +1810,7 @@ function App() {
       price: '0',
     })
     setPublishOpen(false)
-    setMessage('发布成功，系统已奖励 30 积分。')
+    setMessage(`发布成功，系统已奖励 ${postApprovedBonusPoints} 消费积分。被付费解锁后会进入可提现收益积分。`)
   }
 
   const handlePartnerApply = async (event: FormEvent<HTMLFormElement>) => {
@@ -1909,22 +1939,40 @@ function App() {
     }
 
     if (currentUser.points < post.price) {
-      setMessage(`积分不足，还差 ${post.price - currentUser.points} 积分。可通过发布经验或充值获取积分。`)
+      setMessage(`消费积分不足，还差 ${post.price - currentUser.points} 积分。可通过发布经验或充值获取积分。`)
       return
     }
 
     setAppState((state) => ({
       ...state,
       users: state.users.map((user) =>
-        user.id === currentUser.id ? { ...user, points: user.points - post.price } : user,
+        user.id === currentUser.id
+          ? { ...user, points: user.points - post.price }
+          : user.id === post.authorId
+            ? { ...user, earningPoints: user.earningPoints + post.price }
+            : user,
       ),
       unlockedPostIds: {
         ...state.unlockedPostIds,
         [currentUser.id]: [...(state.unlockedPostIds[currentUser.id] ?? []), post.id],
       },
     }))
+    fetch(`/api/posts/${encodeURIComponent(post.id)}/unlock`, {
+      body: JSON.stringify({ userId: currentUser.id }),
+      headers: { 'content-type': 'application/json' },
+      method: 'POST',
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { users?: User[] } | null) => {
+        if (data?.users?.length) {
+          setAppState((state) => ({ ...state, users: data.users ?? state.users }))
+        }
+      })
+      .catch(() => {
+        // Keep the optimistic local unlock when the API is unavailable.
+      })
     setActivePost(post)
-    setMessage(`已使用 ${post.price} 积分解锁：${post.title}`)
+    setMessage(`已使用 ${post.price} 消费积分解锁：${post.title}`)
   }
 
   const scrollToPartnerSection = () => {
@@ -2061,7 +2109,7 @@ function App() {
         {currentUser ? (
           <div className="user-pill">
             <span>{currentUser.name}</span>
-            <strong>{currentUser.points} 积分</strong>
+            <strong>{currentUser.points} 消费积分</strong>
             <button
               type="button"
               onClick={() => {
@@ -2721,9 +2769,13 @@ function App() {
             {currentUser ? (
               <>
                 <p>{currentUser.identity} · {currentUser.school}</p>
-                <strong>{currentUser.points} 积分</strong>
+                <strong>{currentUser.points} 消费积分 · {currentUser.earningPoints} 收益积分</strong>
+                <small>
+                  充值比例 1 元 = {rechargePointsPerYuan} 积分；收益满 {minimumCashoutPoints} 积分可申请提现，约 ¥
+                  {Math.floor(minimumCashoutPoints / cashoutPointsPerYuan)} 起。
+                </small>
                 <button type="button" onClick={() => updateUserPoints(currentUser.id, currentUser.points + 100)}>
-                  积分充值
+                  模拟充值 10 元
                 </button>
               </>
             ) : (
@@ -2812,26 +2864,30 @@ function App() {
       <section className="points-section" id="points">
         <div className="points-copy">
           <p className="eyebrow dark">Business Model</p>
-          <h2>内容积分负责增长与激励，机构合作和人才连接负责商业化。</h2>
+          <h2>消费积分和收益积分分账，平台保留稳定毛利。</h2>
           <p>
-            平台通过加精内容解锁、机构认证号、专题内容页、精准线索和韩国留学生人才库形成多层收入结构，从韩国垂直市场开始验证。
+            用户充值积分只用于消费，创作者通过内容解锁获得收益积分；收益积分按平台规则提现，避免套利，也让优质内容长期有回报。
           </p>
         </div>
-        <div className="points-flow" aria-label="Points flow">
-          <div>
-            <Sparkles size={22} aria-hidden="true" />
-            <span>真实经验内容</span>
-          </div>
-          <ArrowRight size={20} aria-hidden="true" />
-          <div>
+        <div className="points-economy" aria-label="积分经济系统">
+          <article>
             <Coins size={22} aria-hidden="true" />
-            <span>积分与加精</span>
-          </div>
-          <ArrowRight size={20} aria-hidden="true" />
-          <div>
+            <span>充值上分</span>
+            <strong>¥1 = {rechargePointsPerYuan} 积分</strong>
+            <p>充值积分只能消费，用于解锁加精帖、资料和问答。</p>
+          </article>
+          <article>
+            <Sparkles size={22} aria-hidden="true" />
+            <span>内容收益</span>
+            <strong>100 收益积分 ≈ ¥6</strong>
+            <p>读者解锁 100 积分，作者入账 100 收益积分，提现时平台保留约 40% 毛利。</p>
+          </article>
+          <article>
             <MessageSquareText size={22} aria-hidden="true" />
-            <span>B端合作转化</span>
-          </div>
+            <span>提现规则</span>
+            <strong>{minimumCashoutPoints} 积分起提</strong>
+            <p>注册送分、活动分和充值分不能提现，只有内容收益积分可以申请提现。</p>
+          </article>
         </div>
       </section>
 
@@ -2988,7 +3044,8 @@ function App() {
                     <span>注册账号</span>
                     <span>状态</span>
                     <span>认证</span>
-                    <span>积分</span>
+                    <span>消费积分</span>
+                    <span>收益积分</span>
                     <span>操作</span>
                   </div>
                   {appState.users.length === 0 ? (
@@ -3006,12 +3063,21 @@ function App() {
                           {verificationStatusLabel[user.verificationStatus]}
                         </span>
                         <input
-                          aria-label={`${user.name} 积分`}
+                          aria-label={`${user.name} 消费积分`}
                           min="0"
                           type="number"
                           value={pointDrafts[user.id] ?? String(user.points)}
                           onChange={(event) =>
                             setPointDrafts((drafts) => ({ ...drafts, [user.id]: event.target.value }))
+                          }
+                        />
+                        <input
+                          aria-label={`${user.name} 收益积分`}
+                          min="0"
+                          type="number"
+                          value={earningPointDrafts[user.id] ?? String(user.earningPoints)}
+                          onChange={(event) =>
+                            setEarningPointDrafts((drafts) => ({ ...drafts, [user.id]: event.target.value }))
                           }
                         />
                         <div className="admin-actions">
@@ -3020,7 +3086,13 @@ function App() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => updateUserPoints(user.id, Number.parseInt(pointDrafts[user.id] ?? String(user.points), 10) || 0)}
+                            onClick={() => {
+                              updateUserPoints(user.id, Number.parseInt(pointDrafts[user.id] ?? String(user.points), 10) || 0)
+                              updateUserEarningPoints(
+                                user.id,
+                                Number.parseInt(earningPointDrafts[user.id] ?? String(user.earningPoints), 10) || 0,
+                              )
+                            }}
                           >
                             保存
                           </button>
@@ -3065,8 +3137,16 @@ function App() {
                           <strong>{new Date(selectedAdminUser.joinedAt).toLocaleDateString('zh-CN')}</strong>
                         </div>
                         <div>
-                          <span>当前积分</span>
+                          <span>消费积分</span>
                           <strong>{selectedAdminUser.points}</strong>
+                        </div>
+                        <div>
+                          <span>收益积分</span>
+                          <strong>{selectedAdminUser.earningPoints}</strong>
+                        </div>
+                        <div>
+                          <span>预计可提现</span>
+                          <strong>¥{Math.floor(selectedAdminUser.earningPoints / cashoutPointsPerYuan)}</strong>
                         </div>
                       </div>
                       <div className="admin-control-row">

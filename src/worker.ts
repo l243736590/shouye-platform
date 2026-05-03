@@ -25,6 +25,7 @@ type UserRecord = {
   identity: string
   school: string
   points: number
+  earningPoints: number
   joinedAt: string
   status: UserStatus
   verificationStatus: VerificationStatus
@@ -86,6 +87,7 @@ const rowToUser = (row: Record<string, unknown>, documents: CredentialDocument[]
   identity: String(row.identity),
   school: String(row.school),
   points: Number(row.points),
+  earningPoints: Number(row.earning_points ?? 0),
   joinedAt: String(row.joined_at),
   status: String(row.status) as UserStatus,
   verificationStatus: String(row.verification_status) as VerificationStatus,
@@ -272,8 +274,8 @@ const handleRegister = async (request: Request, env: Env) => {
   const joinedAt = new Date().toISOString()
   await env.DB.prepare(
     `INSERT INTO users
-      (id, name, email, password_hash, identity, school, points, joined_at, status, verification_status, avatar_url, bio)
-      VALUES (?, ?, ?, ?, ?, ?, 80, ?, 'active', 'pending', ?, ?)`,
+      (id, name, email, password_hash, identity, school, points, earning_points, joined_at, status, verification_status, avatar_url, bio)
+      VALUES (?, ?, ?, ?, ?, ?, 30, 0, ?, 'active', 'pending', ?, ?)`,
   )
     .bind(
       userId,
@@ -310,7 +312,8 @@ const handleRegister = async (request: Request, env: Env) => {
       email,
       identity: body.identity || '准备申请',
       school: body.school?.trim() || '暂未填写',
-      points: 80,
+      points: 30,
+      earning_points: 0,
       joined_at: joinedAt,
       status: 'active',
       verification_status: 'pending',
@@ -418,9 +421,48 @@ const handlePostCreate = async (request: Request, env: Env) => {
     )
     .run()
 
-  await env.DB.prepare('UPDATE users SET points = points + 30 WHERE id = ?').bind(user.id).run()
+  await env.DB.prepare('UPDATE users SET points = points + 10 WHERE id = ?').bind(user.id).run()
 
   return json({ post })
+}
+
+const handlePostUnlock = async (request: Request, env: Env, postId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  const body = await readBody<{ userId: string }>(request)
+  const userId = body.userId?.trim()
+  if (!userId) return json({ error: '请先登录后再解锁内容。' }, { status: 401 })
+
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!user) return json({ error: '请先登录后再解锁内容。' }, { status: 401 })
+  if (user.status === 'banned') return json({ error: '账号已被封号，不能解锁内容。' }, { status: 403 })
+
+  const post = await env.DB.prepare('SELECT * FROM posts WHERE id = ?').bind(postId).first<Record<string, unknown>>()
+  if (!post) return json({ error: '帖子不存在。' }, { status: 404 })
+
+  const price = Math.max(0, Number(post.price) || 0)
+  if (price === 0) return json({ users: await getAllUsers(env) })
+
+  const existingUnlock = await env.DB.prepare('SELECT post_id FROM post_unlocks WHERE user_id = ? AND post_id = ?')
+    .bind(userId, postId)
+    .first()
+  if (existingUnlock) return json({ users: await getAllUsers(env) })
+
+  if (Number(user.points) < price) {
+    return json({ error: `消费积分不足，还差 ${price - Number(user.points)} 积分。` }, { status: 400 })
+  }
+
+  const now = new Date().toISOString()
+  await env.DB.prepare('UPDATE users SET points = points - ? WHERE id = ?').bind(price, userId).run()
+  if (post.author_id && String(post.author_id) !== userId) {
+    await env.DB.prepare('UPDATE users SET earning_points = earning_points + ? WHERE id = ?')
+      .bind(price, String(post.author_id))
+      .run()
+  }
+  await env.DB.prepare('INSERT INTO post_unlocks (user_id, post_id, created_at) VALUES (?, ?, ?)')
+    .bind(userId, postId, now)
+    .run()
+
+  return json({ users: await getAllUsers(env) })
 }
 
 const handlePartnerCreate = async (request: Request, env: Env) => {
@@ -519,6 +561,7 @@ const updateUser = async (request: Request, env: Env, userId: string) => {
       identity = COALESCE(?, identity),
       school = COALESCE(?, school),
       points = COALESCE(?, points),
+      earning_points = COALESCE(?, earning_points),
       status = COALESCE(?, status),
       verification_status = COALESCE(?, verification_status),
       avatar_url = COALESCE(?, avatar_url),
@@ -530,6 +573,7 @@ const updateUser = async (request: Request, env: Env, userId: string) => {
       body.identity ?? null,
       body.school ?? null,
       typeof body.points === 'number' ? body.points : null,
+      typeof body.earningPoints === 'number' ? body.earningPoints : null,
       body.status ?? null,
       body.verificationStatus ?? null,
       body.avatarUrl ?? null,
@@ -609,6 +653,8 @@ export default {
     if (url.pathname === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env)
     if (url.pathname === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env)
     if (url.pathname === '/api/posts' && request.method === 'POST') return handlePostCreate(request, env)
+    const postUnlockMatch = url.pathname.match(/^\/api\/posts\/([^/]+)\/unlock$/)
+    if (postUnlockMatch && request.method === 'POST') return handlePostUnlock(request, env, postUnlockMatch[1])
     const publicPostMatch = url.pathname.match(/^\/api\/posts\/([^/]+)$/)
     if (publicPostMatch && request.method === 'DELETE') return deleteOwnPost(request, env, publicPostMatch[1])
     if (url.pathname === '/api/partner-applications' && request.method === 'POST') {
