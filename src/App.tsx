@@ -1582,6 +1582,11 @@ function App() {
   }
 
   const openSchoolPage = (school: SchoolProfile) => {
+    if (school.id === 'konkuk') {
+      navigateToPath('/schools/konkuk')
+      return
+    }
+
     const parentRegion = schoolRegions.find((group) =>
       group.schools.some((item) => item.id === school.id),
     )
