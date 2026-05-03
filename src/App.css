@@ -61,6 +61,12 @@ main {
   width: 74px;
 }
 
+.brand-logo-picture {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
 .brand-logo-image {
   display: block;
   height: 100%;
