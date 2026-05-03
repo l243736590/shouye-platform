@@ -829,6 +829,10 @@ h3 {
   line-height: 1.85;
 }
 
+.answer-card p {
+  white-space: pre-line;
+}
+
 .detail-stat-row {
   display: flex;
   flex-wrap: wrap;
