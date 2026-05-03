@@ -88,9 +88,14 @@ main {
   }
 
   .site-header .brand-tagline,
-  .site-header .nav-links,
-  .site-header .auth-actions .quiet-button {
+  .site-header .nav-links {
     color: #fffdf0;
+  }
+
+  .site-header .header-actions .quiet-button {
+    background: rgba(255, 253, 240, 0.94);
+    color: var(--forest);
+    padding: 0 16px;
   }
 }
 
@@ -534,7 +539,7 @@ h3 {
   right: 22px;
   top: 86px;
   width: min(460px, calc(100vw - 32px));
-  z-index: 80;
+  z-index: 40;
 }
 
 .inline-editor-bar.active {
@@ -2046,6 +2051,10 @@ h3 {
 
 .admin-route .modal-sheet {
   max-height: none;
+}
+
+.admin-route .inline-editor-bar {
+  display: none;
 }
 
 .admin-route .admin-modal {
