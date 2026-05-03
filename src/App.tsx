@@ -2225,6 +2225,12 @@ function App() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: 'easeOut' }}
         >
+          <img
+            className="hero-mobile-wordmark"
+            src="/brand/shouye-logo-mobile-light-text.png"
+            alt="售业"
+            aria-hidden="true"
+          />
           <p className="eyebrow hero-eyebrow">留学生经验分享与问题解决平台</p>
           <h1>留学生的第一站</h1>
           <p className="hero-copy">

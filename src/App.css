@@ -359,6 +359,10 @@ button {
   text-transform: none;
 }
 
+.hero-mobile-wordmark {
+  display: none;
+}
+
 h1,
 h2,
 h3,
@@ -2534,7 +2538,7 @@ h3 {
   }
 }
 
-@media (max-width: 780px) {
+@media (max-width: 980px) {
   .site-header {
     height: 64px;
   }
@@ -2571,7 +2575,7 @@ h3 {
   }
 
   .hero-section {
-    min-height: 90svh;
+    min-height: calc(100svh - 64px);
   }
 
   .hero-overlay {
@@ -2581,9 +2585,23 @@ h3 {
   }
 
   .hero-content {
-    align-self: end;
+    align-self: start;
     margin-left: 0;
-    padding: 110px 20px 42px;
+    padding: clamp(136px, 16svh, 220px) 20px 34px;
+  }
+
+  .hero-mobile-wordmark {
+    display: block;
+    filter: drop-shadow(0 18px 34px rgba(1, 8, 6, 0.32));
+    height: auto;
+    margin: 0 0 18px -6px;
+    max-width: 280px;
+    opacity: 0.96;
+    width: 68vw;
+  }
+
+  .hero-eyebrow {
+    margin-bottom: 12px;
   }
 
   .hero-content h1 {
@@ -2594,6 +2612,11 @@ h3 {
   .hero-copy {
     font-size: clamp(22px, 7vw, 32px);
     line-height: 1.18;
+    margin: 24px 0 0;
+  }
+
+  .hero-subcopy {
+    margin-top: 14px;
   }
 
   .hero-title-logo {
@@ -2608,6 +2631,7 @@ h3 {
 
   .search-shell {
     grid-template-columns: auto 1fr;
+    margin-top: 34px;
   }
 
   .search-shell button {
@@ -2617,7 +2641,13 @@ h3 {
 
   .hero-metrics {
     grid-template-columns: 1fr;
-    gap: 10px;
+    gap: 16px;
+    margin-top: 36px;
+    padding-top: 4px;
+  }
+
+  .hero-metrics div {
+    padding-top: 14px;
   }
 
   .posts-page {
