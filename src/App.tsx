@@ -3806,6 +3806,16 @@ function App() {
               )}
               <PenLine size={18} aria-hidden="true" />
             </button>
+            <button
+              className="merchant-benefit-link"
+              type="button"
+              onClick={() => {
+                if (!inlineEditMode) document.getElementById('schools')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }}
+            >
+              我要找商家要福利
+              <Sparkles size={18} aria-hidden="true" />
+            </button>
           </div>
           <div className="hero-metrics" aria-label="平台能力概览">
             <div>
