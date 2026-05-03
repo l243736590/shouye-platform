@@ -3244,8 +3244,8 @@ function App() {
         >
           <span className="brand-mark">
             <picture className="brand-logo-picture" aria-hidden="true">
-              <source srcSet="/brand/shouye-logo-wordmark-light.png" media="(prefers-color-scheme: dark)" />
-              <img className="brand-logo-image" src="/shouye-logo-wordmark.png" alt="" />
+              <source srcSet="/brand/shouye-logo-text-light.png" media="(prefers-color-scheme: dark)" />
+              <img className="brand-logo-image" src="/brand/shouye-logo-text-dark.png" alt="" />
             </picture>
             <button
               aria-label="打开后台管理"
