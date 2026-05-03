@@ -3864,22 +3864,22 @@ function App() {
         </motion.div>
       </section>
 
-      <section className="proof-band" aria-label="Platform highlights">
+      <section className="proof-band" aria-label="留学生问题阶段导航">
         <div>
-          <strong>Q&A</strong>
-          <span>围绕真实留学问题给出可执行答案</span>
+          <strong>语学院/本科/硕博入学相关</strong>
+          <span>申请材料、入学流程、选课和学分确认</span>
         </div>
         <div>
-          <strong>{categories.length}</strong>
-          <span>覆盖签证、租房、打工、毕业和生活分类</span>
+          <strong>在学期间相关</strong>
+          <span>签证、租房、打工、保险、银行卡和校园生活</span>
         </div>
         <div>
-          <strong>经验</strong>
-          <span>真实经历沉淀成可检索的解决方案</span>
+          <strong>毕业问题相关</strong>
+          <span>论文、延毕、毕业审查和材料节点</span>
         </div>
         <div>
-          <strong>收益</strong>
-          <span>高质量回答和精华攻略获得激励</span>
+          <strong>毕业后签证/就业相关</strong>
+          <span>D-10、求职、实习、简历和就业衔接</span>
         </div>
       </section>
 
