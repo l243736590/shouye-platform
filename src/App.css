@@ -668,8 +668,8 @@ h3 {
 }
 
 .proof-band button {
-  background: #ffffff;
-  border-right: 1px solid var(--line);
+  background: var(--ink);
+  border-right: 1px solid rgba(255, 253, 240, 0.2);
   border-top: 0;
   border-bottom: 0;
   border-left: 0;
@@ -685,8 +685,24 @@ h3 {
     transform 180ms ease;
 }
 
+.proof-band button:nth-child(1) {
+  background: #202b33;
+}
+
+.proof-band button:nth-child(2) {
+  background: var(--korea-red);
+}
+
+.proof-band button:nth-child(3) {
+  background: var(--gold);
+}
+
+.proof-band button:nth-child(4) {
+  background: var(--blue);
+}
+
 .proof-band button:hover {
-  background: #f2f7f4;
+  filter: brightness(1.06);
   transform: translateY(-2px);
 }
 
@@ -695,13 +711,13 @@ h3 {
 }
 
 .proof-band strong {
-  color: var(--forest);
+  color: #fffdf0;
   font-size: clamp(22px, 1.8vw, 32px);
   line-height: 1.18;
 }
 
 .proof-band span {
-  color: var(--muted);
+  color: rgba(255, 253, 240, 0.82);
   font-weight: 700;
 }
 
