@@ -350,11 +350,11 @@ button {
 }
 
 .hero-content {
-  align-self: center;
+  align-self: start;
   color: #fffdf0;
   margin-left: clamp(22px, 7vw, 96px);
   max-width: 920px;
-  padding: 132px 22px 72px 0;
+  padding: clamp(142px, 18vh, 210px) 22px 72px 0;
   z-index: 2;
 }
 
@@ -393,7 +393,7 @@ button {
 }
 
 .hero-message-group {
-  transform: translateY(-210px);
+  transform: none;
 }
 
 .hero-mobile-wordmark {
@@ -470,7 +470,7 @@ h3 {
   font-size: clamp(14px, 1.45vw, 23px);
   font-weight: 800;
   line-height: 1.45;
-  margin: -184px 0 16px;
+  margin: 26px 0 16px;
   max-width: min(1120px, 72vw);
 }
 
