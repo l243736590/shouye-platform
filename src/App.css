@@ -796,6 +796,62 @@ h3 {
   gap: 26px;
 }
 
+.journey-deep-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.journey-deep-grid article {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 16px;
+  padding: 26px;
+}
+
+.journey-deep-grid h3 {
+  color: var(--forest);
+  font-size: clamp(24px, 2.3vw, 38px);
+  line-height: 1.12;
+}
+
+.journey-deep-grid p {
+  color: #354740;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.7;
+}
+
+.journey-deep-grid ul {
+  color: var(--muted);
+  display: grid;
+  font-weight: 700;
+  gap: 9px;
+  line-height: 1.65;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.journey-deep-grid .tag-line a,
+.source-link {
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.journey-policy-note {
+  background: #fff7d7;
+  border: 1px solid rgba(201, 155, 52, 0.3);
+  border-radius: 8px;
+  color: #5f4a18;
+  font-weight: 800;
+  line-height: 1.7;
+  padding: 18px;
+}
+
 .journey-card-grid.question-card-grid,
 .journey-card-grid.experience-card-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3464,6 +3520,7 @@ h3 {
   }
 
   .journey-step-grid,
+  .journey-deep-grid,
   .journey-card-grid.question-card-grid,
   .journey-card-grid.experience-card-grid,
   .journey-guide-grid {
@@ -3853,6 +3910,7 @@ h3 {
   }
 
   .journey-step-grid,
+  .journey-deep-grid,
   .journey-card-grid.question-card-grid,
   .journey-card-grid.experience-card-grid,
   .journey-guide-grid {

@@ -143,6 +143,14 @@ type JourneyTopic = {
   categories: string[]
   tags: string[]
   steps: { title: string; text: string }[]
+  deepDives?: {
+    title: string
+    label: string
+    text: string
+    bullets: string[]
+    sourceLabel?: string
+    sourceUrl?: string
+  }[]
 }
 
 type SchoolProfile = {
@@ -2461,16 +2469,122 @@ const journeyTopics: JourneyTopic[] = [
     slug: 'career',
     title: '毕业后签证/就业相关',
     shortTitle: '毕业后就业',
-    summary: 'D-10、求职、实习、简历和就业衔接',
-    heroTitle: '毕业后怎么留下、求职和转签，先把路径想清楚。',
+    summary: 'D-10、永驻、求职、回国认证、落户和人才政策',
+    heroTitle: '毕业后怎么留下、回国和拿政策红利，先把路径想清楚。',
     heroCopy:
-      '整理 D-10 求职签证、实习、简历、面试、企业招聘、转 E 系列签证和回国就业衔接，帮助毕业生少走弯路。',
+      '整理 D-10 求职签证、韩国永驻路径、找工作、回国学历认证、校招身份、免税车、北上广深落户和人才补贴，帮助毕业生少走弯路。',
     categories: ['求职/实习/简历', '签证/滞留资格', '打工/劳动纠纷'],
-    tags: ['D-10', '求职', '实习', '简历', '面试', '就业签证'],
+    tags: ['D-10', '永驻', '求职', '学历认证', '应届生', '免税车', '落户', '人才补贴'],
     steps: [
       { title: '毕业前', text: '准备成绩、毕业证明、作品/简历、求职计划和签证衔接材料。' },
       { title: '求职中', text: '记录投递、面试、实习和求职活动证明，避免签证材料断档。' },
       { title: '录用后', text: '确认雇主资质、岗位匹配、合同、工资和后续转签要求。' },
+    ],
+    deepDives: [
+      {
+        title: '换 D-10 求职签证',
+        label: '韩国留下来',
+        text: 'D-10 适合毕业后还没有正式入职、但准备在韩国找工作的阶段。核心不是“自动续命”，而是证明你确实在求职，并且材料、住所和滞留期限连续。',
+        bullets: [
+          '毕业前 1-2 个月先看 HiKorea 预约和学校开具毕业/预毕业、成绩、出勤或相关证明的时间。',
+          '常见材料包括护照、外国人登录证、申请书、照片、手续费、毕业或预毕业证明、成绩单、求职活动计划书、住所证明等。',
+          '换签后要持续保留投递、面试、招聘会、实习洽谈等求职记录；后续转 E 系列工作签证时，岗位、学历、专业和公司条件都要匹配。',
+          '具体可停留期限、加分项和材料清单会随政策调整，最终以 HiKorea/出入境窗口为准。',
+        ],
+        sourceLabel: 'HiKorea',
+        sourceUrl: 'https://www.hikorea.go.kr',
+      },
+      {
+        title: '韩国永驻/长期居留路径',
+        label: '长期规划',
+        text: '永驻通常不是毕业后立刻办理，而是从 D-10、E-7、F-2 等长期路径慢慢积累收入、居住年限、纳税、韩语和守法记录。',
+        bullets: [
+          '先判断你适合就业签证路线、积分制居留路线，还是高学历/高收入/专业人才路线。',
+          '提前保存纳税、收入、雇佣合同、居住地址、学历、TOPIK/KIIP、犯罪记录等长期材料。',
+          '不要只看“几年能永驻”，还要看最近收入、资产、韩语、社会统合课程、离境天数和违法记录。',
+          '永驻条件变化较多，建议把它作为 3-5 年规划，而不是毕业当下的一次性申请。',
+        ],
+        sourceLabel: 'Korea Visa Portal',
+        sourceUrl: 'https://www.visa.go.kr',
+      },
+      {
+        title: '韩国找工作',
+        label: '求职执行',
+        text: '韩国求职要同时准备韩文简历、英文/中文简历、作品集和可证明的实习/项目经历。留学生最常见的卡点是签证可转、岗位匹配和语言表达。',
+        bullets: [
+          '优先整理：目标行业、可转签岗位、公司是否有外籍雇佣经验、薪资是否满足签证要求。',
+          '简历里把韩国经历写成结果：负责什么、做到什么、用什么工具、给团队带来什么变化。',
+          '面试前准备韩语自我介绍、毕业论文/项目说明、签证状态说明和可入职时间。',
+          '收到 offer 后先确认合同、岗位、薪资、四大保险、试用期和签证办理责任，不要口头入职。',
+        ],
+        sourceLabel: 'Work in Korea',
+        sourceUrl: 'https://www.work.go.kr',
+      },
+      {
+        title: '回国换学历学位认证',
+        label: '回国第一步',
+        text: '回国求职、落户、考编、人才政策和部分企业背调通常会看中留服认证。毕业后先把学校最终学位、成绩单和身份材料整理好。',
+        bullets: [
+          '认证前确认学校已经正式授予学位，不要只拿到毕业预定或临时证明就急着提交。',
+          '常用材料包括文凭证书、护照/通行证件、签证或出入境记录、证件照片、授权声明和按系统要求补充的学习经历材料。',
+          '姓名拼写、出生日期、学习时间、学校名称和学位名称要和护照、毕业证、成绩单保持一致。',
+          '认证结果是后续落户、人才补贴、校招入职、免税车和考试报名的重要基础材料。',
+        ],
+        sourceLabel: '中国留学网学历认证',
+        sourceUrl: 'https://zwfw.cscse.edu.cn',
+      },
+      {
+        title: '回国找工作和校招身份',
+        label: '应届窗口',
+        text: '所谓“卡应届生 BUG”不要理解成造假，而是合规利用国内校招时间窗口：毕业时间、认证时间、是否缴纳社保、是否签过劳动合同，都会影响企业对应届身份的判断。',
+        bullets: [
+          '毕业前就开始投递秋招/春招，不要等认证完成后才开始准备简历。',
+          '不同企业对应届生判断不同：有的看毕业时间，有的看认证时间，有的看是否有社保或正式劳动合同记录。',
+          '回国前先准备中文简历、项目经历、成绩单、认证进度截图、毕业证明和可入职时间说明。',
+          '不要伪造毕业时间、社保记录或空白经历；真正要做的是提前问 HR 口径，把材料和投递批次卡准。',
+        ],
+        sourceLabel: '教育部留学服务中心',
+        sourceUrl: 'https://www.cscse.edu.cn',
+      },
+      {
+        title: '留学生免税车',
+        label: '回国福利',
+        text: '留学回国人员购买免税国产车通常有时间窗口和留学时长要求。它不是所有车都能买，也不是直接少交全部费用，关键看资格、车型目录和办理时限。',
+        bullets: [
+          '先确认自己是否符合留学回国人员身份、在外学习时间、毕业回国时间和首次入境后办理期限。',
+          '一般流程是准备留学证明/认证、护照出入境记录、身份证明等材料，通过指定渠道办理购车申请和海关手续。',
+          '重点比较裸车价、购置税减免、车型选择、提车城市、售后和等待周期，不要只看“免税”两个字。',
+          '各地海关和中介办理口径可能不同，购买前先确认当地最新要求。',
+        ],
+        sourceLabel: '中国海关',
+        sourceUrl: 'https://www.customs.gov.cn',
+      },
+      {
+        title: '北上广深落户',
+        label: '城市选择',
+        text: '一线城市落户规则差异很大，通常会看学历层次、学校排名或认可名单、年龄、社保、劳动合同、单位资质、回国时间和档案材料。',
+        bullets: [
+          '北京更强调单位指标、学历层次、回国时间、劳动关系和用人单位申报资格。',
+          '上海通常看学历背景、境外学习时间、回国后首份工作/社保个税、单位资质和社保基数等条件。',
+          '广州、深圳路径相对多一些，但也要看年龄、学历认证、社保、单位和人才引进系统要求。',
+          '先选城市再选 offer：有些岗位工资不错，但单位没有落户资质或社保口径不符合，会影响后续申报。',
+        ],
+        sourceLabel: '各地人社/政务服务网',
+        sourceUrl: 'https://www.gov.cn/fuwu/bumendifangdating.htm',
+      },
+      {
+        title: '人才招引补助款',
+        label: '补贴申请',
+        text: '人才补贴常见于区级、园区、产业专项或重点企业引才政策。能不能拿，通常取决于城市、学历、年龄、社保个税、单位类型和申请窗口。',
+        bullets: [
+          '入职前问清公司所在区、纳税地、社保缴纳地和是否配合人才补贴申报。',
+          '常见材料包括学历认证、劳动合同、社保/个税、身份证明、银行卡、人才认定或企业推荐材料。',
+          '补贴经常有申请期限、连续缴纳社保月份、离职追回或分期发放规则，签 offer 前就要问。',
+          '不要只看城市级政策，也要看区级、开发区、产业园和企业内部人才政策。',
+        ],
+        sourceLabel: '各地人社局/人才服务局',
+        sourceUrl: 'https://www.gov.cn/fuwu/bumendifangdating.htm',
+      },
     ],
   },
 ]
@@ -4802,6 +4916,40 @@ function App() {
               </article>
             ))}
           </div>
+
+          {selectedJourneyTopic.deepDives?.length ? (
+            <section className="journey-topic-section journey-deep-section">
+              <div className="section-heading">
+                <p className="eyebrow dark">重点专题</p>
+                <h2>{selectedJourneyTopic.shortTitle}最值得提前规划的事项。</h2>
+              </div>
+              <div className="journey-deep-grid">
+                {selectedJourneyTopic.deepDives.map((item) => (
+                  <article key={item.title}>
+                    <div className="tag-line">
+                      <span>{item.label}</span>
+                      {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">官方入口</a>}
+                    </div>
+                    <h3>{item.title}</h3>
+                    <p>{item.text}</p>
+                    <ul>
+                      {item.bullets.map((bullet) => (
+                        <li key={bullet}>{bullet}</li>
+                      ))}
+                    </ul>
+                    {item.sourceLabel && item.sourceUrl && (
+                      <a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                        参考：{item.sourceLabel}
+                      </a>
+                    )}
+                  </article>
+                ))}
+              </div>
+              <p className="journey-policy-note">
+                签证、落户、免税车和人才补贴都会随政策调整，页面只整理路径和核对清单，提交材料前请以官方最新公告和窗口要求为准。
+              </p>
+            </section>
+          ) : null}
 
           <section className="journey-topic-section">
             <div className="section-heading section-heading-action">
