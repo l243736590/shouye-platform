@@ -2608,18 +2608,21 @@ h3 {
 }
 
 .smart-search-banner {
-  background: #ffffff;
+  background: #fffdf7;
   border: 1px solid var(--line);
   border-radius: 10px;
   display: grid;
   gap: 16px;
-  grid-column: 1 / -1;
+  grid-template-columns: minmax(220px, 0.34fr) minmax(0, 1fr);
+  margin: -4px 0 22px;
   padding: 22px;
 }
 
 .smart-search-banner h3 {
   color: var(--forest);
-  font-size: 28px;
+  font-size: clamp(20px, 2.4vw, 30px);
+  line-height: 1.16;
+  max-width: 420px;
 }
 
 .search-suggestion-list {
@@ -2628,18 +2631,19 @@ h3 {
 }
 
 .search-suggestion-list.compact {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
 }
 
 .search-suggestion-list button {
-  align-items: center;
+  align-items: start;
   background: #f7faf6;
   border: 1px solid var(--line);
+  border-radius: 9px;
   color: var(--forest);
   display: grid;
-  gap: 10px;
-  grid-template-columns: 90px minmax(150px, 0.35fr) minmax(0, 1fr) auto auto;
-  min-height: 82px;
+  gap: 8px 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 106px;
   padding: 16px 18px;
   text-align: left;
   width: 100%;
@@ -2654,19 +2658,25 @@ h3 {
 .search-suggestion-list button strong {
   color: var(--forest);
   font-size: 22px;
+  grid-column: 1 / -1;
+  line-height: 1.2;
 }
 
 .search-suggestion-list button small {
   color: var(--muted);
   font-weight: 800;
+  grid-column: 1 / -1;
   line-height: 1.5;
 }
 
 .search-suggestion-list button em {
+  align-items: center;
   color: var(--blue);
+  display: inline-flex;
   font-size: 14px;
   font-style: normal;
   font-weight: 950;
+  gap: 5px;
   white-space: nowrap;
 }
 
@@ -3993,13 +4003,20 @@ h3 {
     grid-template-columns: 1fr auto;
   }
 
+  .smart-search-banner {
+    grid-template-columns: 1fr;
+    margin-bottom: 18px;
+    padding: 18px;
+  }
+
   .search-suggestion-list button span,
+  .search-suggestion-list button strong,
   .search-suggestion-list button small {
     grid-column: 1 / -1;
   }
 
   .search-suggestion-list button em {
-    grid-column: 1 / 2;
+    grid-column: 1 / -1;
   }
 
   .search-suggestion-list.compact {

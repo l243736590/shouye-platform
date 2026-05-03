@@ -4874,6 +4874,28 @@ function App() {
             <button type="submit">搜索</button>
           </form>
 
+          {query.trim() && searchSuggestions.length ? (
+            <div className="smart-search-banner" aria-label="关联搜索推荐">
+              <div>
+                <p className="eyebrow dark">智能推荐</p>
+                <h3>没找到完全一样的标题时，先看这些入口</h3>
+              </div>
+              <div className="search-suggestion-list compact">
+                {searchSuggestions.slice(0, 2).map((suggestion) => (
+                  <button key={`${suggestion.label}-${suggestion.title}`} type="button" onClick={suggestion.onClick}>
+                    <span>{suggestion.label}</span>
+                    <em>
+                      {suggestion.actionText}
+                      <ArrowRight size={16} aria-hidden="true" />
+                    </em>
+                    <strong>{suggestion.title}</strong>
+                    <small>{suggestion.description}</small>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="posts-page-layout">
             <aside className="posts-filter-panel" aria-label="帖子筛选">
               <label>
@@ -4921,25 +4943,6 @@ function App() {
             </aside>
 
             <div className="social-post-grid">
-              {query.trim() && searchSuggestions.length ? (
-                <div className="smart-search-banner">
-                  <div>
-                    <p className="eyebrow dark">关联搜索</p>
-                    <h3>也可以直接看这些专题入口</h3>
-                  </div>
-                  <div className="search-suggestion-list compact">
-                    {searchSuggestions.slice(0, 2).map((suggestion) => (
-                      <button key={`${suggestion.label}-${suggestion.title}`} type="button" onClick={suggestion.onClick}>
-                        <span>{suggestion.label}</span>
-                        <strong>{suggestion.title}</strong>
-                        <small>{suggestion.description}</small>
-                        <em>{suggestion.actionText}</em>
-                        <ArrowRight size={18} aria-hidden="true" />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
               {filteredPosts.length ? (
                 filteredPosts.map((post) => {
                   const unlocked = post.price === 0 || currentUnlocks.includes(post.id)
@@ -4997,10 +5000,12 @@ function App() {
                       {searchSuggestions.map((suggestion) => (
                         <button key={`${suggestion.label}-${suggestion.title}`} type="button" onClick={suggestion.onClick}>
                           <span>{suggestion.label}</span>
+                          <em>
+                            {suggestion.actionText}
+                            <ArrowRight size={16} aria-hidden="true" />
+                          </em>
                           <strong>{suggestion.title}</strong>
                           <small>{suggestion.description}</small>
-                          <em>{suggestion.actionText}</em>
-                          <ArrowRight size={18} aria-hidden="true" />
                         </button>
                       ))}
                     </div>
