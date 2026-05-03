@@ -73,6 +73,27 @@ main {
   display: none;
 }
 
+@media (prefers-color-scheme: dark) {
+  .site-header {
+    background: rgba(8, 18, 15, 0.94);
+    border-bottom-color: rgba(255, 253, 240, 0.18);
+  }
+
+  .brand-logo-dark {
+    display: none;
+  }
+
+  .brand-logo-light {
+    display: block;
+  }
+
+  .brand-tagline,
+  .nav-links,
+  .auth-actions button:first-child {
+    color: #fffdf0;
+  }
+}
+
 .brand-tagline {
   color: var(--ink);
   font-size: 13px;
