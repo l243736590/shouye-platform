@@ -75,12 +75,63 @@ type Post = {
   category: string
   author: string
   authorId?: string
+  country?: string
+  city?: string
+  identity?: string
+  views?: number
+  likes?: number
+  bookmarks?: number
+  tags?: string[]
+  contentType?: string
   price: number
   hot: string
   excerpt: string
   body: string
   createdAt: string
   featured: boolean
+}
+
+type QuestionStatus = 'open' | 'solved'
+
+type CommunityQuestion = {
+  id: string
+  title: string
+  category: string
+  country: string
+  city: string
+  school: string
+  rewardPoints: number
+  answersCount: number
+  views: number
+  status: QuestionStatus
+  createdAt: string
+  author: string
+  identity: string
+  tags: string[]
+  detail: string
+}
+
+type QuestionAnswer = {
+  id: string
+  questionId: string
+  author: string
+  identity: string
+  content: string
+  likes: number
+  accepted: boolean
+  createdAt: string
+}
+
+type CityGuide = {
+  id: string
+  title: string
+  category: string
+  country: string
+  city: string
+  school: string
+  summary: string
+  tags: string[]
+  updatedAt: string
 }
 
 type SchoolProfile = {
@@ -1057,64 +1108,553 @@ const schools = [
   },
 ]
 
-const seedPosts: Post[] = [
+const seedQuestions: CommunityQuestion[] = [
   {
-    id: 'seed-application-traps',
-    title: '韩国大学院申请时，中介不会主动告诉你的 7 个细节',
-    school: '韩国申请',
-    category: '申请避坑',
-    author: '10年韩国留学顾问',
-    price: 36,
-    hot: '2.4k',
-    featured: true,
-    createdAt: '2026-05-02',
-    excerpt: '从材料时点、教授套磁、补件节奏到面试准备，按真实申请流程拆开讲。',
-    body:
-      '这篇内容适合刚开始准备韩国大学院的同学。重点看三件事：材料递交节奏、教授回复后的跟进方式、面试前怎样把研究计划和专业方向说清楚。很多申请失败不是条件不够，而是时点和表达出了问题。',
+    id: 'q-d2-extension',
+    title: '韩国D-2签证延长需要哪些材料？',
+    category: '签证/滞留资格',
+    country: '韩国',
+    city: '首尔',
+    school: '中央大学',
+    rewardPoints: 120,
+    answersCount: 8,
+    views: 2860,
+    status: 'solved',
+    createdAt: '2026-05-03',
+    author: '大学院新生',
+    identity: '大学院',
+    tags: ['韩国', '首尔', '中央大学', '签证', '2026更新', '已解决'],
+    detail: '第一次延长 D-2，想确认在学证明、成绩单、住宿证明和银行余额证明是否都要准备，预约当天还需要注意什么。',
   },
   {
-    id: 'seed-yonsei-business',
-    title: '延世经营研究生真实体验：课程压力、韩语门槛和毕业论文',
+    id: 'q-rent-deposit',
+    title: '韩国租房保证金怎么防止被骗？',
+    category: '租房/搬家/保证金',
+    country: '韩国',
+    city: '首尔',
     school: '延世大学',
-    category: '学校评价',
-    author: 'YONSEI 23届',
-    price: 18,
-    hot: '1.8k',
-    featured: true,
+    rewardPoints: 160,
+    answersCount: 14,
+    views: 4210,
+    status: 'solved',
     createdAt: '2026-05-02',
-    excerpt: '适合想冲 SKY 但担心韩语和毕业难度的同学，含选课建议。',
-    body:
-      '延世经营的优势是资源和校友，但不是所有课程都适合韩语基础弱的同学。建议入学前先确认授课语言、论文指导方式和毕业要求，第一学期不要把方法论课程排得太满。',
+    author: '准备申请中',
+    identity: '准留学生',
+    tags: ['韩国', '首尔', '租房', '保证金', '亲身经历', '已解决'],
+    detail: '准备住新村附近，房东要求先转一部分保证金。想知道签合同前应该查哪些信息，哪些情况不能转账。',
   },
   {
-    id: 'seed-hanyang-professors',
-    title: '汉阳工科教授选择：项目型实验室和放养型实验室怎么分辨',
+    id: 'q-arc-lost',
+    title: '外国人登录证丢了怎么办？',
+    category: '签证/滞留资格',
+    country: '韩国',
+    city: '釜山',
+    school: '釜山大学',
+    rewardPoints: 80,
+    answersCount: 6,
+    views: 1520,
+    status: 'open',
+    createdAt: '2026-05-01',
+    author: '语学院同学',
+    identity: '语学院',
+    tags: ['韩国', '釜山', '外国人登录证', '补办', '待回答'],
+    detail: '钱包丢了，里面有外国人登录证。想知道要不要先报警、去哪里补办、补办期间能不能正常出入学校和银行。',
+  },
+  {
+    id: 'q-bank-account',
+    title: '韩国银行卡开户需要什么？',
+    category: '银行卡/手机卡/保险',
+    country: '韩国',
+    city: '首尔',
+    school: '建国大学',
+    rewardPoints: 60,
+    answersCount: 7,
+    views: 1986,
+    status: 'solved',
+    createdAt: '2026-04-30',
+    author: '建大本科新生',
+    identity: '本科',
+    tags: ['韩国', '首尔', '建国大学', '银行卡', '已解决'],
+    detail: '刚拿到外国人登录证，想去学校附近银行开户。需要学生证、手机号或者学校证明吗？',
+  },
+  {
+    id: 'q-work-hours',
+    title: '韩国留学生可以合法打工多少小时？',
+    category: '打工/劳动纠纷',
+    country: '韩国',
+    city: '首尔',
+    school: '高丽大学',
+    rewardPoints: 100,
+    answersCount: 10,
+    views: 3420,
+    status: 'open',
+    createdAt: '2026-04-29',
+    author: '找兼职中',
+    identity: '本科',
+    tags: ['韩国', '首尔', '打工', '兼职', '以公告为准'],
+    detail: '想确认 D-2 留学生打工许可、每周小时数和放假期间限制。希望有办过许可的人分享流程。',
+  },
+  {
+    id: 'q-language-to-undergrad',
+    title: '语学院转本科需要什么流程？',
+    category: '语学院/本科/大学院',
+    country: '韩国',
+    city: '首尔',
+    school: '庆熙大学',
+    rewardPoints: 90,
+    answersCount: 5,
+    views: 1760,
+    status: 'open',
+    createdAt: '2026-04-28',
+    author: '语学院4级',
+    identity: '语学院',
+    tags: ['韩国', '语学院', '本科申请', '材料'],
+    detail: '目前语学院 4 级，想申请同校本科。想知道语言成绩、出勤、推荐信和材料时间线怎么安排。',
+  },
+  {
+    id: 'q-thesis-delay',
+    title: '韩国大学院论文延期怎么办？',
+    category: '毕业/论文/延毕',
+    country: '韩国',
+    city: '首尔',
     school: '汉阳大学',
-    category: '教授课程',
-    author: '工科博士在读',
-    price: 24,
-    hot: '1.3k',
-    featured: true,
-    createdAt: '2026-05-02',
-    excerpt: '把教授风格、组会频率、毕业要求和奖学金可能性放在一起看。',
-    body:
-      '工科选教授不能只看论文数量，还要看实验室经费、组会频率、毕业生去向和教授是否愿意让学生参与项目。申请前可以用邮件问清楚研究主题、毕业标准和奖学金安排。',
+    rewardPoints: 180,
+    answersCount: 11,
+    views: 2670,
+    status: 'solved',
+    createdAt: '2026-04-27',
+    author: '论文卡住了',
+    identity: '大学院',
+    tags: ['韩国', '大学院', '论文', '延毕', '已解决'],
+    detail: '论文进度慢，导师建议延期。想知道延期申请、学费、签证和毕业时间线会有什么影响。',
   },
   {
-    id: 'seed-seoul-rent',
-    title: '首尔租房避坑：保证金、管理费、短租和新生第一套房',
-    school: '首尔生活',
-    category: '生活落地',
-    author: '新村住了6年',
-    price: 0,
-    hot: '3.1k',
-    featured: false,
-    createdAt: '2026-05-02',
-    excerpt: '新生落地最容易踩坑的不是学校，而是合同、押金和通勤。',
-    body:
-      '首尔租房要先确认保证金、月租、管理费、网费和退租条件。第一次租房尽量选择交通明确、合同清晰、能线下看房的房源。不要只看图片，也不要急着转账。',
+    id: 'q-phone-plan',
+    title: '韩国手机卡怎么选？',
+    category: '银行卡/手机卡/保险',
+    country: '韩国',
+    city: '首尔',
+    school: '弘益大学',
+    rewardPoints: 50,
+    answersCount: 4,
+    views: 1320,
+    status: 'open',
+    createdAt: '2026-04-26',
+    author: '刚到韩国',
+    identity: '准留学生',
+    tags: ['韩国', '手机卡', '认证', '生活'],
+    detail: '想知道预付卡、合约机、알뜰폰 怎么选，主要需要韩国手机号认证和日常流量。',
+  },
+  {
+    id: 'q-hospital-insurance',
+    title: '韩国看病怎么用保险？',
+    category: '医院/看病/药店',
+    country: '韩国',
+    city: '大田',
+    school: '忠南大学',
+    rewardPoints: 70,
+    answersCount: 6,
+    views: 1588,
+    status: 'solved',
+    createdAt: '2026-04-25',
+    author: '第一次看病',
+    identity: '大学院',
+    tags: ['韩国', '医院', '保险', '药店', '已解决'],
+    detail: '想知道国民健康保险怎么用，去医院挂号、缴费、拿药分别怎么做。',
+  },
+  {
+    id: 'q-d10-jobseeker',
+    title: '毕业后D-10求职签证怎么申请？',
+    category: '求职/实习/简历',
+    country: '韩国',
+    city: '首尔',
+    school: '西江大学',
+    rewardPoints: 150,
+    answersCount: 9,
+    views: 2190,
+    status: 'open',
+    createdAt: '2026-04-24',
+    author: '即将毕业',
+    identity: '大学院',
+    tags: ['韩国', 'D-10', '求职', '毕业', '以公告为准'],
+    detail: '硕士快毕业，想从 D-2 转 D-10。希望了解准备材料、积分、求职计划书和预约经验。',
   },
 ]
+
+const seedAnswers: QuestionAnswer[] = [
+  {
+    id: 'a-d2-extension-accepted',
+    questionId: 'q-d2-extension',
+    author: '中央大学博士在读',
+    identity: '大学院',
+    content:
+      '先在 HiKorea 预约，再按学校国际处和出入境要求准备在学证明、成绩单、住宿证明、护照、外国人登录证和手续费。银行余额证明是否需要、金额多少会随个人情况和政策变化，建议以出入境最新说明为准。',
+    likes: 42,
+    accepted: true,
+    createdAt: '2026-05-03',
+  },
+  {
+    id: 'a-rent-deposit-accepted',
+    questionId: 'q-rent-deposit',
+    author: '首尔租房过来人',
+    identity: '毕业生',
+    content:
+      '不要只看图片和聊天记录。先查房屋登记、确认房东身份、看合同里的保证金返还时间和管理费范围，尽量线下看房。大额保证金不要打给非合同主体，必要时找懂韩语的人陪同。',
+    likes: 68,
+    accepted: true,
+    createdAt: '2026-05-02',
+  },
+  {
+    id: 'a-thesis-delay-accepted',
+    questionId: 'q-thesis-delay',
+    author: '汉阳大学院毕业生',
+    identity: '毕业生',
+    content:
+      '先和导师确认是否只是论文提交延期，还是需要延长注册学期。然后问院系办公室学费、研究登录、论文审查节点，再同步确认签证延长材料。每个院系口径不同，不要只听同学转述。',
+    likes: 37,
+    accepted: true,
+    createdAt: '2026-04-27',
+  },
+]
+
+const seedPosts: Post[] = [
+  {
+    id: 'post-rent-guide',
+    title: '韩国留学生租房避坑指南',
+    school: '首尔生活',
+    category: '租房/搬家/保证金',
+    country: '韩国',
+    city: '首尔',
+    author: '新村住了6年',
+    identity: '毕业生',
+    price: 0,
+    hot: '6.2k',
+    views: 6240,
+    likes: 386,
+    bookmarks: 820,
+    tags: ['韩国', '首尔', '租房', '保证金', '亲身经历', '精华'],
+    contentType: '经验帖',
+    featured: true,
+    createdAt: '2026-05-03',
+    excerpt: '从保证金、管理费、合同主体、看房路线和退租时间线拆解第一套房怎么避坑。',
+    body:
+      '第一次在韩国租房，先不要被照片和低月租带着走。重点确认四件事：合同主体是谁、保证金如何返还、管理费包含哪些项目、退租提前多久通知。大额保证金尽量线下签约，转账对象要和合同信息一致。看房时记录水压、采光、噪音、霉味和通勤时间，入住前拍照留证。',
+  },
+  {
+    id: 'post-d2-extension',
+    title: 'D-2签证延长完整流程',
+    school: '中央大学',
+    category: '签证/滞留资格',
+    country: '韩国',
+    city: '首尔',
+    author: '中央大学博士在读',
+    identity: '大学院',
+    price: 12,
+    hot: '4.8k',
+    views: 4820,
+    likes: 241,
+    bookmarks: 560,
+    tags: ['韩国', '中央大学', 'D-2', '签证', '2026更新', '精华'],
+    contentType: '流程攻略',
+    featured: true,
+    createdAt: '2026-05-02',
+    excerpt: '按预约、材料准备、学校证明、现场提交和补件风险整理 D-2 延签步骤。',
+    body:
+      'D-2 延签建议提前看 HiKorea 可预约日期，再向学校开在学证明和成绩单。住宿证明、护照、外国人登录证、手续费是基础项，银行材料和额外说明要看个人情况。所有政策相关内容都以出入境和学校最新公告为准，本文只整理办理顺序和容易漏掉的节点。',
+  },
+  {
+    id: 'post-arc-process',
+    title: '外国人登录证办理流程',
+    school: '建国大学',
+    category: '签证/滞留资格',
+    country: '韩国',
+    city: '首尔',
+    author: '建大本科生',
+    identity: '本科',
+    price: 0,
+    hot: '3.9k',
+    views: 3920,
+    likes: 188,
+    bookmarks: 430,
+    tags: ['韩国', '首尔', '建国大学', '外国人登录证', '流程'],
+    contentType: '办理流程',
+    featured: true,
+    createdAt: '2026-05-01',
+    excerpt: '从入境后预约、照片、申请表、学校材料到领取登录证的基础流程。',
+    body:
+      '外国人登录证通常需要提前预约，准备护照、照片、申请表、学校相关证明和居住证明。不同签证类型材料会有差异，建议先看出入境官方页面，再让学校国际处帮你确认。办理后到领取期间，尽量保存好申请回执。',
+  },
+  {
+    id: 'post-bank-account',
+    title: '韩国银行卡开户攻略',
+    school: '建国大学',
+    category: '银行卡/手机卡/保险',
+    country: '韩国',
+    city: '首尔',
+    author: '建大本科生',
+    identity: '本科',
+    price: 0,
+    hot: '3.1k',
+    views: 3180,
+    likes: 142,
+    bookmarks: 310,
+    tags: ['韩国', '银行卡', '手机认证', '生活', '亲身经历'],
+    contentType: '经验帖',
+    featured: true,
+    createdAt: '2026-04-30',
+    excerpt: '开户前先准备外国人登录证、手机号、学校信息和本人能解释清楚的使用目的。',
+    body:
+      '开户时银行会确认身份、联系方式和账户用途。建议先准备外国人登录证、护照、学生证或在学证明、韩国手机号。不同银行窗口要求会有差异，遇到说材料不够时，可以换网点或让学校国际处提供说明。',
+  },
+  {
+    id: 'post-phone-card',
+    title: '韩国手机卡办理攻略',
+    school: '韩国生活',
+    category: '银行卡/手机卡/保险',
+    country: '韩国',
+    city: '首尔',
+    author: '首尔生活记录员',
+    identity: '在读生',
+    price: 0,
+    hot: '2.7k',
+    views: 2710,
+    likes: 124,
+    bookmarks: 280,
+    tags: ['韩国', '手机卡', '认证', '生活'],
+    contentType: '生活攻略',
+    featured: false,
+    createdAt: '2026-04-29',
+    excerpt: '预付卡、알뜰폰、合约套餐怎么选，重点看认证、流量和解约成本。',
+    body:
+      '刚到韩国先解决能接验证码的手机号。短期可以先用预付卡，稳定后再看 알뜰폰 或合约套餐。不要只看月租，注意是否能本人认证、是否有合约期、解约费用和客服语言。',
+  },
+  {
+    id: 'post-work-notes',
+    title: '韩国留学生打工注意事项',
+    school: '高丽大学',
+    category: '打工/劳动纠纷',
+    country: '韩国',
+    city: '首尔',
+    author: '安岩兼职过来人',
+    identity: '本科',
+    price: 15,
+    hot: '3.4k',
+    views: 3440,
+    likes: 201,
+    bookmarks: 490,
+    tags: ['韩国', '打工', '兼职', '劳动纠纷', '以公告为准'],
+    contentType: '避坑攻略',
+    featured: true,
+    createdAt: '2026-04-28',
+    excerpt: '打工前先确认许可、合同、工资结算和工时记录，别只听店长口头承诺。',
+    body:
+      '留学生打工要先确认自己签证类型和是否需要许可。工资、工时、休息时间和结算日尽量写进聊天或合同里。遇到拖欠工资时，保留排班、打卡、聊天记录和转账记录。具体合法工时和许可要求以韩国出入境最新公告为准。',
+  },
+  {
+    id: 'post-hospital',
+    title: '韩国医院看病流程',
+    school: '忠南大学',
+    category: '医院/看病/药店',
+    country: '韩国',
+    city: '大田',
+    author: '在韩生活五年',
+    identity: '毕业生',
+    price: 0,
+    hot: '2.2k',
+    views: 2260,
+    likes: 116,
+    bookmarks: 260,
+    tags: ['韩国', '医院', '保险', '药店'],
+    contentType: '流程攻略',
+    featured: false,
+    createdAt: '2026-04-27',
+    excerpt: '挂号、问诊、缴费、拿药和保险使用的基础流程，医疗判断以医生意见为准。',
+    body:
+      '韩国看病一般先到前台挂号，问诊后结算，再拿处方去药店。带好外国人登录证和保险信息，第一次去可以提前查科室。本文只讲流程，不替代医疗建议，症状严重时优先去正规医院。',
+  },
+  {
+    id: 'post-grad-course',
+    title: '大学院选课避坑',
+    school: '汉阳大学',
+    category: '入学/选课/学分',
+    country: '韩国',
+    city: '首尔',
+    author: '工科博士在读',
+    identity: '大学院',
+    price: 18,
+    hot: '2.9k',
+    views: 2910,
+    likes: 168,
+    bookmarks: 352,
+    tags: ['韩国', '大学院', '选课', '教授', '精华'],
+    contentType: '经验帖',
+    featured: true,
+    createdAt: '2026-04-26',
+    excerpt: '第一学期别只看课程名，要把授课语言、评价方式、教授风格和毕业要求一起看。',
+    body:
+      '大学院选课最怕课程和研究方向脱节。选课前确认授课语言、作业密度、是否需要发表、是否能计入毕业学分。第一学期建议保守一点，先适应教授沟通方式和组会节奏。',
+  },
+  {
+    id: 'post-secondhand',
+    title: '韩国二手交易避坑',
+    school: '韩国生活',
+    category: '二手交易/搬家处理',
+    country: '韩国',
+    city: '首尔',
+    author: '搬家三次的学姐',
+    identity: '毕业生',
+    price: 0,
+    hot: '2.0k',
+    views: 2040,
+    likes: 93,
+    bookmarks: 210,
+    tags: ['韩国', '二手交易', '搬家', '生活'],
+    contentType: '避坑攻略',
+    featured: false,
+    createdAt: '2026-04-25',
+    excerpt: '家具、电器、教材和搬家处理时，重点确认面交、付款和瑕疵记录。',
+    body:
+      '二手交易尽量面交，电器要现场确认能否开机，家具要量尺寸和搬运路线。付款前保留聊天记录和物品照片。搬家前处理大件物品要留出时间，不要最后一天才挂出去。',
+  },
+  {
+    id: 'post-thesis-process',
+    title: '韩国毕业论文流程整理',
+    school: '汉阳大学',
+    category: '毕业/论文/延毕',
+    country: '韩国',
+    city: '首尔',
+    author: '大学院毕业生',
+    identity: '毕业生',
+    price: 20,
+    hot: '3.6k',
+    views: 3660,
+    likes: 220,
+    bookmarks: 540,
+    tags: ['韩国', '大学院', '毕业', '论文', '精华'],
+    contentType: '流程攻略',
+    featured: true,
+    createdAt: '2026-04-24',
+    excerpt: '按导师沟通、选题、开题、中期、审查和提交节点整理论文时间线。',
+    body:
+      '论文流程要提前倒排。先确认院系毕业要求，再和导师定选题范围。开题、中期、查重、审查和最终提交都有固定窗口，不同学校和院系不同。不要等到最后一学期才第一次问办公室。',
+  },
+]
+
+const cityGuides: CityGuide[] = [
+  {
+    id: 'guide-cau-life',
+    title: '中央大学留学生生活攻略',
+    category: '学校评价',
+    country: '韩国',
+    city: '首尔',
+    school: '中央大学',
+    summary: '黑石洞通勤、坡度、周边餐饮、艺术传媒专业生活节奏和租房选择。',
+    tags: ['中央大学', '首尔', '学校生活'],
+    updatedAt: '2026-05-03',
+  },
+  {
+    id: 'guide-seoul-rent-area',
+    title: '首尔租房区域推荐',
+    category: '租房/搬家/保证金',
+    country: '韩国',
+    city: '首尔',
+    school: '首尔生活',
+    summary: '新村、弘大、往十里、建大入口、安岩等区域的通勤和生活成本比较。',
+    tags: ['首尔', '租房', '通勤'],
+    updatedAt: '2026-05-02',
+  },
+  {
+    id: 'guide-anseong-life',
+    title: '安城留学生生活攻略',
+    category: '城市生活攻略',
+    country: '韩国',
+    city: '安城',
+    school: '中央大学安城校区',
+    summary: '安城校区周边交通、住宿、采购和回首尔的实际体验。',
+    tags: ['安城', '校区生活', '交通'],
+    updatedAt: '2026-05-01',
+  },
+  {
+    id: 'guide-grad-checklist',
+    title: '韩国大学院新生入学 checklist',
+    category: '入学/选课/学分',
+    country: '韩国',
+    city: '首尔',
+    school: '韩国大学院',
+    summary: '从入境、住宿、学生证、选课、银行卡到保险，把第一周事项列清楚。',
+    tags: ['大学院', '新生', 'checklist'],
+    updatedAt: '2026-04-30',
+  },
+  {
+    id: 'guide-mart-saving',
+    title: '韩国便利店/超市省钱攻略',
+    category: '城市生活攻略',
+    country: '韩国',
+    city: '首尔',
+    school: '韩国生活',
+    summary: '便利店活动、超市打折时间、会员积分和日用品采购经验。',
+    tags: ['生活', '省钱', '超市'],
+    updatedAt: '2026-04-29',
+  },
+  {
+    id: 'guide-moving',
+    title: '韩国搬家流程',
+    category: '二手交易/搬家处理',
+    country: '韩国',
+    city: '首尔',
+    school: '韩国生活',
+    summary: '退租、清洁、搬家公司、废弃物贴纸和地址变更的基础流程。',
+    tags: ['搬家', '退租', '生活'],
+    updatedAt: '2026-04-28',
+  },
+  {
+    id: 'guide-trash',
+    title: '韩国垃圾分类指南',
+    category: '城市生活攻略',
+    country: '韩国',
+    city: '首尔',
+    school: '韩国生活',
+    summary: '一般垃圾、厨余、回收和大件废弃物的常见处理方式。',
+    tags: ['生活', '垃圾分类', '租房'],
+    updatedAt: '2026-04-27',
+  },
+  {
+    id: 'guide-transport-card',
+    title: '韩国交通卡使用指南',
+    category: '城市生活攻略',
+    country: '韩国',
+    city: '首尔',
+    school: '韩国生活',
+    summary: 'T-money、换乘、充值、机场交通和通勤路线选择。',
+    tags: ['交通', 'T-money', '生活'],
+    updatedAt: '2026-04-26',
+  },
+  {
+    id: 'guide-scholarship',
+    title: '韩国奖学金申请经验',
+    category: '入学/选课/学分',
+    country: '韩国',
+    city: '首尔',
+    school: '韩国大学',
+    summary: '入学奖学金、成绩奖学金、教授项目和校内申请窗口的注意事项。',
+    tags: ['奖学金', '申请', '大学院'],
+    updatedAt: '2026-04-25',
+  },
+  {
+    id: 'guide-useful-sites',
+    title: '韩国留学生常用网站整理',
+    category: '城市生活攻略',
+    country: '韩国',
+    city: '全国',
+    school: '韩国生活',
+    summary: 'HiKorea、学校门户、租房、地图、二手交易和求职网站入口。',
+    tags: ['网站', '工具', '生活'],
+    updatedAt: '2026-04-24',
+  },
+]
+
+const hotQuestions = seedQuestions
+const featuredExperiences = seedPosts.filter((post) => post.featured)
 
 const pathways = [
   {
@@ -1132,22 +1672,6 @@ const pathways = [
     title: '解决问题获得收益',
     text: '优质回答、被采纳答案和精华攻略可获得平台激励。',
   },
-]
-
-const hotQuestions = [
-  { title: '韩国D-2签证延长需要哪些材料？', category: '签证', views: '2.4k', answers: 18, bounty: 60, solved: true },
-  { title: '韩国租房保证金怎么避免被骗？', category: '租房', views: '3.1k', answers: 26, bounty: 100, solved: true },
-  { title: '外国人登录证办理流程是什么？', category: '滞留资格', views: '1.8k', answers: 12, bounty: 0, solved: false },
-  { title: '留学生在韩国可以合法打工多久？', category: '打工', views: '2.0k', answers: 15, bounty: 80, solved: true },
-  { title: '大学院论文延期怎么办？', category: '毕业论文', views: '1.5k', answers: 9, bounty: 120, solved: false },
-]
-
-const featuredExperiences = [
-  { title: '韩国银行卡开户完整攻略', author: '在韩学姐', category: '银行卡', saves: 326, reads: '4.8k', featured: true },
-  { title: '韩国留学生租房避坑指南', author: '首尔租房记录', category: '租房', saves: 418, reads: '6.2k', featured: true },
-  { title: '语学院转本科申请流程', author: '延世申请复盘', category: '入学', saves: 214, reads: '3.1k', featured: true },
-  { title: '韩国医院看病与保险使用流程', author: '釜山生活笔记', category: '保险', saves: 189, reads: '2.7k', featured: true },
-  { title: '大学院毕业论文流程整理', author: '研究生小组', category: '毕业', saves: 242, reads: '3.6k', featured: true },
 ]
 
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -1211,10 +1735,16 @@ function App() {
   const isProfileRoute = currentPath === '/me'
   const isPostsRoute = currentPath === '/posts'
   const isQuestionsRoute = currentPath === '/questions'
+  const questionRouteId =
+    typeof window !== 'undefined' ? currentPath.match(/^\/questions\/([^/]+)$/)?.[1] : undefined
+  const postRouteId = typeof window !== 'undefined' ? currentPath.match(/^\/posts\/([^/]+)$/)?.[1] : undefined
+  const isQuestionDetailRoute = Boolean(questionRouteId)
+  const isPostDetailRoute = Boolean(postRouteId)
   const isRewardsRoute = currentPath === '/rewards'
   const isCategoriesRoute = currentPath === '/categories'
   const isAboutRoute = currentPath === '/about'
-  const isInfoRoute = isQuestionsRoute || isRewardsRoute || isCategoriesRoute || isAboutRoute
+  const isInfoRoute =
+    isQuestionsRoute || isQuestionDetailRoute || isPostDetailRoute || isRewardsRoute || isCategoriesRoute || isAboutRoute
   const schoolRouteId =
     typeof window !== 'undefined'
       ? currentPath.match(/^\/schools\/([^/]+)$/)?.[1] ?? currentPath.match(/^\/school\/([^/]+)$/)?.[1]
@@ -1223,10 +1753,15 @@ function App() {
   const [appState, setAppState] = useState<StoredState>(() => initialState())
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
   const [selectedCategory, setSelectedCategory] = useState(allCategoryLabel)
+  const [questionCategoryFilter, setQuestionCategoryFilter] = useState(allCategoryLabel)
+  const [questionStatusFilter, setQuestionStatusFilter] = useState<'all' | QuestionStatus>('all')
+  const [questionSort, setQuestionSort] = useState<'reward' | 'views' | 'latest'>('reward')
   const [query, setQuery] = useState(() =>
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('q') ?? '' : '',
   )
   const [postSchoolFilter, setPostSchoolFilter] = useState('全部学校')
+  const [postCityFilter, setPostCityFilter] = useState('全部城市')
+  const [postFeaturedFilter, setPostFeaturedFilter] = useState<'all' | 'featured'>('all')
   const [selectedSchoolId, setSelectedSchoolId] = useState(() => getInitialSchoolId())
   const [openRegion, setOpenRegion] = useState(
     () => getParentRegion(getInitialSchoolId()) ?? schoolRegions[0].region,
@@ -1329,7 +1864,12 @@ function App() {
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { posts?: Post[] } | null) => {
         if (data?.posts?.length) {
-          setAppState((state) => ({ ...state, posts: data.posts ?? state.posts }))
+          setAppState((state) => {
+            const remotePosts = data.posts ?? []
+            const seedIds = new Set(seedPosts.map((post) => post.id))
+            const mergedRemotePosts = remotePosts.filter((post) => !seedIds.has(post.id))
+            return { ...state, posts: [...seedPosts, ...mergedRemotePosts] }
+          })
         }
       })
       .catch(() => {
@@ -1401,11 +1941,42 @@ function App() {
     return appState.posts.filter((post) => {
       const matchesCategory = selectedCategory === allCategoryLabel || post.category === selectedCategory
       const matchesSchool = postSchoolFilter === '全部学校' || post.school === postSchoolFilter
-      const text = `${post.title}${post.school}${post.category}${post.excerpt}${post.author}`
+      const matchesCity = postCityFilter === '全部城市' || post.city === postCityFilter
+      const matchesFeatured = postFeaturedFilter === 'all' || post.featured
+      const text = `${post.title}${post.school}${post.category}${post.excerpt}${post.author}${post.city ?? ''}${post.country ?? ''}`
       const matchesQuery = text.toLowerCase().includes(query.toLowerCase())
-      return matchesCategory && matchesSchool && matchesQuery
+      return matchesCategory && matchesSchool && matchesCity && matchesFeatured && matchesQuery
     })
-  }, [appState.posts, postSchoolFilter, selectedCategory, query])
+  }, [appState.posts, postCityFilter, postFeaturedFilter, postSchoolFilter, selectedCategory, query])
+  const postCityOptions = useMemo(
+    () => ['全部城市', ...Array.from(new Set(appState.posts.map((post) => post.city).filter(Boolean)))],
+    [appState.posts],
+  )
+  const filteredQuestions = useMemo(() => {
+    const questions = seedQuestions.filter((question) => {
+      const matchesCategory = questionCategoryFilter === allCategoryLabel || question.category === questionCategoryFilter
+      const matchesStatus = questionStatusFilter === 'all' || question.status === questionStatusFilter
+      return matchesCategory && matchesStatus
+    })
+
+    return [...questions].sort((a, b) => {
+      if (questionSort === 'views') return b.views - a.views
+      if (questionSort === 'latest') return b.createdAt.localeCompare(a.createdAt)
+      return b.rewardPoints - a.rewardPoints
+    })
+  }, [questionCategoryFilter, questionSort, questionStatusFilter])
+  const selectedQuestion = questionRouteId
+    ? seedQuestions.find((question) => question.id === decodeURIComponent(questionRouteId))
+    : undefined
+  const selectedQuestionAnswers = selectedQuestion
+    ? seedAnswers
+        .filter((answer) => answer.questionId === selectedQuestion.id)
+        .sort((a, b) => Number(b.accepted) - Number(a.accepted) || b.likes - a.likes)
+    : []
+  const selectedPost = postRouteId
+    ? appState.posts.find((post) => post.id === decodeURIComponent(postRouteId)) ??
+      seedPosts.find((post) => post.id === decodeURIComponent(postRouteId))
+    : undefined
   const selectedSchoolPosts = appState.posts.filter((post) => post.school === selectedSchool.name)
   const currentUserPosts = currentUser
     ? appState.posts.filter((post) => post.authorId === currentUser.id || post.author === currentUser.name)
@@ -2343,17 +2914,23 @@ function App() {
           <h2>留学生最常遇到的问题，先看真实回答。</h2>
         </div>
         <div className="question-card-grid">
-          {hotQuestions.map((question) => (
-            <article className="question-card" key={question.title}>
+          {hotQuestions.slice(0, 5).map((question) => (
+            <article
+              className="question-card clickable-card"
+              key={question.id}
+              onClick={() => navigateToPath(`/questions/${question.id}`)}
+            >
               <div className="tag-line">
                 <span>{question.category}</span>
-                {question.solved && <span className="solved-tag">已解决</span>}
-                {question.bounty > 0 && <span className="bounty-tag">悬赏 {question.bounty} 积分</span>}
+                <span>{question.school}</span>
+                {question.status === 'solved' && <span className="solved-tag">已解决</span>}
+                {question.rewardPoints > 0 && <span className="bounty-tag">悬赏 {question.rewardPoints} 积分</span>}
               </div>
               <h3>{question.title}</h3>
               <div className="question-stats">
-                <span>{question.views} 浏览</span>
-                <span>{question.answers} 个回答</span>
+                <span>{question.views.toLocaleString()} 浏览</span>
+                <span>{question.answersCount} 个回答</span>
+                <span>{question.createdAt}</span>
               </div>
             </article>
           ))}
@@ -2366,20 +2943,55 @@ function App() {
           <h2>不是泛泛聊天，而是能直接帮你办事的经验帖。</h2>
         </div>
         <div className="experience-card-grid">
-          {featuredExperiences.map((experience) => (
-            <article className="experience-card" key={experience.title}>
+          {featuredExperiences.slice(0, 5).map((experience) => (
+            <article
+              className="experience-card clickable-card"
+              key={experience.id}
+              onClick={() => navigateToPath(`/posts/${experience.id}`)}
+            >
               <div className="tag-line">
                 <span>{experience.category}</span>
+                <span>{experience.city}</span>
                 {experience.featured && <span className="featured-tag">精华</span>}
               </div>
               <h3>{experience.title}</h3>
-              <p>{experience.author}</p>
+              <p>{experience.excerpt}</p>
               <div className="question-stats">
-                <span>{experience.saves} 收藏</span>
-                <span>{experience.reads} 阅读</span>
+                <span>{experience.author}</span>
+                <span>{(experience.views ?? 0).toLocaleString()} 阅读</span>
+                <span>{experience.bookmarks ?? 0} 收藏</span>
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="community-home-section solved-home-section">
+        <div className="section-heading">
+          <p className="eyebrow dark">已解决问题</p>
+          <h2>先看被采纳的回答，再决定要不要继续提问。</h2>
+        </div>
+        <div className="question-card-grid compact-grid">
+          {hotQuestions
+            .filter((question) => question.status === 'solved')
+            .slice(0, 4)
+            .map((question) => (
+              <article
+                className="question-card clickable-card"
+                key={question.id}
+                onClick={() => navigateToPath(`/questions/${question.id}`)}
+              >
+                <div className="tag-line">
+                  <span>{question.category}</span>
+                  <span className="solved-tag">已解决</span>
+                </div>
+                <h3>{question.title}</h3>
+                <div className="question-stats">
+                  <span>采纳奖励 {question.rewardPoints} 积分</span>
+                  <span>{question.answersCount} 个回答</span>
+                </div>
+              </article>
+            ))}
         </div>
       </section>
 
@@ -2388,7 +3000,7 @@ function App() {
           <p className="eyebrow dark">问题悬赏</p>
           <h2>不是发帖就赚钱，而是帮助别人解决真实问题才有收益。</h2>
           <p>
-            用户发布问题时可以设置悬赏，被采纳的回答者获得收益，平台只抽取少量服务费，用来维护审核、隐私保护和内容质量。
+            第一版先用积分模拟闭环：用户发布问题时可以设置悬赏，被采纳的回答者获得积分奖励。积分用于站内身份、内容激励和后续规则验证，不承诺现金提现。
           </p>
           <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
             查看悬赏问题
@@ -2409,7 +3021,7 @@ function App() {
           <div>
             <span>3</span>
             <strong>答案被采纳后结算</strong>
-            <p>收益进入创作者收益积分，后续可按规则申请提现。</p>
+            <p>收益进入创作者积分账户，第一版只做站内积分记录，不做真实支付和提现。</p>
           </div>
         </div>
       </section>
@@ -2457,6 +3069,31 @@ function App() {
         </div>
       </section>
 
+      <section className="community-home-section guide-home-section">
+        <div className="section-heading">
+          <p className="eyebrow dark">城市与学校攻略</p>
+          <h2>把生活落地、学校周边和常用流程整理成可复用清单。</h2>
+        </div>
+        <div className="guide-grid">
+          {cityGuides.map((guide) => (
+            <article className="guide-card clickable-card" key={guide.id} onClick={() => openPostsPage(guide.title)}>
+              <div className="tag-line">
+                <span>{guide.city}</span>
+                <span>{guide.school}</span>
+                <span>{guide.category}</span>
+              </div>
+              <h3>{guide.title}</h3>
+              <p>{guide.summary}</p>
+              <div className="school-card-tags">
+                {guide.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
       {isQuestionsRoute && (
         <section className="info-page">
           <div className="posts-page-head">
@@ -2470,22 +3107,141 @@ function App() {
               <ArrowRight size={18} aria-hidden="true" />
             </button>
           </div>
+          <div className="list-control-bar">
+            <label>
+              分类
+              <select value={questionCategoryFilter} onChange={(event) => setQuestionCategoryFilter(event.target.value)}>
+                {categoryFilters.map((category) => (
+                  <option key={category}>{category}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              状态
+              <select
+                value={questionStatusFilter}
+                onChange={(event) => setQuestionStatusFilter(event.target.value as 'all' | QuestionStatus)}
+              >
+                <option value="all">全部状态</option>
+                <option value="open">待回答</option>
+                <option value="solved">已解决</option>
+              </select>
+            </label>
+            <label>
+              排序
+              <select
+                value={questionSort}
+                onChange={(event) => setQuestionSort(event.target.value as 'reward' | 'views' | 'latest')}
+              >
+                <option value="reward">悬赏最高</option>
+                <option value="views">浏览最多</option>
+                <option value="latest">最新发布</option>
+              </select>
+            </label>
+          </div>
           <div className="question-card-grid info-grid">
-            {hotQuestions.map((question) => (
-              <article className="question-card" key={question.title}>
+            {filteredQuestions.map((question) => (
+              <article
+                className="question-card clickable-card"
+                key={question.id}
+                onClick={() => navigateToPath(`/questions/${question.id}`)}
+              >
                 <div className="tag-line">
                   <span>{question.category}</span>
-                  {question.solved && <span className="solved-tag">已解决</span>}
-                  {question.bounty > 0 && <span className="bounty-tag">悬赏 {question.bounty} 积分</span>}
+                  <span>{question.country}</span>
+                  <span>{question.city}</span>
+                  <span>{question.school}</span>
+                  {question.status === 'solved' && <span className="solved-tag">已解决</span>}
+                  {question.rewardPoints > 0 && <span className="bounty-tag">悬赏 {question.rewardPoints} 积分</span>}
                 </div>
                 <h3>{question.title}</h3>
-                <p>回答需要给出可执行步骤、材料清单、时间线和注意事项。</p>
+                <p>{question.detail}</p>
                 <div className="question-stats">
-                  <span>{question.views} 浏览</span>
-                  <span>{question.answers} 个回答</span>
+                  <span>{question.views.toLocaleString()} 浏览</span>
+                  <span>{question.answersCount} 个回答</span>
+                  <span>{question.author}</span>
+                  <span>{question.createdAt}</span>
                 </div>
               </article>
             ))}
+          </div>
+        </section>
+      )}
+
+      {isQuestionDetailRoute && selectedQuestion && (
+        <section className="info-page content-detail-page">
+          <div className="detail-hero-block">
+            <p className="eyebrow dark">问题详情</p>
+            <div className="tag-line">
+              <span>{selectedQuestion.country}</span>
+              <span>{selectedQuestion.city}</span>
+              <span>{selectedQuestion.school}</span>
+              <span>{selectedQuestion.identity}</span>
+              <span>{selectedQuestion.createdAt}</span>
+              <span className={selectedQuestion.status === 'solved' ? 'solved-tag' : 'bounty-tag'}>
+                {selectedQuestion.status === 'solved' ? '已解决' : '待回答'}
+              </span>
+            </div>
+            <h1>{selectedQuestion.title}</h1>
+            <p>{selectedQuestion.detail}</p>
+            <div className="detail-stat-row">
+              <span>悬赏 {selectedQuestion.rewardPoints} 积分</span>
+              <span>{selectedQuestion.answersCount} 个回答</span>
+              <span>{selectedQuestion.views.toLocaleString()} 浏览</span>
+            </div>
+            <button
+              className="primary-link"
+              type="button"
+              onClick={() => {
+                if (!currentUser) {
+                  setAuthMode('login')
+                  setMessage('请先登录后回答问题。')
+                  return
+                }
+                document.getElementById('answer-entry')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+              }}
+            >
+              回答问题
+              <MessageSquareText size={18} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="answer-list">
+            <div className="section-heading">
+              <p className="eyebrow dark">回答列表</p>
+              <h2>{selectedQuestion.status === 'solved' ? '已采纳答案优先展示。' : '等待更多同校或同城经验。'}</h2>
+            </div>
+            {(selectedQuestionAnswers.length
+              ? selectedQuestionAnswers
+              : [
+                  {
+                    id: 'placeholder',
+                    questionId: selectedQuestion.id,
+                    author: '平台提示',
+                    identity: '内容审核',
+                    content: '这条问题还在等待更完整的回答。回答需要给出材料、时间线、办理地点和注意事项，复制内容和无效回答不会获得积分。',
+                    likes: 0,
+                    accepted: false,
+                    createdAt: selectedQuestion.createdAt,
+                  },
+                ]).map((answer) => (
+              <article className={answer.accepted ? 'answer-card accepted' : 'answer-card'} key={answer.id}>
+                <div className="tag-line">
+                  <span>{answer.author}</span>
+                  <span>{answer.identity}</span>
+                  {answer.accepted && <span className="solved-tag">已采纳</span>}
+                </div>
+                <p>{answer.content}</p>
+                <div className="question-stats">
+                  <span>{answer.likes} 赞</span>
+                  <span>{answer.createdAt}</span>
+                  {answer.accepted && <span>回答者获得 {selectedQuestion.rewardPoints} 积分</span>}
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="answer-entry" id="answer-entry">
+            <h3>回答前请确认</h3>
+            <p>平台奖励真实、有用、可验证的经验。请尽量写清材料、地点、时间线和你亲身经历的边界，政策类内容以官方最新公告为准。</p>
           </div>
         </section>
       )}
@@ -2501,22 +3257,22 @@ function App() {
             <article>
               <span>1</span>
               <h3>回答悬赏问题</h3>
-              <p>回答被提问者采纳后获得悬赏收益。</p>
+              <p>回答被提问者采纳后获得悬赏积分。第一版只记录站内积分，不做真实现金提现。</p>
             </article>
             <article>
               <span>2</span>
               <h3>发布高质量经验帖</h3>
-              <p>内容被收藏、点赞、加精后可获得平台奖励。</p>
+              <p>内容被收藏、点赞、加精后可获得平台奖励积分，用于创作者等级和后续激励规则测试。</p>
             </article>
             <article>
               <span>3</span>
               <h3>贡献专题攻略</h3>
-              <p>签证、租房、打工、毕业等高价值内容可参与分成或买断。</p>
+              <p>签证、租房、打工、毕业等高价值内容进入专题库后，可获得额外平台积分奖励。</p>
             </article>
             <article>
               <span>4</span>
               <h3>防止垃圾内容</h3>
-              <p>复制内容、AI水文、无效回答不会获得收益，严重者限制账号。</p>
+              <p>抄袭、AI水文、无效回答不会获得奖励，严重时扣分、禁言或封号。</p>
             </article>
           </div>
         </section>
@@ -2739,6 +3495,24 @@ function App() {
                   ))}
                 </select>
               </label>
+              <label>
+                城市
+                <select value={postCityFilter} onChange={(event) => setPostCityFilter(event.target.value)}>
+                  {postCityOptions.map((city) => (
+                    <option key={city}>{city}</option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                精华
+                <select
+                  value={postFeaturedFilter}
+                  onChange={(event) => setPostFeaturedFilter(event.target.value as 'all' | 'featured')}
+                >
+                  <option value="all">全部内容</option>
+                  <option value="featured">只看精华</option>
+                </select>
+              </label>
               <div>
                 <span>分类</span>
                 <div className="posts-filter-tabs">
@@ -2774,20 +3548,28 @@ function App() {
                       <div className="social-post-body">
                         <div className="post-card-header">
                           <span>{post.category}</span>
+                          {post.featured && <span className="featured-tag">精华</span>}
                           <span className={post.price === 0 ? 'free' : 'locked'}>
                             {post.price === 0 ? '免费' : unlocked ? '已解锁' : `${post.price} 积分`}
                           </span>
                         </div>
                         <h3>{post.title}</h3>
                         <p>{post.excerpt}</p>
+                        <div className="tag-line">
+                          <span>{post.country ?? '韩国'}</span>
+                          <span>{post.city ?? '首尔'}</span>
+                          <span>{post.school}</span>
+                          <span>{post.identity ?? '亲身经历'}</span>
+                        </div>
                         <div className="post-footer">
                           <span>{post.author}</span>
                           <span>
                             <TrendingUp size={15} aria-hidden="true" />
                             {post.hot}
                           </span>
+                          <span>{post.bookmarks ?? 0} 收藏</span>
                         </div>
-                        <button className="read-button" type="button" onClick={() => openPost(post)}>
+                        <button className="read-button" type="button" onClick={() => navigateToPath(`/posts/${post.id}`)}>
                           {post.price > 0 && !unlocked ? '积分解锁' : '查看全文'}
                         </button>
                       </div>
@@ -2805,6 +3587,45 @@ function App() {
               )}
             </div>
           </div>
+        </section>
+      )}
+
+      {isPostDetailRoute && selectedPost && (
+        <section className="info-page content-detail-page">
+          <div className="detail-hero-block post-detail-hero">
+            <p className="eyebrow dark">经验帖详情</p>
+            <div className="tag-line">
+              <span>{selectedPost.country ?? '韩国'}</span>
+              <span>{selectedPost.city ?? '首尔'}</span>
+              <span>{selectedPost.school}</span>
+              <span>{selectedPost.identity ?? '亲身经历'}</span>
+              <span>{selectedPost.contentType ?? '经验帖'}</span>
+              {selectedPost.featured && <span className="featured-tag">精华</span>}
+            </div>
+            <h1>{selectedPost.title}</h1>
+            <p>{selectedPost.excerpt}</p>
+            <div className="detail-stat-row">
+              <span>{selectedPost.author}</span>
+              <span>{selectedPost.createdAt}</span>
+              <span>{(selectedPost.views ?? 0).toLocaleString()} 阅读</span>
+              <span>{selectedPost.likes ?? 0} 点赞</span>
+              <span>{selectedPost.bookmarks ?? 0} 收藏</span>
+            </div>
+          </div>
+          <article className="post-detail-body">
+            <p>{selectedPost.body}</p>
+            <div className="school-card-tags">
+              {(selectedPost.tags ?? [selectedPost.category, selectedPost.school]).map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
+            </div>
+          </article>
+          <section className="answer-entry">
+            <h3>这篇内容为什么能获得积分？</h3>
+            <p>
+              内容围绕真实留学问题，提供可执行步骤、材料提醒和亲身经历边界。平台会优先奖励被收藏、点赞、加精和能解决问题的经验帖，抄袭、AI水文和无效内容不奖励。
+            </p>
+          </section>
         </section>
       )}
 

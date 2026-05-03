@@ -586,6 +586,7 @@ h3 {
 
 .question-card,
 .experience-card,
+.guide-card,
 .income-rule-grid article,
 .reward-rule-list article {
   background: #ffffff;
@@ -599,6 +600,7 @@ h3 {
 
 .question-card h3,
 .experience-card h3,
+.guide-card h3,
 .income-rule-grid h3,
 .reward-rule-list h3 {
   color: var(--ink);
@@ -607,6 +609,7 @@ h3 {
 
 .question-card p,
 .experience-card p,
+.guide-card p,
 .income-rule-grid p,
 .reward-rule-list p,
 .reward-mechanism-copy p,
@@ -652,6 +655,117 @@ h3 {
   color: var(--muted);
   font-size: 13px;
   margin-top: auto;
+}
+
+.clickable-card {
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.clickable-card:hover {
+  border-color: rgba(18, 105, 211, 0.28);
+  box-shadow: 0 18px 48px rgba(23, 33, 29, 0.08);
+  transform: translateY(-3px);
+}
+
+.compact-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.guide-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  margin-top: 42px;
+}
+
+.guide-card .school-card-tags span,
+.post-detail-body .school-card-tags span {
+  background: #eef5ee;
+  border-color: #d9e4dc;
+  color: #52625c;
+}
+
+.list-control-bar {
+  align-items: end;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  margin: 28px 0 0;
+}
+
+.list-control-bar label {
+  color: var(--forest);
+  display: grid;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 8px;
+}
+
+.list-control-bar select {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--forest);
+  min-height: 44px;
+  padding: 0 12px;
+}
+
+.content-detail-page {
+  display: grid;
+  gap: 28px;
+}
+
+.detail-hero-block,
+.post-detail-body,
+.answer-card,
+.answer-entry {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  padding: clamp(22px, 4vw, 44px);
+}
+
+.detail-hero-block h1 {
+  color: var(--forest);
+  font-size: clamp(44px, 6vw, 88px);
+  line-height: 1.05;
+}
+
+.detail-hero-block p,
+.post-detail-body p,
+.answer-card p,
+.answer-entry p {
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1.85;
+}
+
+.detail-stat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detail-stat-row span {
+  background: #eef5ee;
+  border-radius: 999px;
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 900;
+  padding: 7px 11px;
+}
+
+.answer-list {
+  display: grid;
+  gap: 14px;
+}
+
+.answer-card.accepted {
+  border-color: rgba(18, 105, 211, 0.38);
+  box-shadow: 0 18px 50px rgba(18, 105, 211, 0.08);
 }
 
 .reward-mechanism-section {
@@ -2950,6 +3064,7 @@ h3 {
 
   .question-card-grid,
   .experience-card-grid,
+  .guide-grid,
   .income-rule-grid,
   .reward-rule-list,
   .category-navigation-grid,
@@ -2958,6 +3073,10 @@ h3 {
   .school-topic-entry-grid,
   .school-question-grid,
   .school-featured-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .list-control-bar {
     grid-template-columns: 1fr;
   }
 
