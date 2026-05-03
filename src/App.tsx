@@ -5,6 +5,7 @@ import {
   ArrowRight,
   BadgeCheck,
   Building2,
+  ChevronRight,
   ChevronDown,
   BookOpenCheck,
   BookOpenText,
@@ -2795,6 +2796,7 @@ function App() {
   const [earningPointDrafts, setEarningPointDrafts] = useState<Record<string, string>>({})
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
   const [schoolGalleries, setSchoolGalleries] = useState<Record<string, string[]>>({})
+  const [openDeepDiveTitle, setOpenDeepDiveTitle] = useState<string | null>(null)
 
   const [postForm, setPostForm] = useState({
     title: '',
@@ -2836,6 +2838,10 @@ function App() {
       setInlineEditMode(false)
     }
   }, [adminToken])
+
+  useEffect(() => {
+    setOpenDeepDiveTitle(null)
+  }, [topicRouteSlug])
 
   useEffect(() => {
     fetch('/api/site-content')
@@ -3021,6 +3027,7 @@ function App() {
           guide.tags.some((tag) => selectedJourneyTopic.tags.includes(tag)),
       )
     : []
+  const activeDeepDiveTitle = openDeepDiveTitle ?? selectedJourneyTopic?.deepDives?.[0]?.title ?? null
   const siteContent = normalizeSiteContent(appState.siteContent)
   const activeSiteContent = inlineEditMode ? contentDraft : siteContent
   const heroStyle = {
@@ -4925,22 +4932,36 @@ function App() {
               </div>
               <div className="journey-deep-grid">
                 {selectedJourneyTopic.deepDives.map((item) => (
-                  <article key={item.title}>
-                    <div className="tag-line">
+                  <article className={activeDeepDiveTitle === item.title ? 'open' : ''} key={item.title}>
+                    <button
+                      type="button"
+                      onClick={() => setOpenDeepDiveTitle(activeDeepDiveTitle === item.title ? '' : item.title)}
+                    >
                       <span>{item.label}</span>
-                      {item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">官方入口</a>}
-                    </div>
-                    <h3>{item.title}</h3>
-                    <p>{item.text}</p>
-                    <ul>
-                      {item.bullets.map((bullet) => (
-                        <li key={bullet}>{bullet}</li>
-                      ))}
-                    </ul>
-                    {item.sourceLabel && item.sourceUrl && (
-                      <a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
-                        参考：{item.sourceLabel}
-                      </a>
+                      <strong>{item.title}</strong>
+                      <small>{item.text}</small>
+                      <ChevronRight size={20} aria-hidden="true" />
+                    </button>
+                    {activeDeepDiveTitle === item.title && (
+                      <div className="journey-deep-content">
+                        <ul>
+                          {item.bullets.map((bullet) => (
+                            <li key={bullet}>{bullet}</li>
+                          ))}
+                        </ul>
+                        <div className="journey-deep-links">
+                          {item.sourceUrl && (
+                            <a href={item.sourceUrl} target="_blank" rel="noreferrer">
+                              官方入口
+                            </a>
+                          )}
+                          {item.sourceLabel && item.sourceUrl && (
+                            <a className="source-link" href={item.sourceUrl} target="_blank" rel="noreferrer">
+                              参考：{item.sourceLabel}
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </article>
                 ))}
