@@ -1254,13 +1254,17 @@ h3 {
 }
 
 .school-page-content {
-  max-width: 820px;
+  max-width: min(1120px, 62vw);
+  min-width: min(760px, 52vw);
 }
 
 .school-page-content h2 {
-  font-size: clamp(52px, 8vw, 108px);
+  font-size: clamp(58px, 9vw, 132px);
   line-height: 0.9;
   margin-bottom: 16px;
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .school-english {
@@ -3527,6 +3531,11 @@ h3 {
 
   .school-page-section {
     min-height: 620px;
+  }
+
+  .school-page-content {
+    max-width: 100%;
+    min-width: 0;
   }
 
   .category-tabs {
