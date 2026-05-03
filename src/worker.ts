@@ -123,6 +123,321 @@ const json = (data: unknown, init: ResponseInit = {}) =>
     },
   })
 
+const siteOrigin = 'https://shouye.fun'
+
+const xml = (body: string, init: ResponseInit = {}) =>
+  new Response(body, {
+    ...init,
+    headers: {
+      'content-type': 'application/xml; charset=utf-8',
+      ...init.headers,
+    },
+  })
+
+const text = (body: string, init: ResponseInit = {}) =>
+  new Response(body, {
+    ...init,
+    headers: {
+      'content-type': 'text/plain; charset=utf-8',
+      ...init.headers,
+    },
+  })
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+type PageMeta = {
+  title: string
+  description: string
+  keywords?: string
+}
+
+const defaultKeywords =
+  '留学生, 留学经验, 韩国留学, 留学生生活, 签证, 租房, 打工, 大学院, 外国人登录证, 留学问答'
+
+const pageMeta = (pathname: string): PageMeta => {
+  if (pathname === '/questions') {
+    return {
+      title: '留学生问答 - 签证租房打工生活问题解答',
+      description:
+        '留学生问答集中解答签证、租房、入学、打工、保险、银行卡、毕业、就业和韩国生活问题，帮助留学生用真实经验少走弯路。',
+      keywords: defaultKeywords,
+    }
+  }
+
+  if (pathname === '/posts') {
+    return {
+      title: '留学生经验分享 - 签证租房入学打工攻略',
+      description:
+        '留学生经验分享收录韩国留学签证、租房、入学、打工、银行卡、保险、论文、毕业和就业攻略，优先展示真实可执行经验。',
+      keywords: defaultKeywords,
+    }
+  }
+
+  if (pathname === '/schools/konkuk' || pathname === '/school/konkuk') {
+    return {
+      title: '建国大学留学生生活攻略 - 留学生首页',
+      description:
+        '建国大学留学生生活攻略，整理建国大学入学、选课、租房、签证、外国人登录证、打工、医院、银行卡和校园生活相关经验。',
+      keywords: `${defaultKeywords}, 建国大学, Konkuk University`,
+    }
+  }
+
+  if (pathname === '/schools/chungang' || pathname === '/school/chungang') {
+    return {
+      title: '中央大学留学生生活攻略 - 留学生首页',
+      description:
+        '中央大学留学生生活攻略，整理中央大学入学、选课、租房、签证、打工、语学院、大学院、毕业和韩国生活经验。',
+      keywords: `${defaultKeywords}, 中央大学, Chung-Ang University`,
+    }
+  }
+
+  if (pathname === '/schools/korea' || pathname === '/school/korea') {
+    return {
+      title: '高丽大学留学生生活攻略 - 留学生首页',
+      description:
+        '高丽大学留学生生活攻略，整理高丽大学入学、选课、租房、签证、打工、大学院、毕业和首尔安岩生活经验。',
+      keywords: `${defaultKeywords}, 高丽大学, Korea University`,
+    }
+  }
+
+  if (pathname === '/schools/yonsei' || pathname === '/school/yonsei') {
+    return {
+      title: '延世大学留学生生活攻略 - 留学生首页',
+      description:
+        '延世大学留学生生活攻略，整理延世大学入学、选课、租房、签证、打工、语学堂、大学院和新村生活经验。',
+      keywords: `${defaultKeywords}, 延世大学, Yonsei University`,
+    }
+  }
+
+  if (pathname === '/rewards') {
+    return {
+      title: '留学生内容收益规则 - 问答悬赏与经验积分',
+      description:
+        '了解留学生首页的内容收益规则：回答悬赏问题、发布高质量经验帖、精华攻略奖励和积分机制。',
+      keywords: defaultKeywords,
+    }
+  }
+
+  if (pathname === '/categories') {
+    return {
+      title: '留学生问题分类 - 签证租房入学打工毕业就业',
+      description:
+        '按签证、租房、入学、打工、保险、银行卡、论文、毕业、就业和学校评价浏览留学生问题与经验。',
+      keywords: defaultKeywords,
+    }
+  }
+
+  return {
+    title: '留学生首页 - 留学生经验分享与问题解决平台',
+    description:
+      '留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。',
+    keywords: defaultKeywords,
+  }
+}
+
+const seoLinks = `
+  <nav aria-label="SEO navigation">
+    <a href="/questions">留学生问答</a>
+    <a href="/posts">经验分享</a>
+    <a href="/rewards">收益规则</a>
+    <a href="/categories">分类导航</a>
+    <a href="/schools/konkuk">建国大学</a>
+    <a href="/schools/chungang">中央大学</a>
+    <a href="/schools/korea">高丽大学</a>
+    <a href="/schools/yonsei">延世大学</a>
+  </nav>`
+
+const homeSeoContent = `
+  <noscript id="seo-prerender-home">
+    <main>
+      <h1>留学生的第一站</h1>
+      <p>留学生经验分享与问题解决平台</p>
+      <p>签证、租房、入学、打工、保险、银行卡、毕业、就业，真实留学生经验帮你少走弯路。</p>
+      ${seoLinks}
+      <section>
+        <h2>热门问题</h2>
+        <article><h3>韩国D-2签证延长需要哪些材料？</h3><p>韩国留学签证、外国人登录证、在学证明、住宿证明和银行材料。</p></article>
+        <article><h3>韩国租房保证金怎么防止被骗？</h3><p>韩国租房、保证金、合同主体、登记簿和退租押金风险。</p></article>
+        <article><h3>韩国留学生可以合法打工多少小时？</h3><p>韩国留学生打工、时间制就业许可、学期中和假期工时。</p></article>
+      </section>
+      <section>
+        <h2>精华经验</h2>
+        <article><h3>韩国留学生租房避坑指南</h3><p>保证金、管理费、合同主体、看房路线和退租时间线。</p></article>
+        <article><h3>D-2签证延长完整流程</h3><p>预约、材料准备、学校证明、现场提交和补件风险。</p></article>
+        <article><h3>韩国银行卡开户攻略</h3><p>外国人登录证、韩国手机号、学校证明和手机本人认证。</p></article>
+      </section>
+      <section>
+        <h2>问题悬赏</h2>
+        <p>用户发布问题时可以设置悬赏，被采纳的回答者获得积分奖励。</p>
+      </section>
+      <section>
+        <h2>分享经验赚钱</h2>
+        <p>平台奖励真实、有用、可验证的经验，不鼓励低质量灌水。</p>
+      </section>
+      <section>
+        <h2>学校攻略</h2>
+        <p>韩国留学学校入口：建国大学、中央大学、高丽大学、延世大学。</p>
+        <ul>
+          <li><a href="/schools/konkuk">建国大学留学生生活攻略</a></li>
+          <li><a href="/schools/chungang">中央大学留学生生活攻略</a></li>
+          <li><a href="/schools/korea">高丽大学留学生生活攻略</a></li>
+          <li><a href="/schools/yonsei">延世大学留学生生活攻略</a></li>
+        </ul>
+      </section>
+      <section>
+        <h2>分类导航</h2>
+        <p>签证/滞留资格、入学/选课/学分、语学院/本科/大学院、租房/搬家/保证金、银行卡/手机卡/保险、打工/劳动纠纷、毕业/论文/延毕、求职/实习/简历。</p>
+      </section>
+    </main>
+  </noscript>`
+
+const routeSeoContent = (pathname: string) => {
+  if (pathname === '/questions') {
+    return `
+      <noscript id="seo-prerender-questions">
+        <main>
+          <h1>留学生问答</h1>
+          <p>签证、租房、打工、入学、保险、银行卡、毕业和就业问题解答。</p>
+          ${seoLinks}
+          <ul>
+            <li>韩国D-2签证延长需要哪些材料？</li>
+            <li>韩国租房保证金怎么防止被骗？</li>
+            <li>外国人登录证丢了怎么办？</li>
+            <li>毕业后D-10求职签证怎么申请？</li>
+          </ul>
+        </main>
+      </noscript>`
+  }
+
+  if (pathname === '/posts') {
+    return `
+      <noscript id="seo-prerender-posts">
+        <main>
+          <h1>留学生经验分享</h1>
+          <p>韩国留学签证、租房、入学、打工、医院、论文、毕业和就业攻略。</p>
+          ${seoLinks}
+          <ul>
+            <li>韩国留学生租房避坑指南</li>
+            <li>D-2签证延长完整流程</li>
+            <li>外国人登录证办理流程</li>
+            <li>韩国毕业论文流程整理</li>
+          </ul>
+        </main>
+      </noscript>`
+  }
+
+  const schoolMatch = pathname.match(/^\/schools\/([^/]+)$/) ?? pathname.match(/^\/school\/([^/]+)$/)
+  if (schoolMatch) {
+    const schoolMap: Record<string, { zh: string; en: string; area: string }> = {
+      konkuk: { zh: '建国大学', en: 'Konkuk University', area: '首尔广津区' },
+      chungang: { zh: '中央大学', en: 'Chung-Ang University', area: '首尔黑石洞' },
+      korea: { zh: '高丽大学', en: 'Korea University', area: '首尔安岩' },
+      yonsei: { zh: '延世大学', en: 'Yonsei University', area: '首尔新村' },
+    }
+    const school = schoolMap[schoolMatch[1]] ?? { zh: '韩国大学', en: 'Korean University', area: '韩国' }
+    return `
+      <noscript id="seo-prerender-school">
+        <main>
+          <h1>${school.zh}留学生生活攻略</h1>
+          <p>${school.zh} ${school.en} ${school.area} 韩国留学学校攻略，整理入学、选课、租房、签证、外国人登录证、打工、银行卡、医院、毕业和校园生活经验。</p>
+          ${seoLinks}
+          <section><h2>${school.zh}热门问题</h2><p>${school.zh}附近租房、语学院转本科、大学院选课、保证金风险、外国人登录证和毕业论文流程。</p></section>
+          <section><h2>${school.zh}精华经验</h2><p>新生入学 checklist、周边租房避坑、生活圈介绍、银行卡开户和医院看病流程。</p></section>
+        </main>
+      </noscript>`
+  }
+
+  return homeSeoContent
+}
+
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>${siteOrigin}/</loc></url>
+  <url><loc>${siteOrigin}/questions</loc></url>
+  <url><loc>${siteOrigin}/posts</loc></url>
+  <url><loc>${siteOrigin}/rewards</loc></url>
+  <url><loc>${siteOrigin}/categories</loc></url>
+  <url><loc>${siteOrigin}/schools/konkuk</loc></url>
+  <url><loc>${siteOrigin}/schools/chungang</loc></url>
+  <url><loc>${siteOrigin}/schools/korea</loc></url>
+  <url><loc>${siteOrigin}/schools/yonsei</loc></url>
+</urlset>`
+
+const robotsTxt = `User-agent: *
+Allow: /
+
+Sitemap: ${siteOrigin}/sitemap.xml
+`
+
+const injectSeoHtml = (html: string, requestUrl: URL) => {
+  const normalizedPath = requestUrl.pathname === '/' ? '/' : requestUrl.pathname.replace(/\/$/, '')
+  const meta = pageMeta(normalizedPath)
+  const canonicalPath = normalizedPath === '/' ? '/' : normalizedPath
+  const canonicalUrl = `${siteOrigin}${canonicalPath}`
+  const safeTitle = escapeHtml(meta.title)
+  const safeDescription = escapeHtml(meta.description)
+  const safeKeywords = escapeHtml(meta.keywords ?? defaultKeywords)
+  const seoContent = normalizedPath === '/' ? homeSeoContent : routeSeoContent(normalizedPath)
+
+  let nextHtml = html
+    .replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`)
+    .replace(
+      /<meta\s+name="description"\s+content="[\s\S]*?"\s*\/?>/i,
+      `<meta name="description" content="${safeDescription}" />`,
+    )
+    .replace(
+      /<meta\s+name="keywords"\s+content="[\s\S]*?"\s*\/?>/i,
+      `<meta name="keywords" content="${safeKeywords}" />`,
+    )
+
+  const socialMeta = `
+    <link rel="canonical" href="${canonicalUrl}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="${canonicalUrl}" />
+    <meta property="og:title" content="${safeTitle}" />
+    <meta property="og:description" content="${safeDescription}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="${safeTitle}" />
+    <meta name="twitter:description" content="${safeDescription}" />
+    <meta name="application-name" content="留学生首页" />
+    <meta name="apple-mobile-web-app-title" content="留学生首页" />
+    <script type="application/ld+json">${JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: '留学生首页',
+      url: siteOrigin,
+      description: meta.description,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: `${siteOrigin}/posts?q={search_term_string}`,
+        'query-input': 'required name=search_term_string',
+      },
+    })}</script>`
+
+  nextHtml = nextHtml.replace('</head>', `${socialMeta}\n  </head>`)
+  nextHtml = nextHtml.replace('<div id="root"></div>', `<div id="root"></div>\n    ${seoContent}`)
+  return nextHtml
+}
+
+const serveHtmlWithSeo = async (request: Request, env: Env, requestUrl: URL, assetPath = requestUrl.pathname) => {
+  const assetUrl = new URL(assetPath, request.url)
+  const response = await env.ASSETS.fetch(new Request(assetUrl, request))
+  if (!response.ok) return response
+  const html = await response.text()
+  return new Response(injectSeoHtml(html, requestUrl), {
+    headers: {
+      'cache-control': 'public, max-age=300',
+      'content-type': 'text/html; charset=utf-8',
+    },
+  })
+}
+
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${crypto.randomUUID()}`
 
 const hashText = async (value: string) => {
@@ -727,10 +1042,29 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
+    if (url.hostname === 'www.shouye.fun') {
+      url.hostname = 'shouye.fun'
+      return Response.redirect(url.toString(), 301)
+    }
+
     if (!url.pathname.startsWith('/api/')) {
+      if (url.pathname === '/robots.txt') return text(robotsTxt)
+      if (url.pathname === '/sitemap.xml') return xml(sitemapXml)
+
       const response = await env.ASSETS.fetch(request)
       if (response.status === 404 && !url.pathname.split('/').pop()?.includes('.')) {
-        return env.ASSETS.fetch(new Request(new URL('/', request.url), request))
+        return serveHtmlWithSeo(request, env, url, '/')
+      }
+
+      const contentType = response.headers.get('content-type') ?? ''
+      if (contentType.includes('text/html')) {
+        const html = await response.text()
+        return new Response(injectSeoHtml(html, url), {
+          headers: {
+            'cache-control': 'public, max-age=300',
+            'content-type': 'text/html; charset=utf-8',
+          },
+        })
       }
 
       return response
