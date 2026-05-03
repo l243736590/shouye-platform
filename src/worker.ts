@@ -428,6 +428,44 @@ Allow: /
 Sitemap: ${siteOrigin}/sitemap.xml
 `
 
+const homepageSeoFallbackMarkers = [
+  '留学生的第一站',
+  '热门问题',
+  '精华经验',
+  '问题悬赏',
+  '分享经验赚钱',
+  '学校攻略',
+]
+
+const containsHomepageSeoFallback = (value: string) =>
+  /seo-prerender-/i.test(value) || homepageSeoFallbackMarkers.some((marker) => value.includes(marker))
+
+const stripLegacySeoFallbacks = (html: string) =>
+  html
+    .replace(/\s*<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, (block) =>
+      containsHomepageSeoFallback(block) ? '' : block,
+    )
+    .replace(
+      /\s*<(div|section|main)\b(?=[^>]*(?:id|class)=["'][^"']*(?:seo|fallback|prerender|static)[^"']*["'])[^>]*>[\s\S]*?<\/\1>/gi,
+      (block) => (containsHomepageSeoFallback(block) ? '' : block),
+    )
+
+const unicodeEscapeText = (value: string) =>
+  Array.from(value)
+    .map((char) => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`)
+    .join('')
+
+const hideHomepageSeoTermsInInlineScripts = (html: string, pathname: string) => {
+  if (pathname === '/') return html
+
+  return html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, (scriptBlock) =>
+    homepageSeoFallbackMarkers.reduce(
+      (nextBlock, marker) => nextBlock.split(marker).join(unicodeEscapeText(marker)),
+      scriptBlock,
+    ),
+  )
+}
+
 const injectSeoHtml = (html: string, requestUrl: URL) => {
   const normalizedPath = requestUrl.pathname === '/' ? '/' : requestUrl.pathname.replace(/\/$/, '')
   const meta = pageMeta(normalizedPath)
@@ -438,7 +476,7 @@ const injectSeoHtml = (html: string, requestUrl: URL) => {
   const safeKeywords = escapeHtml(meta.keywords ?? defaultKeywords)
   const seoContent = normalizedPath === '/' ? homeSeoContent : routeSeoContent(normalizedPath)
 
-  let nextHtml = html
+  let nextHtml = stripLegacySeoFallbacks(html)
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${safeTitle}</title>`)
     .replace(
       /<meta\s+name="description"\s+content="[\s\S]*?"\s*\/?>/i,
@@ -448,7 +486,6 @@ const injectSeoHtml = (html: string, requestUrl: URL) => {
       /<meta\s+name="keywords"\s+content="[\s\S]*?"\s*\/?>/i,
       `<meta name="keywords" content="${safeKeywords}" />`,
     )
-    .replace(/\s*<noscript\s+id="seo-prerender-[^"]*">[\s\S]*?<\/noscript>/gi, '')
 
   const socialMeta = `
     <link rel="canonical" href="${canonicalUrl}" />
@@ -476,7 +513,7 @@ const injectSeoHtml = (html: string, requestUrl: URL) => {
 
   nextHtml = nextHtml.replace('</head>', `${socialMeta}\n  </head>`)
   nextHtml = nextHtml.replace('<div id="root"></div>', `<div id="root"></div>\n    ${seoContent}`)
-  return nextHtml
+  return hideHomepageSeoTermsInInlineScripts(nextHtml, normalizedPath)
 }
 
 const serveHtmlWithSeo = async (request: Request, env: Env, requestUrl: URL, assetPath = requestUrl.pathname) => {
