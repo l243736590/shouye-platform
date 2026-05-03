@@ -87,9 +87,9 @@ main {
     display: block;
   }
 
-  .brand-tagline,
-  .nav-links,
-  .auth-actions button:first-child {
+  .site-header .brand-tagline,
+  .site-header .nav-links,
+  .site-header .auth-actions .quiet-button {
     color: #fffdf0;
   }
 }
@@ -242,6 +242,7 @@ button {
 .quiet-button,
 .primary-link,
 .secondary-link,
+.merchant-benefit-link,
 .search-shell button,
 .category-tabs button,
 .read-button,
@@ -306,6 +307,7 @@ button {
 .quiet-button:hover,
 .primary-link:hover,
 .secondary-link:hover,
+.merchant-benefit-link:hover,
 .search-shell button:hover,
 .category-tabs button:hover,
 .read-button:hover,
@@ -494,9 +496,11 @@ h3 {
 
 .merchant-benefit-link {
   background: var(--gold);
+  border: 1px solid rgba(255, 255, 255, 0.26);
   box-shadow: 0 18px 42px rgba(201, 155, 52, 0.22);
-  color: #14211c;
-  padding: 0 20px;
+  color: #fffdf0;
+  gap: 9px;
+  padding: 0 18px;
 }
 
 .merchant-benefit-link:hover {
@@ -3790,7 +3794,8 @@ h3 {
   }
 
   .primary-link,
-  .secondary-link {
+  .secondary-link,
+  .merchant-benefit-link {
     width: 100%;
   }
 
