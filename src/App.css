@@ -2602,6 +2602,80 @@ h3 {
   width: fit-content;
 }
 
+.smart-empty-state {
+  grid-column: 1 / -1;
+  gap: 20px;
+}
+
+.smart-search-banner {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 16px;
+  grid-column: 1 / -1;
+  padding: 22px;
+}
+
+.smart-search-banner h3 {
+  color: var(--forest);
+  font-size: 28px;
+}
+
+.search-suggestion-list {
+  display: grid;
+  gap: 10px;
+}
+
+.search-suggestion-list.compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.search-suggestion-list button {
+  align-items: center;
+  background: #f7faf6;
+  border: 1px solid var(--line);
+  color: var(--forest);
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 90px minmax(150px, 0.35fr) minmax(0, 1fr) auto auto;
+  min-height: 82px;
+  padding: 16px 18px;
+  text-align: left;
+  width: 100%;
+}
+
+.search-suggestion-list button span {
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.search-suggestion-list button strong {
+  color: var(--forest);
+  font-size: 22px;
+}
+
+.search-suggestion-list button small {
+  color: var(--muted);
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.search-suggestion-list button em {
+  color: var(--blue);
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.empty-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
 .school-posts-page {
   margin: 0;
   max-width: none;
@@ -3912,6 +3986,24 @@ h3 {
   .posts-page-search button {
     grid-column: 1 / -1;
     width: 100%;
+  }
+
+  .search-suggestion-list button {
+    align-items: start;
+    grid-template-columns: 1fr auto;
+  }
+
+  .search-suggestion-list button span,
+  .search-suggestion-list button small {
+    grid-column: 1 / -1;
+  }
+
+  .search-suggestion-list button em {
+    grid-column: 1 / 2;
+  }
+
+  .search-suggestion-list.compact {
+    grid-template-columns: 1fr;
   }
 
   .posts-filter-panel {

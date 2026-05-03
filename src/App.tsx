@@ -154,6 +154,14 @@ type JourneyTopic = {
   }[]
 }
 
+type SearchSuggestion = {
+  label: string
+  title: string
+  description: string
+  actionText: string
+  onClick: () => void
+}
+
 type SchoolProfile = {
   id: string
   name: string
@@ -2592,6 +2600,41 @@ const journeyTopics: JourneyTopic[] = [
 
 const getJourneyTopicBySlug = (slug: string) => journeyTopics.find((topic) => topic.slug === slug)
 
+const normalizeSearchText = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/[（）()·\-_/]/g, '')
+
+const schoolSearchAliases: Record<string, string[]> = {
+  snu: ['首尔大学', '首尔大', '서울대', 'snu', 'seoulnational'],
+  yonsei: ['延世大学', '延世大', '연세대', 'yonsei'],
+  korea: ['高丽大学', '高丽大', '고려대', 'koreauniversity'],
+  'skku-seoul': ['成均馆大学', '成均馆大', '성균관대', 'skku', 'sungkyunkwan'],
+  skku: ['成均馆大学', '成均馆大', '성균관대', 'skku', 'sungkyunkwan'],
+  hanyang: ['汉阳大学', '汉阳大', '한양대', 'hanyang'],
+  kyunghee: ['庆熙大学', '庆熙大', '경희대', 'kyunghee'],
+  sejong: ['世宗大学', '世宗大', '세종대', 'sejong'],
+  cau: ['中央大学', '中央大', '中大', '중앙대', 'cau', 'chungang', 'chunganguniversity'],
+  ewha: ['梨花女子大学', '梨花女大', '梨大', '이화여대', 'ewha'],
+  sogang: ['西江大学', '西江大', '서강대', 'sogang'],
+  konkuk: ['建国大学', '建国大', '건국대', 'konkuk'],
+  dongguk: ['东国大学', '东国大', '동국대', 'dongguk'],
+}
+
+const schoolRouteAliases: Record<string, string> = {
+  chungang: 'cau',
+  'chung-ang': 'cau',
+  sungkyunkwan: 'skku-seoul',
+}
+
+const journeySearchAliases: Record<string, string[]> = {
+  admission: ['入学', '申请', '本科', '硕博', '硕士', '博士', '大学院', '语学院', '选课', '学分', '新生'],
+  'student-life': ['在学', '生活', '签证', '租房', '保证金', '打工', '兼职', '保险', '银行卡', '手机卡', '医院'],
+  graduation: ['毕业', '论文', '延毕', '答辩', '毕业审查', '研究注册'],
+  career: ['就业', '求职', 'd10', 'd-10', '永驻', '落户', '免税车', '补贴', '回国', '认证'],
+}
+
 const pathways = [
   {
     icon: Search,
@@ -2908,9 +2951,12 @@ function App() {
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
   const decodedSchoolRouteId = schoolRouteId ? decodeURIComponent(schoolRouteId) : ''
-  const schoolTopic = decodedSchoolRouteId ? getSchoolTopicForSlug(decodedSchoolRouteId) : undefined
-  const routeSchool = decodedSchoolRouteId
-    ? allSchoolProfiles.find((school) => school.id === decodedSchoolRouteId)
+  const resolvedSchoolRouteId = decodedSchoolRouteId
+    ? schoolRouteAliases[decodedSchoolRouteId] ?? decodedSchoolRouteId
+    : ''
+  const schoolTopic = resolvedSchoolRouteId ? getSchoolTopicForSlug(resolvedSchoolRouteId) : undefined
+  const routeSchool = resolvedSchoolRouteId
+    ? allSchoolProfiles.find((school) => school.id === resolvedSchoolRouteId)
     : null
   const selectedSchool =
     routeSchool ?? allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
@@ -2966,13 +3012,31 @@ function App() {
   ])
 
   const filteredPosts = useMemo(() => {
+    const normalizedQuery = normalizeSearchText(query)
     return appState.posts.filter((post) => {
       const matchesCategory = selectedCategory === allCategoryLabel || post.category === selectedCategory
       const matchesSchool = postSchoolFilter === '全部学校' || post.school === postSchoolFilter
       const matchesCity = postCityFilter === '全部城市' || post.city === postCityFilter
       const matchesFeatured = postFeaturedFilter === 'all' || post.featured
-      const text = `${post.title}${post.school}${post.category}${post.excerpt}${post.author}${post.city ?? ''}${post.country ?? ''}`
-      const matchesQuery = text.toLowerCase().includes(query.toLowerCase())
+      const text = normalizeSearchText(
+        `${post.title}${post.school}${post.category}${post.excerpt}${post.author}${post.city ?? ''}${post.country ?? ''}${(
+          post.tags ?? []
+        ).join('')}`,
+      )
+      const matchedSchoolAlias = Object.entries(schoolSearchAliases).some(([schoolId, aliases]) => {
+        const school = allSchoolProfiles.find((profile) => profile.id === schoolId)
+        if (!school) return false
+        return aliases.some((alias) => normalizedQuery.includes(normalizeSearchText(alias))) && post.school === school.name
+      })
+      const matchedJourneyAlias = Object.entries(journeySearchAliases).some(([slug, aliases]) => {
+        const topic = getJourneyTopicBySlug(slug)
+        if (!topic) return false
+        return (
+          aliases.some((alias) => normalizedQuery.includes(normalizeSearchText(alias))) &&
+          topic.categories.includes(post.category)
+        )
+      })
+      const matchesQuery = !normalizedQuery || text.includes(normalizedQuery) || matchedSchoolAlias || matchedJourneyAlias
       return matchesCategory && matchesSchool && matchesCity && matchesFeatured && matchesQuery
     })
   }, [appState.posts, postCityFilter, postFeaturedFilter, postSchoolFilter, selectedCategory, query])
@@ -3028,6 +3092,64 @@ function App() {
       )
     : []
   const activeDeepDiveTitle = openDeepDiveTitle ?? selectedJourneyTopic?.deepDives?.[0]?.title ?? null
+  const searchSuggestions = useMemo<SearchSuggestion[]>(() => {
+    const normalizedQuery = normalizeSearchText(query)
+    if (!normalizedQuery) return []
+
+    const suggestions: SearchSuggestion[] = []
+    const matchedSchools = allSchoolProfiles.filter((school) => {
+      const aliases = schoolSearchAliases[school.id] ?? [school.name, school.englishName]
+      return aliases.some((alias) => normalizedQuery.includes(normalizeSearchText(alias)))
+    })
+    const matchedTopics = journeyTopics.filter((topic) => {
+      const aliases = journeySearchAliases[topic.slug] ?? [topic.title, topic.shortTitle]
+      return aliases.some((alias) => normalizedQuery.includes(normalizeSearchText(alias)))
+    })
+
+    for (const school of matchedSchools.slice(0, 2)) {
+      const topic = matchedTopics[0]
+      suggestions.push({
+        label: '学校专题',
+        title: topic ? `${school.name} · ${topic.shortTitle}` : `${school.name}专题页`,
+        description: topic
+          ? `已识别到你在找${school.name}的${topic.summary}，可以先进入学校专题页看相关问题和经验。`
+          : `已识别到学校关键词，可以先进入${school.name}专题页看入学、租房、签证、选课和生活经验。`,
+        actionText: `进入${school.name}专题`,
+        onClick: () => navigateToPath(`/schools/${school.id}`),
+      })
+    }
+
+    for (const topic of matchedTopics.slice(0, 2)) {
+      suggestions.push({
+        label: '专项入口',
+        title: topic.title,
+        description: `这里集中整理${topic.summary}，适合先看阶段攻略，再回到帖子页找具体经验。`,
+        actionText: `查看${topic.shortTitle}`,
+        onClick: () => navigateToPath(`/topics/${topic.slug}`),
+      })
+    }
+
+    if (!suggestions.length) {
+      const relatedPosts = appState.posts
+        .filter((post) =>
+          normalizeSearchText(`${post.title}${post.category}${post.excerpt}${post.school}`).includes(
+            normalizedQuery.slice(0, 2),
+          ),
+        )
+        .slice(0, 2)
+      for (const post of relatedPosts) {
+        suggestions.push({
+          label: '可能相关',
+          title: post.title,
+          description: `${post.school} · ${post.category} · ${post.excerpt}`,
+          actionText: '查看帖子',
+          onClick: () => navigateToPath(`/posts/${post.id}`),
+        })
+      }
+    }
+
+    return suggestions
+  }, [appState.posts, query])
   const siteContent = normalizeSiteContent(appState.siteContent)
   const activeSiteContent = inlineEditMode ? contentDraft : siteContent
   const heroStyle = {
@@ -4799,6 +4921,25 @@ function App() {
             </aside>
 
             <div className="social-post-grid">
+              {query.trim() && searchSuggestions.length ? (
+                <div className="smart-search-banner">
+                  <div>
+                    <p className="eyebrow dark">关联搜索</p>
+                    <h3>也可以直接看这些专题入口</h3>
+                  </div>
+                  <div className="search-suggestion-list compact">
+                    {searchSuggestions.slice(0, 2).map((suggestion) => (
+                      <button key={`${suggestion.label}-${suggestion.title}`} type="button" onClick={suggestion.onClick}>
+                        <span>{suggestion.label}</span>
+                        <strong>{suggestion.title}</strong>
+                        <small>{suggestion.description}</small>
+                        <em>{suggestion.actionText}</em>
+                        <ArrowRight size={18} aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
               {filteredPosts.length ? (
                 filteredPosts.map((post) => {
                   const unlocked = post.price === 0 || currentUnlocks.includes(post.id)
@@ -4845,12 +4986,33 @@ function App() {
                   )
                 })
               ) : (
-                <div className="posts-empty-state">
-                  <h3>没有找到相关帖子</h3>
-                  <p>换一个关键词，或发布第一篇相关经验。</p>
-                  <button type="button" onClick={() => setPublishOpen(true)}>
-                    发布经验
-                  </button>
+                <div className="posts-empty-state smart-empty-state">
+                  <div>
+                    <p className="eyebrow dark">关联推荐</p>
+                    <h3>暂时没有完全匹配的帖子</h3>
+                    <p>我根据你的关键词找到了更接近的专题入口，可以先进入学校页或阶段页查看。</p>
+                  </div>
+                  {searchSuggestions.length ? (
+                    <div className="search-suggestion-list">
+                      {searchSuggestions.map((suggestion) => (
+                        <button key={`${suggestion.label}-${suggestion.title}`} type="button" onClick={suggestion.onClick}>
+                          <span>{suggestion.label}</span>
+                          <strong>{suggestion.title}</strong>
+                          <small>{suggestion.description}</small>
+                          <em>{suggestion.actionText}</em>
+                          <ArrowRight size={18} aria-hidden="true" />
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="empty-action-row">
+                    <button type="button" onClick={() => navigateToPath('/questions')}>
+                      去提问
+                    </button>
+                    <button type="button" onClick={() => setPublishOpen(true)}>
+                      发布经验
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
