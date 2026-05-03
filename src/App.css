@@ -731,6 +731,7 @@ h3 {
   display: grid;
   gap: 26px;
   grid-template-columns: minmax(0, 1fr) 360px;
+  order: -3;
 }
 
 .journey-topic-hero > div:first-child > p:not(.eyebrow) {
@@ -765,6 +766,7 @@ h3 {
   display: grid;
   gap: 1px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  order: -1;
 }
 
 .journey-step-grid article {
@@ -794,6 +796,19 @@ h3 {
 .journey-topic-section {
   display: grid;
   gap: 26px;
+}
+
+.journey-deep-section {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 24px 70px rgba(23, 33, 29, 0.1);
+  order: -2;
+  padding: clamp(24px, 4vw, 44px);
+}
+
+.journey-deep-section .section-heading h2 {
+  max-width: 1120px;
 }
 
 .journey-deep-grid {

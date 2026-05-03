@@ -4920,8 +4920,8 @@ function App() {
           {selectedJourneyTopic.deepDives?.length ? (
             <section className="journey-topic-section journey-deep-section">
               <div className="section-heading">
-                <p className="eyebrow dark">重点专题</p>
-                <h2>{selectedJourneyTopic.shortTitle}最值得提前规划的事项。</h2>
+                <p className="eyebrow dark">毕业后重点政策与就业路径</p>
+                <h2>D-10、永驻、回国认证、落户补贴这些事集中看。</h2>
               </div>
               <div className="journey-deep-grid">
                 {selectedJourneyTopic.deepDives.map((item) => (
