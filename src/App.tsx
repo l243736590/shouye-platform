@@ -2219,6 +2219,12 @@ function App() {
       <section className="hero-section" id="top">
         <img className="hero-image" src={heroImage} alt="韩国延世大学校园建筑" />
         <div className="hero-overlay" />
+        <img
+          className="hero-side-wordmark"
+          src="/brand/shouye-logo-mobile-light-text.png"
+          alt="售业"
+          aria-hidden="true"
+        />
         <motion.div
           className="hero-content"
           initial={{ opacity: 0, y: 24 }}
@@ -2999,6 +3005,19 @@ function App() {
               背景图来源
             </a>
           </div>
+          {selectedSchool.id === 'konkuk' && (
+            <button
+              type="button"
+              className="school-topic-link"
+              onClick={() => {
+                window.history.pushState(null, '', '/school/konkuk')
+                window.dispatchEvent(new PopStateEvent('popstate'))
+              }}
+            >
+              进入建国大学专题页
+              <ArrowRight size={18} aria-hidden="true" />
+            </button>
+          )}
         </div>
       </section>
 
