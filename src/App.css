@@ -2575,7 +2575,7 @@ h3 {
   }
 
   .hero-section {
-    min-height: calc(100svh - 64px);
+    min-height: calc(112svh - 64px);
   }
 
   .hero-overlay {
@@ -2587,17 +2587,17 @@ h3 {
   .hero-content {
     align-self: start;
     margin-left: 0;
-    padding: clamp(136px, 16svh, 220px) 20px 34px;
+    padding: clamp(116px, 13svh, 178px) 20px 44px;
   }
 
   .hero-mobile-wordmark {
     display: block;
     filter: drop-shadow(0 18px 34px rgba(1, 8, 6, 0.32));
     height: auto;
-    margin: 0 0 18px -6px;
-    max-width: 280px;
+    margin: 0 0 42px -8px;
+    max-width: 380px;
     opacity: 0.96;
-    width: 68vw;
+    width: 82vw;
   }
 
   .hero-eyebrow {
@@ -2612,11 +2612,11 @@ h3 {
   .hero-copy {
     font-size: clamp(22px, 7vw, 32px);
     line-height: 1.18;
-    margin: 24px 0 0;
+    margin: 22px 0 0;
   }
 
   .hero-subcopy {
-    margin-top: 14px;
+    margin-top: 36px;
   }
 
   .hero-title-logo {
@@ -2631,19 +2631,30 @@ h3 {
 
   .search-shell {
     grid-template-columns: auto 1fr;
-    margin-top: 34px;
+    margin-top: 32px;
+    padding: 10px;
+  }
+
+  .search-shell input {
+    font-size: 16px;
+    min-height: 30px;
+  }
+
+  .hero-actions {
+    margin-top: 32px;
   }
 
   .search-shell button {
     grid-column: 1 / -1;
+    min-height: 48px;
     width: 100%;
   }
 
   .hero-metrics {
     grid-template-columns: 1fr;
-    gap: 16px;
-    margin-top: 36px;
-    padding-top: 4px;
+    gap: 18px;
+    margin-top: 48px;
+    padding-top: 12px;
   }
 
   .hero-metrics div {
