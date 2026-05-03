@@ -1804,6 +1804,38 @@ const initialState = (): StoredState => {
   }
 }
 
+type EditableTextProps = {
+  as?: 'p' | 'h1' | 'span' | 'strong'
+  className?: string
+  value: string
+  onChange: (value: string) => void
+}
+
+const EditableText = ({ as = 'span', className, value, onChange }: EditableTextProps) => {
+  const Tag = as
+
+  return (
+    <Tag
+      className={className ? `inline-editable ${className}` : 'inline-editable'}
+      contentEditable
+      suppressContentEditableWarning
+      spellCheck={false}
+      onBlur={(event) => {
+        const nextValue = event.currentTarget.textContent?.replace(/\u00a0/g, ' ').trim() ?? ''
+        onChange(nextValue || value)
+      }}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' && as !== 'p') {
+          event.preventDefault()
+          event.currentTarget.blur()
+        }
+      }}
+    >
+      {value}
+    </Tag>
+  )
+}
+
 function App() {
   const [currentPath, setCurrentPath] = useState(() => (typeof window !== 'undefined' ? window.location.pathname : '/'))
   const isAdminRoute = currentPath === '/admin'
@@ -1849,6 +1881,7 @@ function App() {
   const [adminToken, setAdminToken] = useState(initialAdminToken)
   const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'partners' | 'content'>('users')
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
+  const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [, setMessage] = useState('')
@@ -1907,6 +1940,12 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(appState))
   }, [appState])
+
+  useEffect(() => {
+    if (!adminToken) {
+      setInlineEditMode(false)
+    }
+  }, [adminToken])
 
   useEffect(() => {
     fetch('/api/site-content')
@@ -2068,11 +2107,12 @@ function App() {
       seedPosts.find((post) => post.id === decodeURIComponent(postRouteId))
     : undefined
   const siteContent = normalizeSiteContent(appState.siteContent)
+  const activeSiteContent = inlineEditMode ? contentDraft : siteContent
   const heroStyle = {
-    '--mobile-logo-width': `${siteContent.mobileLogoWidth}vw`,
-    '--mobile-hero-title-size': `${siteContent.mobileHeroTitleSize}px`,
-    '--mobile-hero-copy-size': `${siteContent.mobileHeroCopySize}px`,
-    '--mobile-search-scale': siteContent.mobileSearchScale,
+    '--mobile-logo-width': `${activeSiteContent.mobileLogoWidth}vw`,
+    '--mobile-hero-title-size': `${activeSiteContent.mobileHeroTitleSize}px`,
+    '--mobile-hero-copy-size': `${activeSiteContent.mobileHeroCopySize}px`,
+    '--mobile-search-scale': activeSiteContent.mobileSearchScale,
   } as CSSProperties
   const selectedSchoolPosts = appState.posts.filter((post) => post.school === selectedSchool.name)
   const currentUserPosts = currentUser
@@ -2285,6 +2325,24 @@ function App() {
   const resetSiteContentDraft = () => {
     setContentDraft(defaultSiteContent)
     setMessage('已恢复默认草稿，点保存后才会生效。')
+  }
+
+  const startInlineEditing = () => {
+    setContentDraft(siteContent)
+    setInlineEditMode(true)
+    if (currentPath !== '/') {
+      navigateToPath('/')
+    }
+  }
+
+  const cancelInlineEditing = () => {
+    setContentDraft(siteContent)
+    setInlineEditMode(false)
+  }
+
+  const saveInlineEditing = async () => {
+    await saveSiteContent()
+    setInlineEditMode(false)
   }
 
   const openSchoolPage = (school: SchoolProfile) => {
@@ -2957,7 +3015,37 @@ function App() {
         )}
       </header>
 
-      <section className="hero-section" id="top" style={heroStyle}>
+      {adminToken && !isAdminRoute && (
+        <div className={inlineEditMode ? 'inline-editor-bar active' : 'inline-editor-bar'}>
+          <div>
+            <strong>{inlineEditMode ? '网页编辑模式' : '管理员工具'}</strong>
+            <span>{inlineEditMode ? '直接点首页文字修改，改完点保存。' : '可以在当前页面直接改首页内容。'}</span>
+          </div>
+          <div className="inline-editor-actions">
+            {inlineEditMode ? (
+              <>
+                <button type="button" onClick={cancelInlineEditing}>
+                  取消
+                </button>
+                <button className="save-inline-button" type="button" onClick={saveInlineEditing}>
+                  保存
+                </button>
+              </>
+            ) : (
+              <>
+                <button type="button" onClick={openAdminEntry}>
+                  后台
+                </button>
+                <button className="save-inline-button" type="button" onClick={startInlineEditing}>
+                  进入编辑模式
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      <section className={inlineEditMode ? 'hero-section inline-editing' : 'hero-section'} id="top" style={heroStyle}>
         <img className="hero-image" src={heroImage} alt="韩国延世大学校园建筑" />
         <div className="hero-overlay" />
         <img
@@ -2978,51 +3066,166 @@ function App() {
             alt="售业"
             aria-hidden="true"
           />
-          <p className="eyebrow hero-eyebrow">{siteContent.heroEyebrow}</p>
-          <h1>{siteContent.heroTitle}</h1>
-          <p className="hero-copy">{siteContent.heroCopy}</p>
-          <p className="hero-subcopy hero-subcopy-top">{siteContent.heroSubcopy}</p>
+          {inlineEditMode ? (
+            <EditableText
+              as="p"
+              className="eyebrow hero-eyebrow"
+              value={activeSiteContent.heroEyebrow}
+              onChange={(value) => updateContentDraft('heroEyebrow', value)}
+            />
+          ) : (
+            <p className="eyebrow hero-eyebrow">{activeSiteContent.heroEyebrow}</p>
+          )}
+          {inlineEditMode ? (
+            <EditableText
+              as="h1"
+              value={activeSiteContent.heroTitle}
+              onChange={(value) => updateContentDraft('heroTitle', value)}
+            />
+          ) : (
+            <h1>{activeSiteContent.heroTitle}</h1>
+          )}
+          {inlineEditMode ? (
+            <EditableText
+              as="p"
+              className="hero-copy"
+              value={activeSiteContent.heroCopy}
+              onChange={(value) => updateContentDraft('heroCopy', value)}
+            />
+          ) : (
+            <p className="hero-copy">{activeSiteContent.heroCopy}</p>
+          )}
+          {inlineEditMode ? (
+            <EditableText
+              as="p"
+              className="hero-subcopy hero-subcopy-top"
+              value={activeSiteContent.heroSubcopy}
+              onChange={(value) => updateContentDraft('heroSubcopy', value)}
+            />
+          ) : (
+            <p className="hero-subcopy hero-subcopy-top">{activeSiteContent.heroSubcopy}</p>
+          )}
 
           <form
             className="search-shell"
             role="search"
             onSubmit={(event) => {
               event.preventDefault()
+              if (inlineEditMode) return
               openPostsPage(query)
             }}
           >
             <Search size={20} aria-hidden="true" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={siteContent.searchPlaceholder}
-              aria-label="搜索留学问题、经验和分类"
-            />
+            {inlineEditMode ? (
+              <EditableText
+                className="editable-placeholder"
+                value={activeSiteContent.searchPlaceholder}
+                onChange={(value) => updateContentDraft('searchPlaceholder', value)}
+              />
+            ) : (
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={activeSiteContent.searchPlaceholder}
+                aria-label="搜索留学问题、经验和分类"
+              />
+            )}
             <button type="submit">搜索</button>
           </form>
 
           <div className="hero-actions" aria-label="Quick actions">
-            <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
-              {siteContent.askButtonText}
+            <button
+              className="primary-link"
+              type="button"
+              onClick={() => {
+                if (!inlineEditMode) navigateToPath('/questions')
+              }}
+            >
+              {inlineEditMode ? (
+                <EditableText
+                  value={activeSiteContent.askButtonText}
+                  onChange={(value) => updateContentDraft('askButtonText', value)}
+                />
+              ) : (
+                activeSiteContent.askButtonText
+              )}
               <MessageSquareText size={18} aria-hidden="true" />
             </button>
-            <button className="secondary-link" type="button" onClick={() => setPublishOpen(true)}>
-              {siteContent.shareButtonText}
+            <button
+              className="secondary-link"
+              type="button"
+              onClick={() => {
+                if (!inlineEditMode) setPublishOpen(true)
+              }}
+            >
+              {inlineEditMode ? (
+                <EditableText
+                  value={activeSiteContent.shareButtonText}
+                  onChange={(value) => updateContentDraft('shareButtonText', value)}
+                />
+              ) : (
+                activeSiteContent.shareButtonText
+              )}
               <PenLine size={18} aria-hidden="true" />
             </button>
           </div>
           <div className="hero-metrics" aria-label="平台能力概览">
             <div>
-              <strong>{siteContent.metricAskTitle}</strong>
-              <span>{siteContent.metricAskCopy}</span>
+              {inlineEditMode ? (
+                <EditableText
+                  as="strong"
+                  value={activeSiteContent.metricAskTitle}
+                  onChange={(value) => updateContentDraft('metricAskTitle', value)}
+                />
+              ) : (
+                <strong>{activeSiteContent.metricAskTitle}</strong>
+              )}
+              {inlineEditMode ? (
+                <EditableText
+                  value={activeSiteContent.metricAskCopy}
+                  onChange={(value) => updateContentDraft('metricAskCopy', value)}
+                />
+              ) : (
+                <span>{activeSiteContent.metricAskCopy}</span>
+              )}
             </div>
             <div className="metric-stacked">
-              <strong>{siteContent.metricExperienceTitle}</strong>
-              <span>{siteContent.metricExperienceCopy}</span>
+              {inlineEditMode ? (
+                <EditableText
+                  as="strong"
+                  value={activeSiteContent.metricExperienceTitle}
+                  onChange={(value) => updateContentDraft('metricExperienceTitle', value)}
+                />
+              ) : (
+                <strong>{activeSiteContent.metricExperienceTitle}</strong>
+              )}
+              {inlineEditMode ? (
+                <EditableText
+                  value={activeSiteContent.metricExperienceCopy}
+                  onChange={(value) => updateContentDraft('metricExperienceCopy', value)}
+                />
+              ) : (
+                <span>{activeSiteContent.metricExperienceCopy}</span>
+              )}
             </div>
             <div>
-              <strong>{siteContent.metricRewardTitle}</strong>
-              <span>{siteContent.metricRewardCopy}</span>
+              {inlineEditMode ? (
+                <EditableText
+                  as="strong"
+                  value={activeSiteContent.metricRewardTitle}
+                  onChange={(value) => updateContentDraft('metricRewardTitle', value)}
+                />
+              ) : (
+                <strong>{activeSiteContent.metricRewardTitle}</strong>
+              )}
+              {inlineEditMode ? (
+                <EditableText
+                  value={activeSiteContent.metricRewardCopy}
+                  onChange={(value) => updateContentDraft('metricRewardCopy', value)}
+                />
+              ) : (
+                <span>{activeSiteContent.metricRewardCopy}</span>
+              )}
             </div>
           </div>
         </motion.div>

@@ -478,6 +478,92 @@ h3 {
   border: 0;
 }
 
+.inline-editor-bar {
+  align-items: center;
+  background: rgba(255, 253, 247, 0.96);
+  border: 1px solid rgba(23, 63, 53, 0.16);
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(3, 12, 9, 0.18);
+  color: var(--forest);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 12px 14px 12px 16px;
+  position: fixed;
+  right: 22px;
+  top: 86px;
+  width: min(460px, calc(100vw - 32px));
+  z-index: 80;
+}
+
+.inline-editor-bar.active {
+  border-color: rgba(230, 95, 67, 0.42);
+}
+
+.inline-editor-bar div:first-child {
+  display: grid;
+  gap: 3px;
+}
+
+.inline-editor-bar strong {
+  font-size: 14px;
+}
+
+.inline-editor-bar span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.inline-editor-actions {
+  display: flex;
+  flex: none;
+  gap: 8px;
+}
+
+.inline-editor-actions button {
+  background: #eef5ee;
+  color: var(--forest);
+  min-height: 38px;
+  padding: 0 13px;
+}
+
+.inline-editor-actions .save-inline-button {
+  background: var(--blue);
+  color: #fffdf7;
+}
+
+.inline-editing .inline-editable {
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px rgba(255, 215, 91, 0.5);
+  cursor: text;
+  outline: 0;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.inline-editing .inline-editable:focus {
+  background: rgba(255, 253, 240, 0.12);
+  box-shadow:
+    0 0 0 2px rgba(255, 215, 91, 0.95),
+    0 18px 40px rgba(1, 8, 6, 0.22);
+}
+
+.inline-editing .hero-actions button {
+  cursor: text;
+}
+
+.editable-placeholder {
+  color: rgba(20, 40, 33, 0.66);
+  display: block;
+  font-weight: 800;
+  line-height: 1.4;
+  min-height: 24px;
+  min-width: 0;
+}
+
 .primary-link {
   gap: 9px;
 }
@@ -3071,6 +3157,21 @@ h3 {
     align-self: start;
     margin-left: 0;
     padding: clamp(116px, 13svh, 178px) 20px 44px;
+    width: 100%;
+  }
+
+  .inline-editor-bar {
+    bottom: 16px;
+    display: grid;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    width: auto;
+  }
+
+  .inline-editor-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
   }
 
