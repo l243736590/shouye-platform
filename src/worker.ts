@@ -332,6 +332,52 @@ const routeSeoContent = (pathname: string) => {
       </noscript>`
   }
 
+  if (pathname === '/rewards') {
+    return `
+      <noscript id="seo-prerender-rewards">
+        <main>
+          <h1>留学生内容收益规则</h1>
+          <p>说明问答悬赏、经验帖奖励、精华内容积分和平台审核规则。平台奖励真实、有用、可验证的留学经验，不承诺发帖必赚钱。</p>
+          ${seoLinks}
+          <section>
+            <h2>如何通过分享经验获得积分</h2>
+            <ul>
+              <li>回答悬赏问题，被提问者采纳后获得悬赏积分。</li>
+              <li>发布高质量经验帖，被收藏、点赞或加精后可获得平台奖励积分。</li>
+              <li>贡献签证、租房、打工、毕业等专题攻略，可参与平台奖励或合作分成。</li>
+              <li>复制内容、AI水文、无效回答不会获得奖励，严重时会扣分或限制账号。</li>
+            </ul>
+          </section>
+        </main>
+      </noscript>`
+  }
+
+  if (pathname === '/categories') {
+    return `
+      <noscript id="seo-prerender-categories">
+        <main>
+          <h1>留学生问题分类</h1>
+          <p>按签证、租房、入学、选课、打工、保险、银行卡、毕业、论文、就业和学校评价浏览留学生问题与经验。</p>
+          ${seoLinks}
+          <section>
+            <h2>分类导航</h2>
+            <ul>
+              <li>签证/滞留资格</li>
+              <li>入学/选课/学分</li>
+              <li>语学院/本科/大学院</li>
+              <li>租房/搬家/保证金</li>
+              <li>银行卡/手机卡/保险</li>
+              <li>打工/劳动纠纷</li>
+              <li>毕业/论文/延毕</li>
+              <li>求职/实习/简历</li>
+              <li>学校评价</li>
+              <li>城市生活攻略</li>
+            </ul>
+          </section>
+        </main>
+      </noscript>`
+  }
+
   const schoolMatch = pathname.match(/^\/schools\/([^/]+)$/) ?? pathname.match(/^\/school\/([^/]+)$/)
   if (schoolMatch) {
     const schoolMap: Record<string, { zh: string; en: string; area: string }> = {
@@ -353,7 +399,14 @@ const routeSeoContent = (pathname: string) => {
       </noscript>`
   }
 
-  return homeSeoContent
+  return `
+    <noscript id="seo-prerender-page">
+      <main>
+        <h1>留学生经验分享与问题解决平台</h1>
+        <p>这里是留学生问题、经验和学校攻略页面。请访问问答、经验、分类、收益规则或学校专题入口。</p>
+        ${seoLinks}
+      </main>
+    </noscript>`
 }
 
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
