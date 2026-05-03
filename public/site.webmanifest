@@ -1,0 +1,11 @@
+{
+  "name": "留学生首页 - 留学生经验分享与问题解决平台",
+  "short_name": "留学生首页",
+  "description": "留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfbf5",
+  "theme_color": "#173f35",
+  "lang": "zh-CN"
+}

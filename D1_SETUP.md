@@ -40,7 +40,7 @@ Registration sends a real email code through Resend. Create a Resend API key, ve
 npx wrangler secret put RESEND_API_KEY
 ```
 
-`MAIL_FROM` is configured in `wrangler.toml` as `售业平台 <noreply@shouye.fun>`. Change it after your mail provider confirms the exact sender address.
+`MAIL_FROM` is configured in `wrangler.toml` as `留学生经验分享与问题解决平台 <noreply@shouye.fun>`. Change it after your mail provider confirms the exact sender address.
 
 ## 6. Deploy
 

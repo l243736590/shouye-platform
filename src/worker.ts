@@ -208,6 +208,52 @@ const sendVerificationEmail = async (env: Env, email: string, code: string) => {
   return { ok: true }
 }
 
+const defaultSeo = {
+  title: '留学生首页 - 留学生经验分享与问题解决平台',
+  description:
+    '留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。',
+  keywords: '留学生, 留学经验, 韩国留学, 留学生生活, 签证, 租房, 打工, 大学院, 外国人登录证, 留学问答',
+  canonical: 'https://shouye.fun',
+}
+
+const getSeoForPath = (pathname: string) => {
+  if (pathname === '/schools/konkuk') {
+    return {
+      ...defaultSeo,
+      title: '建国大学留学生生活攻略 - 留学生首页',
+      description:
+        '建国大学留学生生活攻略，整理建国大学入学、选课、租房、签证、外国人登录证、打工、医院、银行卡和校园生活相关经验，帮助韩国留学生少走弯路。',
+      canonical: 'https://shouye.fun/schools/konkuk',
+    }
+  }
+
+  return defaultSeo
+}
+
+const replaceTag = (html: string, pattern: RegExp, replacement: string) =>
+  pattern.test(html) ? html.replace(pattern, replacement) : html.replace('</head>', `    ${replacement}\n  </head>`)
+
+const injectSeo = async (response: Response, pathname: string) => {
+  const seo = getSeoForPath(pathname)
+  let html = await response.text()
+
+  html = replaceTag(html, /<title>.*?<\/title>/i, `<title>${seo.title}</title>`)
+  html = replaceTag(html, /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/i, `<meta name="description" content="${seo.description}" />`)
+  html = replaceTag(html, /<meta\s+name="keywords"\s+content="[^"]*"\s*\/?>/i, `<meta name="keywords" content="${seo.keywords}" />`)
+  html = replaceTag(html, /<meta\s+property="og:title"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:title" content="${seo.title}" />`)
+  html = replaceTag(html, /<meta\s+property="og:description"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:description" content="${seo.description}" />`)
+  html = replaceTag(html, /<meta\s+property="og:url"\s+content="[^"]*"\s*\/?>/i, `<meta property="og:url" content="${seo.canonical}" />`)
+  html = replaceTag(html, /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:title" content="${seo.title}" />`)
+  html = replaceTag(html, /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i, `<meta name="twitter:description" content="${seo.description}" />`)
+  html = replaceTag(html, /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/i, `<link rel="canonical" href="${seo.canonical}" />`)
+
+  const headers = new Headers(response.headers)
+  headers.set('content-type', 'text/html; charset=utf-8')
+  headers.delete('content-length')
+
+  return new Response(html, { status: response.status, statusText: response.statusText, headers })
+}
+
 const handleSendVerificationCode = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{ email: string }>(request)
@@ -636,10 +682,25 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
 
+    if (url.hostname === 'www.shouye.fun') {
+      url.hostname = 'shouye.fun'
+      return Response.redirect(url.toString(), 301)
+    }
+
+    const legacySchoolMatch = url.pathname.match(/^\/school\/([^/]+)$/)
+    if (legacySchoolMatch) {
+      url.pathname = `/schools/${legacySchoolMatch[1]}`
+      return Response.redirect(url.toString(), 301)
+    }
+
     if (!url.pathname.startsWith('/api/')) {
-      const response = await env.ASSETS.fetch(request)
+      let response = await env.ASSETS.fetch(request)
       if (response.status === 404 && !url.pathname.split('/').pop()?.includes('.')) {
-        return env.ASSETS.fetch(new Request(new URL('/', request.url), request))
+        response = await env.ASSETS.fetch(new Request(new URL('/', request.url), request))
+      }
+
+      if (response.headers.get('content-type')?.includes('text/html')) {
+        return injectSeo(response, url.pathname)
       }
 
       return response
