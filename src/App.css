@@ -2216,18 +2216,23 @@ h3 {
   color: #fffdf0;
   display: grid;
   gap: 14px;
-  max-width: 850px;
+  max-width: min(1360px, 88vw);
   padding: clamp(56px, 8vw, 112px);
   position: relative;
+  width: min(1360px, 88vw);
   z-index: 3;
 }
 
 .school-posts-hero-content h1 {
   color: #fffdf0;
-  font-size: clamp(74px, 11vw, 170px);
+  font-size: clamp(64px, 8vw, 132px);
   letter-spacing: 0;
   line-height: 0.88;
   margin: 0;
+  max-width: 100%;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .school-posts-hero-content strong {
@@ -3578,10 +3583,12 @@ h3 {
   .school-posts-hero-content {
     align-self: end;
     padding: 110px 20px 40px;
+    width: 100%;
   }
 
   .school-posts-hero-content h1 {
     font-size: clamp(54px, 18vw, 92px);
+    white-space: normal;
   }
 
   .school-gallery-strip img:nth-child(n + 2) {
