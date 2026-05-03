@@ -1,4 +1,4 @@
-import type { FormEvent } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
@@ -160,10 +160,63 @@ type StoredState = {
   partnerApplications: PartnerApplication[]
   currentUserId: string | null
   unlockedPostIds: Record<string, string[]>
+  siteContent: SiteContentSettings
+}
+
+type SiteContentSettings = {
+  heroEyebrow: string
+  heroTitle: string
+  heroCopy: string
+  heroSubcopy: string
+  searchPlaceholder: string
+  askButtonText: string
+  shareButtonText: string
+  metricAskTitle: string
+  metricAskCopy: string
+  metricExperienceTitle: string
+  metricExperienceCopy: string
+  metricRewardTitle: string
+  metricRewardCopy: string
+  mobileLogoWidth: number
+  mobileHeroTitleSize: number
+  mobileHeroCopySize: number
+  mobileSearchScale: number
 }
 
 const heroImage =
   'https://images.unsplash.com/photo-1742747215638-0105cbcd2645?auto=format&fit=crop&q=80&w=2200'
+
+const defaultSiteContent: SiteContentSettings = {
+  heroEyebrow: '留学生经验分享与问题解决平台',
+  heroTitle: '留学生的第一站',
+  heroCopy: '签证、租房、入学、打工、保险、银行卡、毕业、就业，真实留学生经验帮你少走弯路。',
+  heroSubcopy: '你可以在这里提问，也可以分享自己的留学经验，通过高质量回答和经验帖获得收益。',
+  searchPlaceholder: '搜索：D-2签证、租房保证金、外国人登录证、打工、论文延期...',
+  askButtonText: '我要提问',
+  shareButtonText: '我要分享经验赚钱',
+  metricAskTitle: '提问',
+  metricAskCopy: '把签证、租房、入学和生活问题讲清楚',
+  metricExperienceTitle: '经验',
+  metricExperienceCopy: '真实留学生复盘避坑、流程和材料细节',
+  metricRewardTitle: '收益',
+  metricRewardCopy: '被采纳回答、悬赏问答和精华攻略获得回报',
+  mobileLogoWidth: 82,
+  mobileHeroTitleSize: 50,
+  mobileHeroCopySize: 32,
+  mobileSearchScale: 1.3,
+}
+
+const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteContentSettings => ({
+  ...defaultSiteContent,
+  ...(content ?? {}),
+  mobileLogoWidth: Math.min(110, Math.max(48, Number(content?.mobileLogoWidth ?? defaultSiteContent.mobileLogoWidth))),
+  mobileHeroTitleSize: Math.min(
+    72,
+    Math.max(34, Number(content?.mobileHeroTitleSize ?? defaultSiteContent.mobileHeroTitleSize)),
+  ),
+  mobileHeroCopySize: Math.min(48, Math.max(18, Number(content?.mobileHeroCopySize ?? defaultSiteContent.mobileHeroCopySize))),
+  mobileSearchScale: Math.min(2.2, Math.max(0.9, Number(content?.mobileSearchScale ?? defaultSiteContent.mobileSearchScale))),
+})
 
 const storageKey = 'shouye-platform-mvp-v1'
 const adminSessionKey = 'shouye-platform-admin-session'
@@ -1707,12 +1760,26 @@ const normalizeUser = (user: Partial<User>): User => ({
 
 const initialState = (): StoredState => {
   if (typeof window === 'undefined') {
-    return { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
+    return {
+      users: [],
+      posts: seedPosts,
+      partnerApplications: [],
+      currentUserId: null,
+      unlockedPostIds: {},
+      siteContent: defaultSiteContent,
+    }
   }
 
   const saved = window.localStorage.getItem(storageKey)
   if (!saved) {
-    return { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
+    return {
+      users: [],
+      posts: seedPosts,
+      partnerApplications: [],
+      currentUserId: null,
+      unlockedPostIds: {},
+      siteContent: defaultSiteContent,
+    }
   }
 
   try {
@@ -1723,9 +1790,17 @@ const initialState = (): StoredState => {
       partnerApplications: parsed.partnerApplications ?? [],
       currentUserId: parsed.currentUserId ?? null,
       unlockedPostIds: parsed.unlockedPostIds ?? {},
+      siteContent: normalizeSiteContent(parsed.siteContent),
     }
   } catch {
-    return { users: [], posts: seedPosts, partnerApplications: [], currentUserId: null, unlockedPostIds: {} }
+    return {
+      users: [],
+      posts: seedPosts,
+      partnerApplications: [],
+      currentUserId: null,
+      unlockedPostIds: {},
+      siteContent: defaultSiteContent,
+    }
   }
 }
 
@@ -1772,7 +1847,8 @@ function App() {
   const [adminOpen, setAdminOpen] = useState(() => isAdminRoute && Boolean(initialAdminToken))
   const [adminLoginOpen, setAdminLoginOpen] = useState(() => isAdminRoute && !initialAdminToken)
   const [adminToken, setAdminToken] = useState(initialAdminToken)
-  const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'partners'>('users')
+  const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'partners' | 'content'>('users')
+  const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [, setMessage] = useState('')
@@ -1831,6 +1907,20 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(appState))
   }, [appState])
+
+  useEffect(() => {
+    fetch('/api/site-content')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { siteContent?: Partial<SiteContentSettings> } | null) => {
+        if (!data?.siteContent) return
+        const nextContent = normalizeSiteContent(data.siteContent)
+        setAppState((state) => ({ ...state, siteContent: nextContent }))
+        setContentDraft(nextContent)
+      })
+      .catch(() => {
+        // Local saved content keeps the page editable when the API is unavailable.
+      })
+  }, [])
 
   useEffect(() => {
     const syncPath = () => {
@@ -1977,6 +2067,13 @@ function App() {
     ? appState.posts.find((post) => post.id === decodeURIComponent(postRouteId)) ??
       seedPosts.find((post) => post.id === decodeURIComponent(postRouteId))
     : undefined
+  const siteContent = normalizeSiteContent(appState.siteContent)
+  const heroStyle = {
+    '--mobile-logo-width': `${siteContent.mobileLogoWidth}vw`,
+    '--mobile-hero-title-size': `${siteContent.mobileHeroTitleSize}px`,
+    '--mobile-hero-copy-size': `${siteContent.mobileHeroCopySize}px`,
+    '--mobile-search-scale': siteContent.mobileSearchScale,
+  } as CSSProperties
   const selectedSchoolPosts = appState.posts.filter((post) => post.school === selectedSchool.name)
   const currentUserPosts = currentUser
     ? appState.posts.filter((post) => post.authorId === currentUser.id || post.author === currentUser.name)
@@ -2152,6 +2249,44 @@ function App() {
     setMessage('后台已删除帖子。')
   }
 
+  const updateContentDraft = <Key extends keyof SiteContentSettings>(key: Key, value: SiteContentSettings[Key]) => {
+    setContentDraft((draft) => normalizeSiteContent({ ...draft, [key]: value }))
+  }
+
+  const saveSiteContent = async () => {
+    const nextContent = normalizeSiteContent(contentDraft)
+    setAppState((state) => ({ ...state, siteContent: nextContent }))
+
+    if (!adminToken) {
+      setMessage('内容已保存到当前浏览器。登录后台后可保存到线上数据库。')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/admin/site-content', {
+        body: JSON.stringify({ siteContent: nextContent }),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PUT',
+      })
+      if (!response.ok) throw new Error('site-content-save-failed')
+      const data = (await response.json()) as { siteContent?: Partial<SiteContentSettings> }
+      const savedContent = normalizeSiteContent(data.siteContent ?? nextContent)
+      setContentDraft(savedContent)
+      setAppState((state) => ({ ...state, siteContent: savedContent }))
+      setMessage('网站内容设置已保存，刷新后仍然生效。')
+    } catch {
+      setMessage('内容已先保存到当前浏览器，线上保存失败，请稍后重试。')
+    }
+  }
+
+  const resetSiteContentDraft = () => {
+    setContentDraft(defaultSiteContent)
+    setMessage('已恢复默认草稿，点保存后才会生效。')
+  }
+
   const openSchoolPage = (school: SchoolProfile) => {
     if (school.id === 'konkuk') {
       navigateToPath('/schools/konkuk')
@@ -2191,13 +2326,21 @@ function App() {
       headers: { authorization: `Bearer ${token}` },
     })
     if (!response.ok) throw new Error('admin-state-failed')
-    const data = (await response.json()) as { users: User[]; posts: Post[]; partnerApplications?: PartnerApplication[] }
+    const data = (await response.json()) as {
+      users: User[]
+      posts: Post[]
+      partnerApplications?: PartnerApplication[]
+      siteContent?: Partial<SiteContentSettings>
+    }
+    const nextSiteContent = normalizeSiteContent(data.siteContent ?? appState.siteContent)
     setAppState((state) => ({
       ...state,
       users: data.users ?? state.users,
       posts: data.posts?.length ? data.posts : state.posts,
       partnerApplications: data.partnerApplications ?? state.partnerApplications,
+      siteContent: nextSiteContent,
     }))
+    setContentDraft(nextSiteContent)
   }
 
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
@@ -2814,7 +2957,7 @@ function App() {
         )}
       </header>
 
-      <section className="hero-section" id="top">
+      <section className="hero-section" id="top" style={heroStyle}>
         <img className="hero-image" src={heroImage} alt="韩国延世大学校园建筑" />
         <div className="hero-overlay" />
         <img
@@ -2835,14 +2978,10 @@ function App() {
             alt="售业"
             aria-hidden="true"
           />
-          <p className="eyebrow hero-eyebrow">留学生经验分享与问题解决平台</p>
-          <h1>留学生的第一站</h1>
-          <p className="hero-copy">
-            签证、租房、入学、打工、保险、银行卡、毕业、就业，真实留学生经验帮你少走弯路。
-          </p>
-          <p className="hero-subcopy hero-subcopy-top">
-            你可以在这里提问，也可以分享自己的留学经验，通过高质量回答和经验帖获得收益。
-          </p>
+          <p className="eyebrow hero-eyebrow">{siteContent.heroEyebrow}</p>
+          <h1>{siteContent.heroTitle}</h1>
+          <p className="hero-copy">{siteContent.heroCopy}</p>
+          <p className="hero-subcopy hero-subcopy-top">{siteContent.heroSubcopy}</p>
 
           <form
             className="search-shell"
@@ -2856,7 +2995,7 @@ function App() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="搜索：D-2签证、租房保证金、外国人登录证、打工、论文延期..."
+              placeholder={siteContent.searchPlaceholder}
               aria-label="搜索留学问题、经验和分类"
             />
             <button type="submit">搜索</button>
@@ -2864,26 +3003,26 @@ function App() {
 
           <div className="hero-actions" aria-label="Quick actions">
             <button className="primary-link" type="button" onClick={() => navigateToPath('/questions')}>
-              我要提问
+              {siteContent.askButtonText}
               <MessageSquareText size={18} aria-hidden="true" />
             </button>
             <button className="secondary-link" type="button" onClick={() => setPublishOpen(true)}>
-              我要分享经验赚钱
+              {siteContent.shareButtonText}
               <PenLine size={18} aria-hidden="true" />
             </button>
           </div>
           <div className="hero-metrics" aria-label="平台能力概览">
             <div>
-              <strong>提问</strong>
-              <span>把签证、租房、入学和生活问题讲清楚</span>
+              <strong>{siteContent.metricAskTitle}</strong>
+              <span>{siteContent.metricAskCopy}</span>
             </div>
             <div className="metric-stacked">
-              <strong>经验</strong>
-              <span>真实留学生复盘避坑、流程和材料细节</span>
+              <strong>{siteContent.metricExperienceTitle}</strong>
+              <span>{siteContent.metricExperienceCopy}</span>
             </div>
             <div>
-              <strong>收益</strong>
-              <span>被采纳回答、悬赏问答和精华攻略获得回报</span>
+              <strong>{siteContent.metricRewardTitle}</strong>
+              <span>{siteContent.metricRewardCopy}</span>
             </div>
           </div>
         </motion.div>
@@ -4372,6 +4511,13 @@ function App() {
               >
                 合作申请
               </button>
+              <button
+                className={adminTab === 'content' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('content')}
+              >
+                内容设置
+              </button>
             </div>
 
             {adminTab === 'users' ? (
@@ -4625,7 +4771,7 @@ function App() {
                   </div>
                 ))}
               </div>
-            ) : (
+            ) : adminTab === 'partners' ? (
               <div className="admin-table admin-partner-table">
                 <div className="admin-row admin-row-head">
                   <span>机构</span>
@@ -4654,6 +4800,169 @@ function App() {
                     </div>
                   ))
                 )}
+              </div>
+            ) : (
+              <div className="admin-content-panel">
+                <div className="admin-content-head">
+                  <div>
+                    <p className="eyebrow dark">可视化改网站</p>
+                    <h3>首页文案和手机端尺寸</h3>
+                  </div>
+                  <div className="admin-content-actions">
+                    <button type="button" onClick={resetSiteContentDraft}>
+                      恢复默认
+                    </button>
+                    <button className="primary-admin-button" type="button" onClick={saveSiteContent}>
+                      保存到网站
+                    </button>
+                  </div>
+                </div>
+                <p className="admin-content-note">
+                  这里保存后会写入线上数据库。以后你想改首页大标题、按钮文字、搜索提示、手机端字号和搜索框大小，直接在这里改，不需要碰 TSX。
+                </p>
+
+                <div className="admin-content-grid">
+                  <label>
+                    顶部小字
+                    <input
+                      value={contentDraft.heroEyebrow}
+                      onChange={(event) => updateContentDraft('heroEyebrow', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    首页大标题
+                    <input
+                      value={contentDraft.heroTitle}
+                      onChange={(event) => updateContentDraft('heroTitle', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    主标题下面的大字
+                    <textarea
+                      rows={3}
+                      value={contentDraft.heroCopy}
+                      onChange={(event) => updateContentDraft('heroCopy', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    搜索框上方说明
+                    <textarea
+                      rows={2}
+                      value={contentDraft.heroSubcopy}
+                      onChange={(event) => updateContentDraft('heroSubcopy', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    搜索框提示文字
+                    <input
+                      value={contentDraft.searchPlaceholder}
+                      onChange={(event) => updateContentDraft('searchPlaceholder', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    蓝色按钮
+                    <input
+                      value={contentDraft.askButtonText}
+                      onChange={(event) => updateContentDraft('askButtonText', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    红色按钮
+                    <input
+                      value={contentDraft.shareButtonText}
+                      onChange={(event) => updateContentDraft('shareButtonText', event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-content-grid">
+                  <label>
+                    第一组大字
+                    <input
+                      value={contentDraft.metricAskTitle}
+                      onChange={(event) => updateContentDraft('metricAskTitle', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    第一组小字
+                    <input
+                      value={contentDraft.metricAskCopy}
+                      onChange={(event) => updateContentDraft('metricAskCopy', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    第二组大字
+                    <input
+                      value={contentDraft.metricExperienceTitle}
+                      onChange={(event) => updateContentDraft('metricExperienceTitle', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    第二组小字
+                    <input
+                      value={contentDraft.metricExperienceCopy}
+                      onChange={(event) => updateContentDraft('metricExperienceCopy', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    第三组大字
+                    <input
+                      value={contentDraft.metricRewardTitle}
+                      onChange={(event) => updateContentDraft('metricRewardTitle', event.target.value)}
+                    />
+                  </label>
+                  <label>
+                    第三组小字
+                    <input
+                      value={contentDraft.metricRewardCopy}
+                      onChange={(event) => updateContentDraft('metricRewardCopy', event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-content-grid admin-slider-grid">
+                  <label>
+                    手机 LOGO 宽度：{contentDraft.mobileLogoWidth}vw
+                    <input
+                      max="110"
+                      min="48"
+                      type="range"
+                      value={contentDraft.mobileLogoWidth}
+                      onChange={(event) => updateContentDraft('mobileLogoWidth', Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    手机标题字号：{contentDraft.mobileHeroTitleSize}px
+                    <input
+                      max="72"
+                      min="34"
+                      type="range"
+                      value={contentDraft.mobileHeroTitleSize}
+                      onChange={(event) => updateContentDraft('mobileHeroTitleSize', Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    手机副标题字号：{contentDraft.mobileHeroCopySize}px
+                    <input
+                      max="48"
+                      min="18"
+                      type="range"
+                      value={contentDraft.mobileHeroCopySize}
+                      onChange={(event) => updateContentDraft('mobileHeroCopySize', Number(event.target.value))}
+                    />
+                  </label>
+                  <label>
+                    手机搜索框大小：{contentDraft.mobileSearchScale.toFixed(1)} 倍
+                    <input
+                      max="2.2"
+                      min="0.9"
+                      step="0.1"
+                      type="range"
+                      value={contentDraft.mobileSearchScale}
+                      onChange={(event) => updateContentDraft('mobileSearchScale', Number(event.target.value))}
+                    />
+                  </label>
+                </div>
               </div>
             )}
             <p className="admin-footnote">注册账号、合作申请、积分和帖子管理会统一保存，方便后续审核和运营。</p>

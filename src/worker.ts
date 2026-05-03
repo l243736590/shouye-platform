@@ -62,6 +62,58 @@ type PostRecord = {
   featured: boolean
 }
 
+type SiteContentSettings = {
+  heroEyebrow: string
+  heroTitle: string
+  heroCopy: string
+  heroSubcopy: string
+  searchPlaceholder: string
+  askButtonText: string
+  shareButtonText: string
+  metricAskTitle: string
+  metricAskCopy: string
+  metricExperienceTitle: string
+  metricExperienceCopy: string
+  metricRewardTitle: string
+  metricRewardCopy: string
+  mobileLogoWidth: number
+  mobileHeroTitleSize: number
+  mobileHeroCopySize: number
+  mobileSearchScale: number
+}
+
+const defaultSiteContent: SiteContentSettings = {
+  heroEyebrow: '留学生经验分享与问题解决平台',
+  heroTitle: '留学生的第一站',
+  heroCopy: '签证、租房、入学、打工、保险、银行卡、毕业、就业，真实留学生经验帮你少走弯路。',
+  heroSubcopy: '你可以在这里提问，也可以分享自己的留学经验，通过高质量回答和经验帖获得收益。',
+  searchPlaceholder: '搜索：D-2签证、租房保证金、外国人登录证、打工、论文延期...',
+  askButtonText: '我要提问',
+  shareButtonText: '我要分享经验赚钱',
+  metricAskTitle: '提问',
+  metricAskCopy: '把签证、租房、入学和生活问题讲清楚',
+  metricExperienceTitle: '经验',
+  metricExperienceCopy: '真实留学生复盘避坑、流程和材料细节',
+  metricRewardTitle: '收益',
+  metricRewardCopy: '被采纳回答、悬赏问答和精华攻略获得回报',
+  mobileLogoWidth: 82,
+  mobileHeroTitleSize: 50,
+  mobileHeroCopySize: 32,
+  mobileSearchScale: 1.3,
+}
+
+const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteContentSettings => ({
+  ...defaultSiteContent,
+  ...(content ?? {}),
+  mobileLogoWidth: Math.min(110, Math.max(48, Number(content?.mobileLogoWidth ?? defaultSiteContent.mobileLogoWidth))),
+  mobileHeroTitleSize: Math.min(
+    72,
+    Math.max(34, Number(content?.mobileHeroTitleSize ?? defaultSiteContent.mobileHeroTitleSize)),
+  ),
+  mobileHeroCopySize: Math.min(48, Math.max(18, Number(content?.mobileHeroCopySize ?? defaultSiteContent.mobileHeroCopySize))),
+  mobileSearchScale: Math.min(2.2, Math.max(0.9, Number(content?.mobileSearchScale ?? defaultSiteContent.mobileSearchScale))),
+})
+
 const json = (data: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(data), {
     ...init,
@@ -180,6 +232,45 @@ const getPartnerApplications = async (env: Env) => {
     Record<string, unknown>
   >()
   return (rows.results ?? []).map(rowToPartnerApplication)
+}
+
+const ensureSiteSettingsTable = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS site_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+  ).run()
+}
+
+const getSiteContent = async (env: Env) => {
+  if (!env.DB) return defaultSiteContent
+  try {
+    await ensureSiteSettingsTable(env)
+    const row = await env.DB.prepare('SELECT value FROM site_settings WHERE key = ?').bind('site_content').first<{
+      value: string
+    }>()
+    if (!row?.value) return defaultSiteContent
+    return normalizeSiteContent(JSON.parse(row.value) as Partial<SiteContentSettings>)
+  } catch {
+    return defaultSiteContent
+  }
+}
+
+const saveSiteContent = async (env: Env, siteContent: Partial<SiteContentSettings>) => {
+  if (!env.DB) return defaultSiteContent
+  await ensureSiteSettingsTable(env)
+  const nextContent = normalizeSiteContent(siteContent)
+  await env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at)
+     VALUES (?, ?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+  )
+    .bind('site_content', JSON.stringify(nextContent), new Date().toISOString())
+    .run()
+  return nextContent
 }
 
 const sendVerificationEmail = async (env: Env, email: string, code: string) => {
@@ -646,6 +737,9 @@ export default {
     }
 
     if (url.pathname === '/api/health') return json({ ok: true })
+    if (url.pathname === '/api/site-content' && request.method === 'GET') {
+      return json({ siteContent: await getSiteContent(env) })
+    }
     if (url.pathname === '/api/posts' && request.method === 'GET') return json({ posts: await getAllPosts(env) })
     if (url.pathname === '/api/auth/send-code' && request.method === 'POST') {
       return handleSendVerificationCode(request, env)
@@ -673,7 +767,13 @@ export default {
           users: await getAllUsers(env),
           posts: await getAllPosts(env),
           partnerApplications: await getPartnerApplications(env),
+          siteContent: await getSiteContent(env),
         })
+      }
+
+      if (url.pathname === '/api/admin/site-content' && request.method === 'PUT') {
+        const body = await readBody<{ siteContent: Partial<SiteContentSettings> }>(request)
+        return json({ siteContent: await saveSiteContent(env, body.siteContent ?? {}) })
       }
 
       const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/)
