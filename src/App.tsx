@@ -2113,7 +2113,7 @@ function App() {
             <span className="sr-only">售业</span>
             <img
               className="hero-title-logo"
-              src="/brand/shouye-logo-light-text.png"
+              src="/brand/shouye-logo-text-light.png"
               alt=""
               aria-hidden="true"
             />
@@ -2839,7 +2839,7 @@ function App() {
         <div className="trust-panel">
           <img
             className="trust-brand-logo"
-            src="/brand/shouye-logo-light-wordmark.png"
+            src="/brand/shouye-logo-full-light.png"
             alt="售业 Sell what you know"
           />
           <ShieldCheck size={30} aria-hidden="true" />
