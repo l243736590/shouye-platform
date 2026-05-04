@@ -29,6 +29,8 @@ import { getSchoolTopicBySlug, type SchoolTopic } from './data/schools'
 
 type UserStatus = 'active' | 'muted' | 'banned'
 type VerificationStatus = 'pending' | 'approved' | 'rejected'
+type AuthUserType = 'student' | 'merchant'
+type StudentStage = 'preparing' | 'admitted' | 'language_school' | 'undergraduate' | 'graduate' | 'graduated'
 
 type CredentialDocument = {
   id: string
@@ -250,6 +252,25 @@ const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteConte
 const storageKey = 'shouye-platform-mvp-v1'
 const adminSessionKey = 'shouye-platform-admin-session'
 const registerBonusPoints = 30
+const studentStageOptions: { label: string; value: StudentStage }[] = [
+  { label: '准备申请', value: 'preparing' },
+  { label: '已录取待入学', value: 'admitted' },
+  { label: '语学院', value: 'language_school' },
+  { label: '本科', value: 'undergraduate' },
+  { label: '大学院', value: 'graduate' },
+  { label: '已毕业', value: 'graduated' },
+]
+
+const studentStageLabels: Record<StudentStage, string> = {
+  preparing: '准备申请',
+  admitted: '已录取待入学',
+  language_school: '语学院',
+  undergraduate: '本科',
+  graduate: '大学院',
+  graduated: '已毕业',
+}
+
+const businessCategoryOptions = ['租房', '搬家', '手机卡', '银行/金融', '保险', '翻译', '升学服务', '生活服务', '其他']
 const postApprovedBonusPoints = 10
 const rechargePointsPerYuan = 10
 const cashoutPointsPerYuan = 100 / 6
@@ -2948,18 +2969,24 @@ function App() {
   const [authNotice, setAuthNotice] = useState('')
 
   const [authForm, setAuthForm] = useState({
+    userType: 'student' as AuthUserType,
+    studentStage: 'preparing' as StudentStage,
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     emailCode: '',
-    identity: '准备申请',
     school: '',
+    businessName: '',
+    businessCategory: '租房',
+    country: '韩国',
+    city: '',
     avatarUrl: '',
     bio: '',
-    documents: [] as CredentialDocument[],
   })
   const [pendingEmail, setPendingEmail] = useState('')
+  const [emailCodeSending, setEmailCodeSending] = useState(false)
+  const [emailCodeCooldown, setEmailCodeCooldown] = useState(0)
   const [pointDrafts, setPointDrafts] = useState<Record<string, string>>({})
   const [earningPointDrafts, setEarningPointDrafts] = useState<Record<string, string>>({})
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
@@ -3097,6 +3124,17 @@ function App() {
     Boolean(pendingEmail) &&
     pendingEmail === normalizedAuthEmail &&
     authForm.emailCode.trim().length === 6
+  const canSendEmailCode =
+    authMode === 'register' &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedAuthEmail) &&
+    !emailCodeSending &&
+    emailCodeCooldown === 0
+
+  useEffect(() => {
+    if (emailCodeCooldown <= 0) return
+    const timer = window.setTimeout(() => setEmailCodeCooldown((seconds) => Math.max(0, seconds - 1)), 1000)
+    return () => window.clearTimeout(timer)
+  }, [emailCodeCooldown])
 
   useEffect(() => {
     if (!schoolRouteId || selectedSchoolGalleryLoaded) return
@@ -3637,9 +3675,27 @@ function App() {
       return
     }
 
-    if (pendingEmail !== email || authForm.emailCode.trim().length !== 6) {
+    if (!/^\d{6}$/.test(authForm.emailCode.trim())) {
       setMessage('请先完成邮箱验证码校验。')
       setAuthNotice('请发送验证码，并输入邮箱收到的 6 位数字。')
+      return
+    }
+
+    if (authForm.userType === 'student' && !authForm.studentStage) {
+      setMessage('请选择学生阶段。')
+      setAuthNotice('请选择学生阶段。')
+      return
+    }
+
+    if (authForm.userType === 'merchant' && (!authForm.businessName.trim() || !authForm.businessCategory)) {
+      setMessage('请填写商家/机构名称和服务类型。')
+      setAuthNotice('请填写商家/机构名称和服务类型。')
+      return
+    }
+
+    if (authForm.userType === 'merchant' && (!authForm.country.trim() || !authForm.city.trim())) {
+      setMessage('请填写商家所在国家和城市。')
+      setAuthNotice('请填写商家所在国家和城市。')
       return
     }
 
@@ -3649,26 +3705,52 @@ function App() {
       return
     }
 
+    const userName =
+      authForm.userType === 'merchant'
+        ? authForm.businessName.trim()
+        : authForm.name.trim() || '韩国留学用户'
+    const identity =
+      authForm.userType === 'merchant'
+        ? `商家 · ${authForm.businessCategory}`
+        : studentStageLabels[authForm.studentStage]
+    const school =
+      authForm.userType === 'merchant'
+        ? `${authForm.country.trim()} · ${authForm.city.trim()}`
+        : authForm.school.trim() || '暂未填写'
+
     const user: User = {
       id: createId('user'),
-      name: authForm.name.trim() || '韩国留学用户',
+      name: userName,
       email,
       password,
-      identity: authForm.identity,
-      school: authForm.school.trim() || '暂未填写',
+      identity,
+      school,
       points: registerBonusPoints,
       earningPoints: 0,
       joinedAt: new Date().toISOString(),
       status: 'active',
-      verificationStatus: authForm.documents.length ? 'pending' : 'pending',
+      verificationStatus: 'pending',
       avatarUrl: authForm.avatarUrl.trim(),
       bio: authForm.bio.trim(),
-      documents: authForm.documents,
+      documents: [],
     }
 
     try {
       const response = await fetch('/api/auth/register', {
-        body: JSON.stringify({ ...user, password, emailCode: authForm.emailCode.trim() }),
+        body: JSON.stringify({
+          userType: authForm.userType,
+          studentStage: authForm.userType === 'student' ? authForm.studentStage : undefined,
+          nickname: authForm.userType === 'student' ? userName : undefined,
+          businessName: authForm.userType === 'merchant' ? authForm.businessName.trim() : undefined,
+          businessCategory: authForm.userType === 'merchant' ? authForm.businessCategory : undefined,
+          country: authForm.userType === 'merchant' ? authForm.country.trim() : undefined,
+          city: authForm.userType === 'merchant' ? authForm.city.trim() : undefined,
+          school: authForm.userType === 'student' ? authForm.school.trim() : undefined,
+          email,
+          password,
+          confirmPassword,
+          emailCode: authForm.emailCode.trim(),
+        }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
       })
@@ -3699,11 +3781,15 @@ function App() {
       password: '',
       confirmPassword: '',
       emailCode: '',
-      identity: '准备申请',
+      userType: 'student',
+      studentStage: 'preparing',
       school: '',
+      businessName: '',
+      businessCategory: '租房',
+      country: '韩国',
+      city: '',
       avatarUrl: '',
       bio: '',
-      documents: [],
     })
     setMessage(`注册成功，已获得 ${registerBonusPoints} 消费积分，可用于解锁加精内容。`)
   }
@@ -3725,13 +3811,14 @@ function App() {
       setAuthNotice('这个邮箱已经注册过了，可以直接登录。')
       return
     }
+    setEmailCodeSending(true)
     try {
-      const response = await fetch('/api/auth/send-code', {
+      const response = await fetch('/api/auth/send-email-code', {
         body: JSON.stringify({ email }),
         headers: { 'content-type': 'application/json' },
         method: 'POST',
       })
-      const data = (await response.json()) as { error?: string }
+      const data = (await response.json()) as { error?: string; message?: string }
       if (!response.ok) {
         setAuthNotice(data.error ?? '验证码邮件发送失败。')
         setMessage(data.error ?? '验证码邮件发送失败。')
@@ -3739,11 +3826,14 @@ function App() {
       }
       setPendingEmail(email)
       setAuthForm((form) => ({ ...form, emailCode: '' }))
-      setAuthNotice(`验证码已发送到 ${email}，请在 10 分钟内填写。`)
+      setEmailCodeCooldown(60)
+      setAuthNotice(data.message ?? `验证码已发送到 ${email}，请在 10 分钟内填写。`)
       setMessage(`验证码已发送到 ${email}。`)
     } catch {
       setAuthNotice('验证码邮件发送失败，请稍后再试。')
       setMessage('验证码邮件发送失败，请稍后再试。')
+    } finally {
+      setEmailCodeSending(false)
     }
   }
 
@@ -4876,10 +4966,12 @@ function App() {
                       onChange={(event) => setProfileForm({ ...profileForm, identity: event.target.value })}
                     >
                       <option>准备申请</option>
-                      <option>已录取</option>
-                      <option>在读学生</option>
-                      <option>毕业校友</option>
-                      <option>留学顾问</option>
+                      <option>已录取待入学</option>
+                      <option>语学院</option>
+                      <option>本科</option>
+                      <option>大学院</option>
+                      <option>已毕业</option>
+                      <option>商家</option>
                     </select>
                   </label>
                   <label>
@@ -6614,60 +6706,95 @@ function App() {
               <X size={20} aria-hidden="true" />
             </button>
             <p className="eyebrow dark">{authMode === 'login' ? '登录账号' : '创建账号'}</p>
-            <h2>{authMode === 'login' ? '继续使用你的积分账户。' : '认证后即可分享经验并获得收益。'}</h2>
+            <h2>{authMode === 'login' ? '继续使用你的积分账户。' : '注册后即可提问、分享经验并获得积分。'}</h2>
             <form className="form-stack" onSubmit={handleAuth}>
               {authMode === 'register' && (
                 <>
                   <label>
-                    昵称
-                    <input
-                      value={authForm.name}
-                      onChange={(event) => setAuthForm({ ...authForm, name: event.target.value })}
-                      placeholder="例如：首尔学姐"
-                    />
-                  </label>
-                  <label>
                     身份
                     <select
-                      value={authForm.identity}
-                      onChange={(event) => setAuthForm({ ...authForm, identity: event.target.value })}
+                      value={authForm.userType}
+                      onChange={(event) =>
+                        setAuthForm({ ...authForm, userType: event.target.value as AuthUserType, emailCode: '' })
+                      }
                     >
-                      <option>准备申请</option>
-                      <option>已录取</option>
-                      <option>在读学生</option>
-                      <option>毕业校友</option>
-                      <option>留学顾问</option>
+                      <option value="student">学生</option>
+                      <option value="merchant">商家</option>
                     </select>
                   </label>
-                  <label>
-                    学校 / 目标学校
-                    <input
-                      value={authForm.school}
-                      onChange={(event) => setAuthForm({ ...authForm, school: event.target.value })}
-                      placeholder="例如：延世大学"
-                    />
-                  </label>
-                  <label>
-                    上传认证材料
-                    <input
-                      multiple
-                      type="file"
-                      onChange={(event) => {
-                        const files = Array.from(event.target.files ?? [])
-                        setAuthForm({
-                          ...authForm,
-                          documents: files.map((file) => ({
-                            id: createId('doc'),
-                            name: file.name,
-                            type: file.type || '身份/学校认证材料',
-                            status: 'pending',
-                            uploadedAt: new Date().toISOString(),
-                          })),
-                        })
-                      }}
-                    />
-                    <small className="field-help">可上传学生证、在读证明、Offer、毕业证明等；提交前建议遮挡证件号码等非必要敏感信息。</small>
-                  </label>
+                  {authForm.userType === 'student' ? (
+                    <>
+                      <label>
+                        昵称
+                        <input
+                          value={authForm.name}
+                          onChange={(event) => setAuthForm({ ...authForm, name: event.target.value })}
+                          placeholder="例如：首尔学姐"
+                        />
+                      </label>
+                      <label>
+                        学生阶段
+                        <select
+                          value={authForm.studentStage}
+                          onChange={(event) =>
+                            setAuthForm({ ...authForm, studentStage: event.target.value as StudentStage })
+                          }
+                        >
+                          {studentStageOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        学校 / 目标学校
+                        <input
+                          value={authForm.school}
+                          onChange={(event) => setAuthForm({ ...authForm, school: event.target.value })}
+                          placeholder="例如：延世大学"
+                        />
+                      </label>
+                    </>
+                  ) : (
+                    <>
+                      <label>
+                        商家/机构名称
+                        <input
+                          value={authForm.businessName}
+                          onChange={(event) => setAuthForm({ ...authForm, businessName: event.target.value })}
+                          placeholder="例如：首尔租房服务"
+                        />
+                      </label>
+                      <label>
+                        服务类型
+                        <select
+                          value={authForm.businessCategory}
+                          onChange={(event) => setAuthForm({ ...authForm, businessCategory: event.target.value })}
+                        >
+                          {businessCategoryOptions.map((category) => (
+                            <option key={category}>{category}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        所在国家
+                        <input
+                          value={authForm.country}
+                          onChange={(event) => setAuthForm({ ...authForm, country: event.target.value })}
+                          placeholder="例如：韩国"
+                        />
+                      </label>
+                      <label>
+                        所在城市
+                        <input
+                          value={authForm.city}
+                          onChange={(event) => setAuthForm({ ...authForm, city: event.target.value })}
+                          placeholder="例如：首尔"
+                        />
+                      </label>
+                    </>
+                  )}
                 </>
               )}
               <label>
@@ -6684,8 +6811,8 @@ function App() {
                     autoComplete="email"
                   />
                   {authMode === 'register' && (
-                    <button type="button" onClick={sendEmailCode}>
-                      发送验证码
+                    <button type="button" onClick={sendEmailCode} disabled={!canSendEmailCode}>
+                      {emailCodeSending ? '发送中...' : emailCodeCooldown > 0 ? `${emailCodeCooldown} 秒后重发` : '发送验证码'}
                     </button>
                   )}
                 </div>

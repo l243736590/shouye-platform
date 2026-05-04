@@ -5,6 +5,10 @@ type Env = {
   ADMIN_PASSWORD_HASH: string
   RESEND_API_KEY?: string
   MAIL_FROM?: string
+  EMAIL_PROVIDER?: string
+  SENDGRID_API_KEY?: string
+  MAILGUN_API_KEY?: string
+  MAILGUN_DOMAIN?: string
 }
 
 type UserStatus = 'active' | 'muted' | 'banned'
@@ -538,6 +542,8 @@ const hashText = async (value: string) => {
     .join('')
 }
 
+const emailCodeHash = (email: string, code: string) => hashText(`${email}:${code}`)
+
 const rowToUser = (row: Record<string, unknown>, documents: CredentialDocument[] = []): UserRecord => ({
   id: String(row.id),
   name: String(row.name),
@@ -679,34 +685,94 @@ const saveSiteContent = async (env: Env, siteContent: Partial<SiteContentSetting
   return nextContent
 }
 
+const ensureEmailVerificationTables = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS email_verifications (
+      email TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`,
+  ).run()
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS email_verification_logs (
+      id TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_email_verification_logs_email_created ON email_verification_logs(email, created_at)').run()
+}
+
 const sendVerificationEmail = async (env: Env, email: string, code: string) => {
-  if (!env.RESEND_API_KEY) {
-    return { ok: false, error: '邮件服务暂未开通，请稍后再试。' }
+  const provider = (env.EMAIL_PROVIDER || (env.RESEND_API_KEY ? 'resend' : '')).toLowerCase()
+  const from = env.MAIL_FROM || '留学生经验分享与问题解决平台 <noreply@shouye.fun>'
+  const subject = '留学生经验分享与问题解决平台验证码'
+  const html = `<p>你的平台注册验证码是：</p><h2>${code}</h2><p>验证码 10 分钟内有效。如果不是你本人操作，请忽略这封邮件。</p>`
+
+  if (provider === 'resend' && env.RESEND_API_KEY) {
+    const response = await fetch('https://api.resend.com/emails', {
+      body: JSON.stringify({
+        from,
+        to: [email],
+        subject,
+        html,
+      }),
+      headers: {
+        authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    })
+
+    if (!response.ok) {
+      return { ok: false, error: '验证码邮件发送失败，请检查发件域名和邮件服务配置。' }
+    }
+
+    return { ok: true }
   }
 
-  const response = await fetch('https://api.resend.com/emails', {
-    body: JSON.stringify({
-      from: env.MAIL_FROM || '留学生经验分享与问题解决平台 <noreply@shouye.fun>',
-      to: [email],
-      subject: '留学生经验分享与问题解决平台验证码',
-      html: `<p>你的平台注册验证码是：</p><h2>${code}</h2><p>验证码 10 分钟内有效。</p>`,
-    }),
-    headers: {
-      authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'content-type': 'application/json',
-    },
-    method: 'POST',
-  })
+  if (provider === 'sendgrid' && env.SENDGRID_API_KEY) {
+    const response = await fetch('https://api.sendgrid.com/v3/mail/send', {
+      body: JSON.stringify({
+        personalizations: [{ to: [{ email }] }],
+        from: { email: from.match(/<([^>]+)>/)?.[1] ?? from, name: from.includes('<') ? from.split('<')[0].trim() : undefined },
+        subject,
+        content: [{ type: 'text/html', value: html }],
+      }),
+      headers: {
+        authorization: `Bearer ${env.SENDGRID_API_KEY}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    })
 
-  if (!response.ok) {
-    return { ok: false, error: '验证码邮件发送失败，请检查发件域名和邮件服务配置。' }
+    if (!response.ok) return { ok: false, error: '验证码邮件发送失败，请检查 SendGrid 配置。' }
+    return { ok: true }
   }
 
-  return { ok: true }
+  if (provider === 'mailgun' && env.MAILGUN_API_KEY && env.MAILGUN_DOMAIN) {
+    const form = new URLSearchParams()
+    form.set('from', from)
+    form.set('to', email)
+    form.set('subject', subject)
+    form.set('html', html)
+    const response = await fetch(`https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`, {
+      body: form,
+      headers: { authorization: `Basic ${btoa(`api:${env.MAILGUN_API_KEY}`)}` },
+      method: 'POST',
+    })
+    if (!response.ok) return { ok: false, error: '验证码邮件发送失败，请检查 Mailgun 配置。' }
+    return { ok: true }
+  }
+
+  return { ok: false, error: '邮件发送配置缺失，请联系管理员配置 RESEND_API_KEY、SendGrid 或 Mailgun。' }
 }
 
 const handleSendVerificationCode = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureEmailVerificationTables(env)
   const body = await readBody<{ email: string }>(request)
   const email = body.email?.trim().toLowerCase()
 
@@ -716,8 +782,28 @@ const handleSendVerificationCode = async (request: Request, env: Env) => {
   const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
   if (existing) return json({ error: '这个邮箱已经注册过了，可以直接登录。' }, { status: 409 })
 
-  const code = String(Math.floor(100000 + Math.random() * 900000))
   const now = new Date()
+  const oneHourAgo = new Date(now.getTime() - 1000 * 60 * 60).toISOString()
+  await env.DB.prepare('DELETE FROM email_verification_logs WHERE created_at < ?').bind(oneHourAgo).run()
+  await env.DB.prepare('DELETE FROM email_verifications WHERE expires_at < ?').bind(now.toISOString()).run()
+
+  const currentCode = await env.DB.prepare('SELECT created_at FROM email_verifications WHERE email = ?')
+    .bind(email)
+    .first<{ created_at: string }>()
+  if (currentCode?.created_at && now.getTime() - new Date(currentCode.created_at).getTime() < 1000 * 60) {
+    return json({ error: '验证码发送太频繁，请 60 秒后再试。' }, { status: 429 })
+  }
+
+  const recentCount = await env.DB.prepare(
+    'SELECT COUNT(*) AS count FROM email_verification_logs WHERE email = ? AND created_at >= ?',
+  )
+    .bind(email, oneHourAgo)
+    .first<{ count: number }>()
+  if (Number(recentCount?.count ?? 0) >= 5) {
+    return json({ error: '这个邮箱 1 小时内验证码发送次数已达上限，请稍后再试。' }, { status: 429 })
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000))
   const expiresAt = new Date(now.getTime() + 1000 * 60 * 10)
   const sent = await sendVerificationEmail(env, email, code)
 
@@ -727,28 +813,41 @@ const handleSendVerificationCode = async (request: Request, env: Env) => {
     `INSERT OR REPLACE INTO email_verifications (email, code_hash, expires_at, created_at)
      VALUES (?, ?, ?, ?)`,
   )
-    .bind(email, await hashText(code), expiresAt.toISOString(), now.toISOString())
+    .bind(email, await emailCodeHash(email, code), expiresAt.toISOString(), now.toISOString())
+    .run()
+  await env.DB.prepare('INSERT INTO email_verification_logs (id, email, created_at) VALUES (?, ?, ?)')
+    .bind(createId('email-code'), email, now.toISOString())
     .run()
 
-  return json({ ok: true })
+  return json({ success: true, message: '验证码已发送，请检查邮箱' })
 }
 
 const verifyEmailCode = async (env: Env, email: string, code: string) => {
   if (!env.DB) return false
+  await ensureEmailVerificationTables(env)
+  if (!/^\d{6}$/.test(code)) return false
   const row = await env.DB.prepare('SELECT * FROM email_verifications WHERE email = ?').bind(email).first<
     Record<string, unknown>
   >()
   if (!row) return false
   if (String(row.expires_at) < new Date().toISOString()) return false
-  return String(row.code_hash) === (await hashText(code))
+  return String(row.code_hash) === (await emailCodeHash(email, code))
 }
 
 const handleRegister = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<{
+    userType: 'student' | 'merchant'
+    studentStage?: string
+    nickname?: string
+    businessName?: string
+    businessCategory?: string
+    country?: string
+    city?: string
     name: string
     email: string
     password: string
+    confirmPassword: string
     emailCode: string
     identity: string
     school: string
@@ -758,8 +857,31 @@ const handleRegister = async (request: Request, env: Env) => {
   }>(request)
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
+  const confirmPassword = body.confirmPassword ?? ''
+  const userType = body.userType === 'merchant' ? 'merchant' : 'student'
+  const validStudentStages = new Set(['preparing', 'admitted', 'language_school', 'undergraduate', 'graduate', 'graduated'])
+  const studentStageLabels: Record<string, string> = {
+    preparing: '准备申请',
+    admitted: '已录取待入学',
+    language_school: '语学院',
+    undergraduate: '本科',
+    graduate: '大学院',
+    graduated: '已毕业',
+  }
 
   if (!email || !password) return json({ error: '邮箱和密码不能为空。' }, { status: 400 })
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: '邮箱格式不正确。' }, { status: 400 })
+  if (password.length < 6) return json({ error: '密码至少需要 6 位。' }, { status: 400 })
+  if (password !== confirmPassword) return json({ error: '两次输入的密码不一致。' }, { status: 400 })
+  if (userType === 'student' && (!body.studentStage || !validStudentStages.has(body.studentStage))) {
+    return json({ error: '请选择学生阶段。' }, { status: 400 })
+  }
+  if (userType === 'merchant' && (!body.businessName?.trim() || !body.businessCategory?.trim())) {
+    return json({ error: '请填写商家/机构名称和服务类型。' }, { status: 400 })
+  }
+  if (userType === 'merchant' && (!body.country?.trim() || !body.city?.trim())) {
+    return json({ error: '请填写商家所在国家和城市。' }, { status: 400 })
+  }
   if (!(await verifyEmailCode(env, email, body.emailCode ?? ''))) {
     return json({ error: '邮箱验证码不正确或已过期。' }, { status: 400 })
   }
@@ -769,6 +891,29 @@ const handleRegister = async (request: Request, env: Env) => {
 
   const userId = createId('user')
   const joinedAt = new Date().toISOString()
+  const displayName =
+    userType === 'merchant'
+      ? body.businessName?.trim() || '商家用户'
+      : body.nickname?.trim() || body.name?.trim() || '韩国留学用户'
+  const identity =
+    userType === 'merchant'
+      ? `商家 · ${body.businessCategory?.trim()}`
+      : studentStageLabels[body.studentStage ?? 'preparing']
+  const school =
+    userType === 'merchant'
+      ? `${body.country?.trim()} · ${body.city?.trim()}`
+      : body.school?.trim() || '暂未填写'
+  const bio =
+    userType === 'merchant'
+      ? JSON.stringify({
+          userType,
+          businessName: displayName,
+          businessCategory: body.businessCategory?.trim(),
+          country: body.country?.trim(),
+          city: body.city?.trim(),
+        })
+      : body.bio?.trim() || ''
+
   await env.DB.prepare(
     `INSERT INTO users
       (id, name, email, password_hash, identity, school, points, earning_points, joined_at, status, verification_status, avatar_url, bio)
@@ -776,48 +921,33 @@ const handleRegister = async (request: Request, env: Env) => {
   )
     .bind(
       userId,
-      body.name?.trim() || '韩国留学用户',
+      displayName,
       email,
       await hashText(password),
-      body.identity || '准备申请',
-      body.school?.trim() || '暂未填写',
+      identity,
+      school,
       joinedAt,
       body.avatarUrl?.trim() || '',
-      body.bio?.trim() || '',
+      bio,
     )
     .run()
-
-  for (const document of body.documents ?? []) {
-    await env.DB.prepare(
-      `INSERT INTO user_documents (id, user_id, name, type, status, uploaded_at)
-       VALUES (?, ?, ?, ?, 'pending', ?)`,
-    )
-      .bind(
-        document.id || createId('doc'),
-        userId,
-        document.name || '认证材料',
-        document.type || '身份/学校认证材料',
-        document.uploadedAt || joinedAt,
-      )
-      .run()
-  }
 
   const user = rowToUser(
     {
       id: userId,
-      name: body.name?.trim() || '韩国留学用户',
+      name: displayName,
       email,
-      identity: body.identity || '准备申请',
-      school: body.school?.trim() || '暂未填写',
+      identity,
+      school,
       points: 30,
       earning_points: 0,
       joined_at: joinedAt,
       status: 'active',
       verification_status: 'pending',
       avatar_url: body.avatarUrl?.trim() || '',
-      bio: body.bio?.trim() || '',
+      bio,
     },
-    body.documents ?? [],
+    [],
   )
 
   await env.DB.prepare('DELETE FROM email_verifications WHERE email = ?').bind(email).run()
@@ -1166,7 +1296,10 @@ export default {
       return json({ siteContent: await getSiteContent(env) })
     }
     if (url.pathname === '/api/posts' && request.method === 'GET') return json({ posts: await getAllPosts(env) })
-    if (url.pathname === '/api/auth/send-code' && request.method === 'POST') {
+    if (
+      (url.pathname === '/api/auth/send-code' || url.pathname === '/api/auth/send-email-code') &&
+      request.method === 'POST'
+    ) {
       return handleSendVerificationCode(request, env)
     }
     if (url.pathname === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env)
