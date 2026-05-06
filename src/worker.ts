@@ -95,6 +95,50 @@ type QuestionDisputeRecord = {
   updatedAt: string
 }
 
+type PointOrderRecord = {
+  id: string
+  userId: string
+  userName: string
+  type: 'recharge'
+  amountYuan: number
+  points: number
+  status: 'pending' | 'paid' | 'canceled' | 'refunded'
+  channel: 'manual' | 'wechat' | 'bank'
+  outTradeNo: string
+  adminNote: string
+  createdAt: string
+  updatedAt: string
+  paidAt?: string
+}
+
+type WithdrawalRequestRecord = {
+  id: string
+  userId: string
+  userName: string
+  earningPoints: number
+  amountYuan: number
+  payoutMethod: string
+  accountLabel: string
+  status: 'pending' | 'approved' | 'rejected' | 'paid'
+  adminNote: string
+  createdAt: string
+  updatedAt: string
+  paidAt?: string
+}
+
+type PointLedgerRecord = {
+  id: string
+  userId: string
+  direction: 'credit' | 'debit'
+  accountType: 'points' | 'earning_points'
+  points: number
+  category: string
+  refType: string
+  refId: string
+  note: string
+  createdAt: string
+}
+
 type ContentReportRecord = {
   id: string
   contentType: string
@@ -849,6 +893,50 @@ const rowToQuestionDispute = (row: Record<string, unknown>): QuestionDisputeReco
   updatedAt: String(row.updated_at ?? row.created_at),
 })
 
+const rowToPointOrder = (row: Record<string, unknown>): PointOrderRecord => ({
+  id: String(row.id),
+  userId: String(row.user_id),
+  userName: String(row.user_name ?? ''),
+  type: String(row.type ?? 'recharge') as PointOrderRecord['type'],
+  amountYuan: Number(row.amount_yuan ?? 0),
+  points: Number(row.points ?? 0),
+  status: String(row.status ?? 'pending') as PointOrderRecord['status'],
+  channel: String(row.channel ?? 'manual') as PointOrderRecord['channel'],
+  outTradeNo: String(row.out_trade_no ?? ''),
+  adminNote: String(row.admin_note ?? ''),
+  createdAt: String(row.created_at),
+  updatedAt: String(row.updated_at ?? row.created_at),
+  paidAt: row.paid_at ? String(row.paid_at) : undefined,
+})
+
+const rowToWithdrawalRequest = (row: Record<string, unknown>): WithdrawalRequestRecord => ({
+  id: String(row.id),
+  userId: String(row.user_id),
+  userName: String(row.user_name ?? ''),
+  earningPoints: Number(row.earning_points ?? 0),
+  amountYuan: Number(row.amount_yuan ?? 0),
+  payoutMethod: String(row.payout_method ?? ''),
+  accountLabel: String(row.account_label ?? ''),
+  status: String(row.status ?? 'pending') as WithdrawalRequestRecord['status'],
+  adminNote: String(row.admin_note ?? ''),
+  createdAt: String(row.created_at),
+  updatedAt: String(row.updated_at ?? row.created_at),
+  paidAt: row.paid_at ? String(row.paid_at) : undefined,
+})
+
+const rowToPointLedger = (row: Record<string, unknown>): PointLedgerRecord => ({
+  id: String(row.id),
+  userId: String(row.user_id),
+  direction: String(row.direction ?? 'credit') as PointLedgerRecord['direction'],
+  accountType: String(row.account_type ?? 'points') as PointLedgerRecord['accountType'],
+  points: Number(row.points ?? 0),
+  category: String(row.category ?? ''),
+  refType: String(row.ref_type ?? ''),
+  refId: String(row.ref_id ?? ''),
+  note: String(row.note ?? ''),
+  createdAt: String(row.created_at),
+})
+
 const rowToContentReport = (row: Record<string, unknown>): ContentReportRecord => ({
   id: String(row.id),
   contentType: String(row.content_type),
@@ -1299,6 +1387,124 @@ const getMerchantLeads = async (env: Env) => {
   await ensureMerchantLeadTables(env)
   const rows = await env.DB.prepare('SELECT * FROM merchant_leads ORDER BY created_at DESC').all<Record<string, unknown>>()
   return (rows.results ?? []).map(rowToMerchantLead)
+}
+
+const ensureWalletTables = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS point_orders (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_name TEXT NOT NULL DEFAULT '',
+      type TEXT NOT NULL DEFAULT 'recharge',
+      amount_yuan INTEGER NOT NULL DEFAULT 0,
+      points INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      channel TEXT NOT NULL DEFAULT 'manual',
+      out_trade_no TEXT NOT NULL DEFAULT '',
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      paid_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_point_orders_user ON point_orders(user_id, created_at DESC)').run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_point_orders_status ON point_orders(status, created_at DESC)').run()
+
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS withdrawal_requests (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      user_name TEXT NOT NULL DEFAULT '',
+      earning_points INTEGER NOT NULL DEFAULT 0,
+      amount_yuan INTEGER NOT NULL DEFAULT 0,
+      payout_method TEXT NOT NULL DEFAULT '',
+      account_label TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      paid_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_withdrawal_requests_user ON withdrawal_requests(user_id, created_at DESC)').run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_withdrawal_requests_status ON withdrawal_requests(status, created_at DESC)').run()
+
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS point_ledger (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      account_type TEXT NOT NULL,
+      points INTEGER NOT NULL DEFAULT 0,
+      category TEXT NOT NULL,
+      ref_type TEXT NOT NULL DEFAULT '',
+      ref_id TEXT NOT NULL DEFAULT '',
+      note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_point_ledger_user ON point_ledger(user_id, created_at DESC)').run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_point_ledger_ref ON point_ledger(ref_type, ref_id)').run()
+}
+
+const insertPointLedger = async (
+  env: Env,
+  input: {
+    userId: string
+    direction: PointLedgerRecord['direction']
+    accountType: PointLedgerRecord['accountType']
+    points: number
+    category: string
+    refType?: string
+    refId?: string
+    note?: string
+  },
+) => {
+  if (!env.DB) return
+  await ensureWalletTables(env)
+  await env.DB.prepare(
+    `INSERT INTO point_ledger
+      (id, user_id, direction, account_type, points, category, ref_type, ref_id, note, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      createId('ledger'),
+      input.userId,
+      input.direction,
+      input.accountType,
+      input.points,
+      input.category,
+      input.refType ?? '',
+      input.refId ?? '',
+      input.note ?? '',
+      new Date().toISOString(),
+    )
+    .run()
+}
+
+const getPointOrders = async (env: Env) => {
+  if (!env.DB) return []
+  await ensureWalletTables(env)
+  const rows = await env.DB.prepare('SELECT * FROM point_orders ORDER BY created_at DESC').all<Record<string, unknown>>()
+  return (rows.results ?? []).map(rowToPointOrder)
+}
+
+const getWithdrawalRequests = async (env: Env) => {
+  if (!env.DB) return []
+  await ensureWalletTables(env)
+  const rows = await env.DB.prepare('SELECT * FROM withdrawal_requests ORDER BY created_at DESC').all<Record<string, unknown>>()
+  return (rows.results ?? []).map(rowToWithdrawalRequest)
+}
+
+const getPointLedger = async (env: Env) => {
+  if (!env.DB) return []
+  await ensureWalletTables(env)
+  const rows = await env.DB.prepare('SELECT * FROM point_ledger ORDER BY created_at DESC LIMIT 300').all<Record<string, unknown>>()
+  return (rows.results ?? []).map(rowToPointLedger)
 }
 
 const getContentReports = async (env: Env) => {
@@ -1950,13 +2156,23 @@ const handleQuestionCreate = async (request: Request, env: Env) => {
 
   if (user && question.rewardPoints > 0) {
     const now = new Date().toISOString()
-    await env.DB.prepare('UPDATE users SET points = points - ? WHERE id = ?').bind(question.rewardPoints, user.id).run()
+    await env.DB.prepare('UPDATE users SET points = points - ? WHERE id = ?').bind(question.rewardPoints, String(user.id)).run()
+    await insertPointLedger(env, {
+      userId: String(user.id),
+      direction: 'debit',
+      accountType: 'points',
+      points: question.rewardPoints,
+      category: 'question_bounty_hold',
+      refType: 'question',
+      refId: question.id,
+      note: '发布悬赏问题锁定消费积分',
+    })
     await env.DB.prepare(
       `INSERT INTO question_bounties
         (question_id, asker_user_id, reward_points, status, created_at, updated_at)
         VALUES (?, ?, ?, 'held', ?, ?)`,
     )
-      .bind(question.id, user.id, question.rewardPoints, now, now)
+      .bind(question.id, String(user.id), question.rewardPoints, now, now)
       .run()
   }
 
@@ -2130,6 +2346,16 @@ const handleAnswerAccept = async (request: Request, env: Env, questionId: string
     await env.DB.prepare('UPDATE users SET earning_points = earning_points + ? WHERE id = ?')
       .bind(settledPoints, String(answerRow.author_id))
       .run()
+    await insertPointLedger(env, {
+      userId: String(answerRow.author_id),
+      direction: 'credit',
+      accountType: 'earning_points',
+      points: settledPoints,
+      category: 'answer_accepted',
+      refType: 'question_answer',
+      refId: answerId,
+      note: '回答被采纳获得可提现积分',
+    })
   }
 
   const detail = await getQuestionDetail(env, questionId)
@@ -2169,6 +2395,16 @@ const handleQuestionRefund = async (request: Request, env: Env, questionId: stri
   const now = new Date().toISOString()
   if (bounty.askerUserId) {
     await env.DB.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(bounty.rewardPoints, bounty.askerUserId).run()
+    await insertPointLedger(env, {
+      userId: bounty.askerUserId,
+      direction: 'credit',
+      accountType: 'points',
+      points: bounty.rewardPoints,
+      category: 'question_bounty_refund',
+      refType: 'question',
+      refId: questionId,
+      note: '悬赏未回答退款',
+    })
   }
   await env.DB.prepare("UPDATE question_bounties SET status = 'refunded', updated_at = ? WHERE question_id = ?")
     .bind(now, questionId)
@@ -2294,6 +2530,16 @@ const handlePostUnlock = async (request: Request, env: Env, postId: string) => {
     await env.DB.prepare('UPDATE users SET earning_points = earning_points + ? WHERE id = ?')
       .bind(price, String(post.author_id))
       .run()
+    await insertPointLedger(env, {
+      userId: String(post.author_id),
+      direction: 'credit',
+      accountType: 'earning_points',
+      points: price,
+      category: 'paid_post_unlock',
+      refType: 'post',
+      refId: postId,
+      note: '付费内容解锁收益',
+    })
   }
   await env.DB.prepare('INSERT INTO post_unlocks (user_id, post_id, created_at) VALUES (?, ?, ?)')
     .bind(userId, postId, now)
@@ -2567,6 +2813,149 @@ const handleReactionLike = async (request: Request, env: Env) => {
   return json({ liked: true, alreadyLiked: Boolean(existing), likes: Number(countRow?.count ?? 0) })
 }
 
+const handleRechargeOrderCreate = async (request: Request, env: Env) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureWalletTables(env)
+  const body = await readBody<{ userId: string; amountYuan: number; channel: PointOrderRecord['channel'] }>(request)
+  const userId = body.userId?.trim()
+  const amountYuan = Math.max(0, Math.floor(Number(body.amountYuan) || 0))
+  if (!userId) return json({ error: '请先登录后再充值。' }, { status: 401 })
+  if (amountYuan < 10 || amountYuan > 2000) return json({ error: '单笔充值金额建议在 10～2000 元之间。' }, { status: 400 })
+
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!user) return json({ error: '账号不存在，请重新登录。' }, { status: 404 })
+  const actorKey = await getRequestActorKey(request, userId)
+  const rateError = await enforceRateLimit(env, {
+    actorKey,
+    action: 'wallet:recharge',
+    maxCount: 8,
+    windowSeconds: 60 * 60,
+  })
+  if (rateError) return json({ error: rateError }, { status: 429 })
+
+  const now = new Date().toISOString()
+  const order: PointOrderRecord = {
+    id: createId('order'),
+    userId,
+    userName: String(user.name ?? ''),
+    type: 'recharge',
+    amountYuan,
+    points: amountYuan * 10,
+    status: 'pending',
+    channel: body.channel === 'wechat' || body.channel === 'bank' ? body.channel : 'manual',
+    outTradeNo: '',
+    adminNote: '',
+    createdAt: now,
+    updatedAt: now,
+  }
+  await env.DB.prepare(
+    `INSERT INTO point_orders
+      (id, user_id, user_name, type, amount_yuan, points, status, channel, out_trade_no, admin_note, created_at, updated_at, paid_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      order.id,
+      order.userId,
+      order.userName,
+      order.type,
+      order.amountYuan,
+      order.points,
+      order.status,
+      order.channel,
+      order.outTradeNo,
+      order.adminNote,
+      order.createdAt,
+      order.updatedAt,
+      null,
+    )
+    .run()
+
+  return json({ order, pointOrders: await getPointOrders(env) })
+}
+
+const handleWithdrawalCreate = async (request: Request, env: Env) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureWalletTables(env)
+  const body = await readBody<{ userId: string; earningPoints: number; payoutMethod: string; accountLabel: string }>(request)
+  const userId = body.userId?.trim()
+  const earningPoints = Math.max(0, Math.floor(Number(body.earningPoints) || 0))
+  const payoutMethod = body.payoutMethod?.trim() || '银行账户'
+  const accountLabel = body.accountLabel?.trim() || ''
+  if (!userId) return json({ error: '请先登录后再申请提现。' }, { status: 401 })
+  if (earningPoints < 1700) return json({ error: '可提现积分满 1700 后再申请提现。' }, { status: 400 })
+  if (!accountLabel) return json({ error: '请填写收款方式备注，方便后台核对。' }, { status: 400 })
+
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!user) return json({ error: '账号不存在，请重新登录。' }, { status: 404 })
+  if (Number(user.earning_points ?? 0) < earningPoints) {
+    return json({ error: `可提现积分不足，当前最多可申请 ${Number(user.earning_points ?? 0)} 积分。` }, { status: 400 })
+  }
+
+  const actorKey = await getRequestActorKey(request, userId)
+  const rateError = await enforceRateLimit(env, {
+    actorKey,
+    action: 'wallet:withdraw',
+    maxCount: 3,
+    windowSeconds: 60 * 60 * 24,
+  })
+  if (rateError) return json({ error: rateError }, { status: 429 })
+
+  const now = new Date().toISOString()
+  const requestRecord: WithdrawalRequestRecord = {
+    id: createId('withdraw'),
+    userId,
+    userName: String(user.name ?? ''),
+    earningPoints,
+    amountYuan: Math.floor((earningPoints * 8) / 100),
+    payoutMethod,
+    accountLabel,
+    status: 'pending',
+    adminNote: '',
+    createdAt: now,
+    updatedAt: now,
+  }
+
+  await env.DB.prepare('UPDATE users SET earning_points = earning_points - ? WHERE id = ?')
+    .bind(earningPoints, userId)
+    .run()
+  await env.DB.prepare(
+    `INSERT INTO withdrawal_requests
+      (id, user_id, user_name, earning_points, amount_yuan, payout_method, account_label, status, admin_note, created_at, updated_at, paid_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      requestRecord.id,
+      requestRecord.userId,
+      requestRecord.userName,
+      requestRecord.earningPoints,
+      requestRecord.amountYuan,
+      requestRecord.payoutMethod,
+      requestRecord.accountLabel,
+      requestRecord.status,
+      requestRecord.adminNote,
+      requestRecord.createdAt,
+      requestRecord.updatedAt,
+      null,
+    )
+    .run()
+  await insertPointLedger(env, {
+    userId,
+    direction: 'debit',
+    accountType: 'earning_points',
+    points: earningPoints,
+    category: 'withdrawal_hold',
+    refType: 'withdrawal_request',
+    refId: requestRecord.id,
+    note: '提现申请冻结',
+  })
+
+  return json({
+    withdrawal: requestRecord,
+    withdrawalRequests: await getWithdrawalRequests(env),
+    users: await getAllUsers(env),
+  })
+}
+
 const updateProfile = async (request: Request, env: Env, userId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<Partial<UserRecord>>(request)
@@ -2733,9 +3122,29 @@ const updateQuestionDispute = async (request: Request, env: Env, disputeId: stri
         )
           .bind(bounty.rewardPoints, bounty.rewardPoints, bounty.answererUserId)
           .run()
+        await insertPointLedger(env, {
+          userId: bounty.answererUserId,
+          direction: 'debit',
+          accountType: 'earning_points',
+          points: bounty.rewardPoints,
+          category: 'bounty_dispute_clawback',
+          refType: 'question_dispute',
+          refId: disputeId,
+          note: '申诉退款扣回已结算收益',
+        })
       }
       if (bounty.askerUserId && (bounty.status === 'held' || bounty.status === 'disputed' || bounty.status === 'settled')) {
         await env.DB.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(bounty.rewardPoints, bounty.askerUserId).run()
+        await insertPointLedger(env, {
+          userId: bounty.askerUserId,
+          direction: 'credit',
+          accountType: 'points',
+          points: bounty.rewardPoints,
+          category: 'bounty_dispute_refund',
+          refType: 'question_dispute',
+          refId: disputeId,
+          note: '申诉成立退回悬赏积分',
+        })
       }
       await env.DB.prepare("UPDATE question_bounties SET status = 'refunded', updated_at = ? WHERE question_id = ?")
         .bind(now, dispute.questionId)
@@ -2757,6 +3166,121 @@ const updateQuestionDispute = async (request: Request, env: Env, disputeId: stri
   return json({
     questionDisputes: await getQuestionDisputes(env),
     questionBounties: await getQuestionBounties(env),
+    users: await getAllUsers(env),
+  })
+}
+
+const updatePointOrder = async (request: Request, env: Env, orderId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureWalletTables(env)
+  const body = await readBody<Partial<PointOrderRecord>>(request)
+  const orderRow = await env.DB.prepare('SELECT * FROM point_orders WHERE id = ?')
+    .bind(orderId)
+    .first<Record<string, unknown>>()
+  if (!orderRow) return json({ error: '充值订单不存在。' }, { status: 404 })
+  const order = rowToPointOrder(orderRow)
+  const nextStatus = body.status ?? order.status
+  const now = new Date().toISOString()
+
+  if (nextStatus === 'paid' && order.status !== 'paid') {
+    await env.DB.prepare('UPDATE users SET points = points + ? WHERE id = ?').bind(order.points, order.userId).run()
+    await insertPointLedger(env, {
+      userId: order.userId,
+      direction: 'credit',
+      accountType: 'points',
+      points: order.points,
+      category: 'recharge_paid',
+      refType: 'point_order',
+      refId: order.id,
+      note: '充值订单确认入账',
+    })
+  }
+
+  if (nextStatus === 'refunded' && order.status === 'paid') {
+    await env.DB.prepare(
+      `UPDATE users SET points =
+        CASE WHEN points >= ? THEN points - ? ELSE 0 END
+       WHERE id = ?`,
+    )
+      .bind(order.points, order.points, order.userId)
+      .run()
+    await insertPointLedger(env, {
+      userId: order.userId,
+      direction: 'debit',
+      accountType: 'points',
+      points: order.points,
+      category: 'recharge_refunded',
+      refType: 'point_order',
+      refId: order.id,
+      note: '充值订单退款扣回',
+    })
+  }
+
+  await env.DB.prepare(
+    `UPDATE point_orders SET
+      status = COALESCE(?, status),
+      out_trade_no = COALESCE(?, out_trade_no),
+      admin_note = COALESCE(?, admin_note),
+      updated_at = ?,
+      paid_at = CASE WHEN ? = 'paid' AND paid_at IS NULL THEN ? ELSE paid_at END
+     WHERE id = ?`,
+  )
+    .bind(nextStatus, body.outTradeNo ?? null, body.adminNote ?? null, now, nextStatus, now, orderId)
+    .run()
+
+  return json({
+    pointOrders: await getPointOrders(env),
+    pointLedger: await getPointLedger(env),
+    users: await getAllUsers(env),
+  })
+}
+
+const updateWithdrawalRequest = async (request: Request, env: Env, withdrawalId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureWalletTables(env)
+  const body = await readBody<Partial<WithdrawalRequestRecord>>(request)
+  const withdrawalRow = await env.DB.prepare('SELECT * FROM withdrawal_requests WHERE id = ?')
+    .bind(withdrawalId)
+    .first<Record<string, unknown>>()
+  if (!withdrawalRow) return json({ error: '提现申请不存在。' }, { status: 404 })
+  const withdrawal = rowToWithdrawalRequest(withdrawalRow)
+  const nextStatus = body.status ?? withdrawal.status
+  const now = new Date().toISOString()
+
+  if (withdrawal.status === 'paid' && nextStatus !== 'paid') {
+    return json({ error: '已打款的提现申请不能改回其他状态。' }, { status: 400 })
+  }
+
+  if (nextStatus === 'rejected' && withdrawal.status !== 'rejected') {
+    await env.DB.prepare('UPDATE users SET earning_points = earning_points + ? WHERE id = ?')
+      .bind(withdrawal.earningPoints, withdrawal.userId)
+      .run()
+    await insertPointLedger(env, {
+      userId: withdrawal.userId,
+      direction: 'credit',
+      accountType: 'earning_points',
+      points: withdrawal.earningPoints,
+      category: 'withdrawal_rejected',
+      refType: 'withdrawal_request',
+      refId: withdrawal.id,
+      note: '提现驳回退回可提现积分',
+    })
+  }
+
+  await env.DB.prepare(
+    `UPDATE withdrawal_requests SET
+      status = COALESCE(?, status),
+      admin_note = COALESCE(?, admin_note),
+      updated_at = ?,
+      paid_at = CASE WHEN ? = 'paid' AND paid_at IS NULL THEN ? ELSE paid_at END
+     WHERE id = ?`,
+  )
+    .bind(nextStatus, body.adminNote ?? null, now, nextStatus, now, withdrawalId)
+    .run()
+
+  return json({
+    withdrawalRequests: await getWithdrawalRequests(env),
+    pointLedger: await getPointLedger(env),
     users: await getAllUsers(env),
   })
 }
@@ -2837,6 +3361,12 @@ export default {
     if (url.pathname === '/api/questions' && request.method === 'POST') return handleQuestionCreate(request, env)
     if (url.pathname === '/api/reports' && request.method === 'POST') return handleReportCreate(request, env)
     if (url.pathname === '/api/reactions/like' && request.method === 'POST') return handleReactionLike(request, env)
+    if (url.pathname === '/api/wallet/recharge-orders' && request.method === 'POST') {
+      return handleRechargeOrderCreate(request, env)
+    }
+    if (url.pathname === '/api/wallet/withdrawals' && request.method === 'POST') {
+      return handleWithdrawalCreate(request, env)
+    }
     const questionDetailMatch = url.pathname.match(/^\/api\/questions\/([^/]+)$/)
     if (questionDetailMatch && request.method === 'GET') {
       return handleQuestionDetail(env, decodeURIComponent(questionDetailMatch[1]))
@@ -2887,6 +3417,9 @@ export default {
           merchantLeads: await getMerchantLeads(env),
           questionDisputes: await getQuestionDisputes(env),
           questionBounties: await getQuestionBounties(env),
+          pointOrders: await getPointOrders(env),
+          withdrawalRequests: await getWithdrawalRequests(env),
+          pointLedger: await getPointLedger(env),
           siteContent: await getSiteContent(env),
         })
       }
@@ -2923,6 +3456,12 @@ export default {
         await env.DB.prepare('DELETE FROM question_disputes WHERE id = ?').bind(disputeMatch[1]).run()
         return json({ questionDisputes: await getQuestionDisputes(env) })
       }
+
+      const pointOrderMatch = url.pathname.match(/^\/api\/admin\/point-orders\/([^/]+)$/)
+      if (pointOrderMatch && request.method === 'PATCH') return updatePointOrder(request, env, pointOrderMatch[1])
+
+      const withdrawalMatch = url.pathname.match(/^\/api\/admin\/withdrawals\/([^/]+)$/)
+      if (withdrawalMatch && request.method === 'PATCH') return updateWithdrawalRequest(request, env, withdrawalMatch[1])
 
       const partnerMatch = url.pathname.match(/^\/api\/admin\/partners\/([^/]+)$/)
       if (partnerMatch && request.method === 'PATCH') return updatePartnerApplication(request, env, partnerMatch[1])

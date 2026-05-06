@@ -114,6 +114,50 @@ type QuestionDispute = {
   updatedAt: string
 }
 
+type PointOrder = {
+  id: string
+  userId: string
+  userName: string
+  type: 'recharge'
+  amountYuan: number
+  points: number
+  status: 'pending' | 'paid' | 'canceled' | 'refunded'
+  channel: 'manual' | 'wechat' | 'bank'
+  outTradeNo: string
+  adminNote: string
+  createdAt: string
+  updatedAt: string
+  paidAt?: string
+}
+
+type WithdrawalRequest = {
+  id: string
+  userId: string
+  userName: string
+  earningPoints: number
+  amountYuan: number
+  payoutMethod: string
+  accountLabel: string
+  status: 'pending' | 'approved' | 'rejected' | 'paid'
+  adminNote: string
+  createdAt: string
+  updatedAt: string
+  paidAt?: string
+}
+
+type PointLedger = {
+  id: string
+  userId: string
+  direction: 'credit' | 'debit'
+  accountType: 'points' | 'earning_points'
+  points: number
+  category: string
+  refType: string
+  refId: string
+  note: string
+  createdAt: string
+}
+
 type ContentReport = {
   id: string
   contentType: string
@@ -614,6 +658,9 @@ type StoredState = {
   merchantLeads: MerchantLead[]
   questionBounties: QuestionBounty[]
   questionDisputes: QuestionDispute[]
+  pointOrders: PointOrder[]
+  withdrawalRequests: WithdrawalRequest[]
+  pointLedger: PointLedger[]
   reports: ContentReport[]
   currentUserId: string | null
   unlockedPostIds: Record<string, string[]>
@@ -4424,6 +4471,9 @@ const initialState = (): StoredState => {
       merchantLeads: [],
       questionBounties: [],
       questionDisputes: [],
+      pointOrders: [],
+      withdrawalRequests: [],
+      pointLedger: [],
       reports: [],
       currentUserId: null,
       unlockedPostIds: {},
@@ -4442,6 +4492,9 @@ const initialState = (): StoredState => {
       merchantLeads: [],
       questionBounties: [],
       questionDisputes: [],
+      pointOrders: [],
+      withdrawalRequests: [],
+      pointLedger: [],
       reports: [],
       currentUserId: null,
       unlockedPostIds: {},
@@ -4460,6 +4513,9 @@ const initialState = (): StoredState => {
       merchantLeads: parsed.merchantLeads ?? [],
       questionBounties: parsed.questionBounties ?? [],
       questionDisputes: parsed.questionDisputes ?? [],
+      pointOrders: parsed.pointOrders ?? [],
+      withdrawalRequests: parsed.withdrawalRequests ?? [],
+      pointLedger: parsed.pointLedger ?? [],
       reports: parsed.reports ?? [],
       currentUserId: parsed.currentUserId ?? null,
       unlockedPostIds: parsed.unlockedPostIds ?? {},
@@ -4475,6 +4531,9 @@ const initialState = (): StoredState => {
       merchantLeads: [],
       questionBounties: [],
       questionDisputes: [],
+      pointOrders: [],
+      withdrawalRequests: [],
+      pointLedger: [],
       reports: [],
       currentUserId: null,
       unlockedPostIds: {},
@@ -4585,7 +4644,9 @@ function App() {
   const [adminOpen, setAdminOpen] = useState(() => isAdminRoute && Boolean(initialAdminToken))
   const [adminLoginOpen, setAdminLoginOpen] = useState(() => isAdminRoute && !initialAdminToken)
   const [adminToken, setAdminToken] = useState(initialAdminToken)
-  const [adminTab, setAdminTab] = useState<'users' | 'posts' | 'reports' | 'partners' | 'leads' | 'settlement' | 'content'>('users')
+  const [adminTab, setAdminTab] = useState<
+    'users' | 'posts' | 'reports' | 'partners' | 'leads' | 'settlement' | 'payments' | 'content'
+  >('users')
   const [leadSearch, setLeadSearch] = useState('')
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | MerchantLead['status']>('all')
   const [leadAssigneeFilter, setLeadAssigneeFilter] = useState('全部')
@@ -4625,6 +4686,12 @@ function App() {
   const [emailCodeCooldown, setEmailCodeCooldown] = useState(0)
   const [pointDrafts, setPointDrafts] = useState<Record<string, string>>({})
   const [earningPointDrafts, setEarningPointDrafts] = useState<Record<string, string>>({})
+  const [rechargeAmount, setRechargeAmount] = useState('50')
+  const [withdrawalForm, setWithdrawalForm] = useState({
+    earningPoints: String(minimumCashoutPoints),
+    payoutMethod: '银行账户',
+    accountLabel: '',
+  })
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
   const [failedSchoolImageUrls, setFailedSchoolImageUrls] = useState<Record<string, boolean>>({})
   const [schoolHeroSlideIndex, setSchoolHeroSlideIndex] = useState(0)
@@ -4795,6 +4862,12 @@ function App() {
     const matchesAssignee = leadAssigneeFilter === '全部' || lead.assignedTo === leadAssigneeFilter
     return matchesSearch && matchesStatus && matchesAssignee
   })
+  const currentUserPointOrders = currentUser
+    ? appState.pointOrders.filter((order) => order.userId === currentUser.id).slice(0, 5)
+    : []
+  const currentUserWithdrawals = currentUser
+    ? appState.withdrawalRequests.filter((withdrawal) => withdrawal.userId === currentUser.id).slice(0, 5)
+    : []
   const currentUnlocks = currentUser ? appState.unlockedPostIds[currentUser.id] ?? [] : []
   const decodedSchoolRouteId = schoolRouteId ? decodeURIComponent(schoolRouteId) : ''
   const resolvedSchoolRouteId = decodedSchoolRouteId
@@ -5403,6 +5476,70 @@ function App() {
     }
   }
 
+  const updatePointOrder = (orderId: string, patch: Partial<PointOrder>) => {
+    setAppState((state) => ({
+      ...state,
+      pointOrders: state.pointOrders.map((order) =>
+        order.id === orderId ? { ...order, ...patch, updatedAt: new Date().toISOString() } : order,
+      ),
+    }))
+    if (adminToken) {
+      fetch(`/api/admin/point-orders/${encodeURIComponent(orderId)}`, {
+        body: JSON.stringify(patch),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then(
+          (data: { pointOrders?: PointOrder[]; pointLedger?: PointLedger[]; users?: User[] } | null) => {
+            if (!data) return
+            setAppState((state) => ({
+              ...state,
+              pointOrders: data.pointOrders ?? state.pointOrders,
+              pointLedger: data.pointLedger ?? state.pointLedger,
+              users: data.users ?? state.users,
+            }))
+          },
+        )
+        .catch(() => setMessage('充值订单状态保存失败，请稍后重试。'))
+    }
+  }
+
+  const updateWithdrawalRequest = (withdrawalId: string, patch: Partial<WithdrawalRequest>) => {
+    setAppState((state) => ({
+      ...state,
+      withdrawalRequests: state.withdrawalRequests.map((withdrawal) =>
+        withdrawal.id === withdrawalId ? { ...withdrawal, ...patch, updatedAt: new Date().toISOString() } : withdrawal,
+      ),
+    }))
+    if (adminToken) {
+      fetch(`/api/admin/withdrawals/${encodeURIComponent(withdrawalId)}`, {
+        body: JSON.stringify(patch),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then(
+          (data: { withdrawalRequests?: WithdrawalRequest[]; pointLedger?: PointLedger[]; users?: User[] } | null) => {
+            if (!data) return
+            setAppState((state) => ({
+              ...state,
+              withdrawalRequests: data.withdrawalRequests ?? state.withdrawalRequests,
+              pointLedger: data.pointLedger ?? state.pointLedger,
+              users: data.users ?? state.users,
+            }))
+          },
+        )
+        .catch(() => setMessage('提现申请状态保存失败，请稍后重试。'))
+    }
+  }
+
   const removeQuestionDispute = (disputeId: string) => {
     setAppState((state) => ({
       ...state,
@@ -5594,6 +5731,9 @@ function App() {
       merchantLeads?: MerchantLead[]
       questionBounties?: QuestionBounty[]
       questionDisputes?: QuestionDispute[]
+      pointOrders?: PointOrder[]
+      withdrawalRequests?: WithdrawalRequest[]
+      pointLedger?: PointLedger[]
       siteContent?: Partial<SiteContentSettings>
     }
     const nextSiteContent = normalizeSiteContent(data.siteContent ?? appState.siteContent)
@@ -5606,9 +5746,81 @@ function App() {
       merchantLeads: data.merchantLeads ?? state.merchantLeads,
       questionBounties: data.questionBounties ?? state.questionBounties,
       questionDisputes: data.questionDisputes ?? state.questionDisputes,
+      pointOrders: data.pointOrders ?? state.pointOrders,
+      withdrawalRequests: data.withdrawalRequests ?? state.withdrawalRequests,
+      pointLedger: data.pointLedger ?? state.pointLedger,
       siteContent: nextSiteContent,
     }))
     setContentDraft(nextSiteContent)
+  }
+
+  const submitRechargeOrder = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!currentUser) {
+      setAuthMode('login')
+      setMessage('请先登录后再提交充值申请。')
+      return
+    }
+    const amountYuan = Math.max(0, Math.floor(Number(rechargeAmount) || 0))
+    try {
+      const response = await fetch('/api/wallet/recharge-orders', {
+        body: JSON.stringify({ userId: currentUser.id, amountYuan, channel: 'manual' }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json()) as { order?: PointOrder; pointOrders?: PointOrder[]; error?: string }
+      if (!response.ok || !data.order) {
+        setMessage(data.error ?? '充值申请提交失败，请稍后重试。')
+        return
+      }
+      setAppState((state) => ({
+        ...state,
+        pointOrders: data.pointOrders ?? [data.order!, ...state.pointOrders],
+      }))
+      setMessage(`充值申请已提交：${data.order.amountYuan} 元 / ${data.order.points} 消费积分，后台确认后入账。`)
+    } catch {
+      setMessage('网络连接不稳定，充值申请提交失败。')
+    }
+  }
+
+  const submitWithdrawalRequest = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!currentUser) {
+      setAuthMode('login')
+      setMessage('请先登录后再申请提现。')
+      return
+    }
+    try {
+      const response = await fetch('/api/wallet/withdrawals', {
+        body: JSON.stringify({
+          userId: currentUser.id,
+          earningPoints: Number(withdrawalForm.earningPoints) || 0,
+          payoutMethod: withdrawalForm.payoutMethod,
+          accountLabel: withdrawalForm.accountLabel,
+        }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json()) as {
+        withdrawal?: WithdrawalRequest
+        withdrawalRequests?: WithdrawalRequest[]
+        users?: User[]
+        error?: string
+      }
+      if (!response.ok || !data.withdrawal) {
+        setMessage(data.error ?? '提现申请提交失败，请稍后重试。')
+        return
+      }
+      setAppState((state) => ({
+        ...state,
+        users: data.users ?? state.users,
+        withdrawalRequests: data.withdrawalRequests ?? [data.withdrawal!, ...state.withdrawalRequests],
+      }))
+      setMessage(`提现申请已提交：${data.withdrawal.earningPoints} 可提现积分，进入后台审核。`)
+      setWithdrawalForm((form) => ({ ...form, accountLabel: '' }))
+    } catch {
+      setMessage('网络连接不稳定，提现申请提交失败。')
+    }
   }
 
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
@@ -7422,6 +7634,68 @@ function App() {
             </article>
           </div>
 
+          <div className="reward-rule-list">
+            <article>
+              <span>充值</span>
+              <h3>提交消费积分充值申请</h3>
+              <p>当前 MVP 先记录充值订单，后台核对收款后入账；接入微信支付后会替换为自动回调入账。</p>
+              <form className="form-stack" onSubmit={submitRechargeOrder}>
+                <label>
+                  充值金额
+                  <input
+                    min="10"
+                    max="2000"
+                    type="number"
+                    value={rechargeAmount}
+                    onChange={(event) => setRechargeAmount(event.target.value)}
+                  />
+                </label>
+                <button type="submit">{currentUser ? '提交充值申请' : '登录后充值'}</button>
+              </form>
+              {currentUserPointOrders.length > 0 && (
+                <p>
+                  最近订单：
+                  {currentUserPointOrders
+                    .map((order) => `${order.amountYuan}元/${order.points}积分/${order.status}`)
+                    .join('；')}
+                </p>
+              )}
+            </article>
+            <article>
+              <span>提现</span>
+              <h3>申请可提现积分结算</h3>
+              <p>提现申请会先冻结对应可提现积分，经 7 天沉淀、争议检查和人工审核后处理。</p>
+              <form className="form-stack" onSubmit={submitWithdrawalRequest}>
+                <label>
+                  可提现积分
+                  <input
+                    min={minimumCashoutPoints}
+                    type="number"
+                    value={withdrawalForm.earningPoints}
+                    onChange={(event) => setWithdrawalForm({ ...withdrawalForm, earningPoints: event.target.value })}
+                  />
+                </label>
+                <label>
+                  收款方式备注
+                  <input
+                    value={withdrawalForm.accountLabel}
+                    onChange={(event) => setWithdrawalForm({ ...withdrawalForm, accountLabel: event.target.value })}
+                    placeholder="例如：韩国银行卡尾号/支付宝备注，仅后台可见"
+                  />
+                </label>
+                <button type="submit">{currentUser ? '提交提现申请' : '登录后提现'}</button>
+              </form>
+              {currentUserWithdrawals.length > 0 && (
+                <p>
+                  最近申请：
+                  {currentUserWithdrawals
+                    .map((withdrawal) => `${withdrawal.earningPoints}积分/${withdrawal.status}`)
+                    .join('；')}
+                </p>
+              )}
+            </article>
+          </div>
+
           <section className="points-section wallet-points-section" id="wallet-points">
             <div className="points-copy">
               <p className="eyebrow dark">Business Model</p>
@@ -7497,7 +7771,7 @@ function App() {
             <article>
               <span>6</span>
               <h3>第一版积分激励</h3>
-              <p>当前 MVP 第一版是积分激励体系，用于站内权益、作者等级和后续合作评估，不承诺直接现金提现。</p>
+              <p>当前 MVP 第一版优先验证积分激励和人工审核闭环；可提现积分需满足沉淀期、争议检查和后台审核后才进入结算，不承诺所有积分都可提现。</p>
             </article>
           </div>
         </section>
@@ -7580,7 +7854,7 @@ function App() {
             <article>
               <span>5</span>
               <h3>第一版边界</h3>
-              <p>MVP 第一版只做积分激励和运营验证，不承诺现金提现；重点先证明用户痛点、内容质量和商家连接效率。</p>
+              <p>MVP 第一版优先做积分激励、人工审核和支付提现申请闭环；正式自动支付以支付通道、风控和合规配置完成后为准。</p>
             </article>
           </div>
         </section>
@@ -8606,8 +8880,8 @@ function App() {
                   充值比例 1 元 = {rechargePointsPerYuan} 积分；收益满 {minimumCashoutPoints} 积分可申请提现，约 ¥
                   {Math.floor(minimumCashoutPoints / cashoutPointsPerYuan)} 起。
                 </small>
-                <button type="button" onClick={() => updateUserPoints(currentUser.id, currentUser.points + 100)}>
-                  模拟充值 10 元
+                <button type="button" onClick={() => navigateToPath('/wallet')}>
+                  充值/提现
                 </button>
               </>
             ) : (
@@ -8892,6 +9166,13 @@ function App() {
                 onClick={() => setAdminTab('settlement')}
               >
                 申诉退款
+              </button>
+              <button
+                className={adminTab === 'payments' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('payments')}
+              >
+                支付提现
               </button>
               <button
                 className={adminTab === 'reports' ? 'active' : ''}
@@ -9319,6 +9600,103 @@ function App() {
                       </div>
                     )
                   })
+                )}
+              </div>
+            ) : adminTab === 'payments' ? (
+              <div className="admin-table admin-report-table">
+                <div className="admin-row admin-row-head">
+                  <span>类型</span>
+                  <span>用户</span>
+                  <span>金额/积分</span>
+                  <span>状态</span>
+                  <span>操作</span>
+                </div>
+                {appState.pointOrders.length === 0 && appState.withdrawalRequests.length === 0 ? (
+                  <p className="admin-empty">暂无充值订单或提现申请。</p>
+                ) : (
+                  <>
+                    {appState.pointOrders.map((order) => (
+                      <div className="admin-row" key={order.id}>
+                        <div>
+                          <strong>充值订单</strong>
+                          <small>{order.id}</small>
+                          <small>{new Date(order.createdAt).toLocaleString('zh-CN')}</small>
+                        </div>
+                        <div>
+                          <strong>{order.userName || order.userId}</strong>
+                          <small>{order.channel}</small>
+                        </div>
+                        <div>
+                          <strong>{order.amountYuan} 元</strong>
+                          <small>{order.points} 消费积分</small>
+                        </div>
+                        <select
+                          value={order.status}
+                          onChange={(event) => updatePointOrder(order.id, { status: event.target.value as PointOrder['status'] })}
+                        >
+                          <option value="pending">待确认</option>
+                          <option value="paid">已入账</option>
+                          <option value="canceled">已取消</option>
+                          <option value="refunded">已退款</option>
+                        </select>
+                        <div className="admin-actions">
+                          <input
+                            aria-label={`${order.id} 支付流水号`}
+                            defaultValue={order.outTradeNo}
+                            placeholder="支付流水号"
+                            onBlur={(event) => updatePointOrder(order.id, { outTradeNo: event.currentTarget.value })}
+                          />
+                          <input
+                            aria-label={`${order.id} 管理员备注`}
+                            defaultValue={order.adminNote}
+                            placeholder="后台备注"
+                            onBlur={(event) => updatePointOrder(order.id, { adminNote: event.currentTarget.value })}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {appState.withdrawalRequests.map((withdrawal) => (
+                      <div className="admin-row" key={withdrawal.id}>
+                        <div>
+                          <strong>提现申请</strong>
+                          <small>{withdrawal.id}</small>
+                          <small>{new Date(withdrawal.createdAt).toLocaleString('zh-CN')}</small>
+                        </div>
+                        <div>
+                          <strong>{withdrawal.userName || withdrawal.userId}</strong>
+                          <small>{withdrawal.payoutMethod}</small>
+                          <small>{withdrawal.accountLabel}</small>
+                        </div>
+                        <div>
+                          <strong>{withdrawal.earningPoints} 可提现积分</strong>
+                          <small>约 {withdrawal.amountYuan} 元</small>
+                        </div>
+                        <select
+                          value={withdrawal.status}
+                          onChange={(event) =>
+                            updateWithdrawalRequest(withdrawal.id, {
+                              status: event.target.value as WithdrawalRequest['status'],
+                            })
+                          }
+                        >
+                          <option value="pending">待审核</option>
+                          <option value="approved">已通过</option>
+                          <option value="rejected">已驳回</option>
+                          <option value="paid">已打款</option>
+                        </select>
+                        <div className="admin-actions">
+                          <input
+                            aria-label={`${withdrawal.id} 管理员备注`}
+                            defaultValue={withdrawal.adminNote}
+                            placeholder="审核备注"
+                            onBlur={(event) =>
+                              updateWithdrawalRequest(withdrawal.id, { adminNote: event.currentTarget.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </>
                 )}
               </div>
             ) : adminTab === 'reports' ? (
