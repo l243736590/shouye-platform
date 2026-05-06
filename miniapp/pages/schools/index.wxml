@@ -1,0 +1,35 @@
+<view class="page schools-page">
+  <view class="section-head page-head">
+    <view>
+      <text class="eyebrow">院校入口</text>
+      <text class="h1">先按学校，再按问题类型找经验</text>
+    </view>
+  </view>
+
+  <view class="search-panel card">
+    <input class="search-input" value="{{searchValue}}" bindinput="onSearchInput" placeholder="搜索：中央大学、艺术、经营、语学院..." />
+  </view>
+
+  <scroll-view class="need-scroll" scroll-x enable-flex>
+    <button class="need-chip {{activeNeed === item ? 'active' : ''}}" wx:for="{{needs}}" wx:key="*this" data-need="{{item}}" bindtap="chooseNeed">{{item}}</button>
+  </scroll-view>
+
+  <view class="need-panel dark-card">
+    <text class="need-title">{{activeNeed}}</text>
+    <text class="need-desc">先进入学校页看同校经验，再去对应问题分类查看问答和帖子。</text>
+    <button class="need-button" bindtap="openQuestionsByNeed">查看相关问题</button>
+  </view>
+
+  <view class="school-list">
+    <button class="school-card card" wx:for="{{visibleSchools}}" wx:key="id" data-id="{{item.id}}" bindtap="copySchoolLink">
+      <image class="school-image" src="https://shouye.fun{{item.image}}" mode="aspectFill" />
+      <view class="school-body">
+        <text class="school-name">{{item.name}}</text>
+        <text class="school-meta">{{item.city}} · 专题链接可复制</text>
+        <view class="tag-row">
+          <text class="tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+        </view>
+      </view>
+    </button>
+  </view>
+</view>

@@ -1,0 +1,437 @@
+<view class="menu-page">
+  <block wx:if="{{type === 'menu'}}">
+    <view class="menu-hero compact">
+      <text class="eyebrow">菜单</text>
+      <text class="menu-title">常用功能</text>
+      <text class="menu-intro">查看草稿、浏览记录、已购买服务、钱包和平台规则。</text>
+    </view>
+    <view class="menu-list-card menu-entry-card">
+      <view class="menu-list-row" data-type="friends" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">添加好友</text>
+          <text class="menu-row-desc">查找同校、同城或同需求的人。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="drafts" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">我的草稿</text>
+          <text class="menu-row-desc">继续编辑未发布的提问、经验和技能服务。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="history" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">浏览记录</text>
+          <text class="menu-row-desc">回到刚看过的帖子和服务。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="services" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">购买的服务</text>
+          <text class="menu-row-desc">查看已经下单或预约的帮助。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="spending" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">消费记录</text>
+          <text class="menu-row-desc">核对积分和服务消费。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="wallet" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">钱包</text>
+          <text class="menu-row-desc">管理消费积分和可提现积分。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="rules" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">社区公约</text>
+          <text class="menu-row-desc">查看内容发布和服务边界规则。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="help" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">帮助与客服</text>
+          <text class="menu-row-desc">处理账号、积分、悬赏和举报问题。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+      <view class="menu-list-row" data-type="settings" bindtap="openTool">
+        <view class="menu-row-main">
+          <text class="menu-row-title">设置</text>
+          <text class="menu-row-desc">管理账号、安全和通知。</text>
+        </view>
+        <text class="menu-row-meta">进入</text>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'friends'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">添加好友</text>
+      <text class="menu-title">找到同校、同城或同需求的人</text>
+      <text class="menu-intro">可以通过售业号、学校、昵称或关键词找到可以互相帮助的人。</text>
+    </view>
+    <view class="menu-search">
+      <text class="menu-search-icon">搜</text>
+      <input value="{{searchValue}}" bindinput="onSearchInput" placeholder="输入售业号、学校、昵称或关键词" />
+    </view>
+    <view class="menu-actions">
+      <button data-label="复制我的售业号" bindtap="showTodo">复制我的售业号</button>
+      <button data-label="生成分享名片" bindtap="showTodo">生成分享名片</button>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">推荐添加</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">同校新生互助群</text>
+            <text class="menu-row-desc">按学校和入学阶段推荐，可一起问材料、选课和找房。</text>
+          </view>
+          <text class="menu-row-meta">新生优先</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">同城生活互助</text>
+            <text class="menu-row-desc">找搬家、跑腿、宠物照看、同城取送时更方便。</text>
+          </view>
+          <text class="menu-row-meta">首尔/京畿</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'drafts'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">我的草稿</text>
+      <text class="menu-title">还没发出的内容先放这里</text>
+      <text class="menu-intro">草稿会保存提问、经验和技能服务，发布前可以继续修改。</text>
+    </view>
+    <view class="menu-actions">
+      <button bindtap="goQuestionDraft">继续写提问</button>
+      <button bindtap="goPostDraft">继续写经验</button>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">最近草稿</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">D-2 打工许可材料怎么写</text>
+            <text class="menu-row-desc">已保存问题详情和悬赏积分，补充学校后可发布。</text>
+          </view>
+          <text class="menu-row-meta">今天 12:20</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">弘大附近转租避坑清单</text>
+            <text class="menu-row-desc">已写摘要，还需要补充图片和合同注意事项。</text>
+          </view>
+          <text class="menu-row-meta">昨天 22:14</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'services'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">购买的服务</text>
+      <text class="menu-title">你已经下单或预约的帮助</text>
+      <text class="menu-intro">包括线上答疑、线下跑腿、商家服务和付费资料，状态会按进度更新。</text>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">进行中</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">语学院报名材料核对</text>
+            <text class="menu-row-desc">瓦剌留学，已预约沟通。</text>
+          </view>
+          <text class="menu-row-meta">待确认</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">新村附近看房陪同</text>
+            <text class="menu-row-desc">找房服务，线下帮助。</text>
+          </view>
+          <text class="menu-row-meta">明天 15:00</text>
+        </view>
+      </view>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">已完成</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">D-2 延签材料清单</text>
+            <text class="menu-row-desc">付费干货，已确认完成。</text>
+          </view>
+          <text class="menu-row-meta">可评价</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'spending'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">消费记录</text>
+      <text class="menu-title">积分和服务消费都在这里</text>
+      <text class="menu-intro">用于核对悬赏、付费查看、服务预约和商家福利消费记录。</text>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">本月</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">悬赏问题：租房保证金风险</text>
+            <text class="menu-row-desc">支出 160 消费积分。</text>
+          </view>
+          <text class="menu-row-meta">2026-05-06</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">查看干货：D-10 签证流程</text>
+            <text class="menu-row-desc">支出 80 消费积分。</text>
+          </view>
+          <text class="menu-row-meta">2026-05-05</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">充值消费积分</text>
+            <text class="menu-row-desc">收入 300 消费积分。</text>
+          </view>
+          <text class="menu-row-meta">2026-05-04</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'wallet'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">钱包</text>
+      <text class="menu-title">管理消费积分和可提现积分</text>
+      <text class="menu-intro">消费积分用于提问、发帖和解锁内容；可提现积分来自被采纳回答、悬赏任务和付费内容收益。</text>
+    </view>
+    <view class="wallet-panel">
+      <view class="wallet-card dark">
+        <text class="wallet-label">消费积分</text>
+        <text class="wallet-number">300</text>
+        <text class="wallet-desc">用于提问、发布悬赏、解锁资料</text>
+      </view>
+      <view class="wallet-card gold-card">
+        <text class="wallet-label">可提现积分</text>
+        <text class="wallet-number">120</text>
+        <text class="wallet-desc">沉淀期后可申请提现</text>
+      </view>
+    </view>
+    <view class="menu-actions">
+      <button data-label="充值消费积分" bindtap="showTodo">充值消费积分</button>
+      <button data-label="申请提现" bindtap="showTodo">申请提现</button>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">提现提醒</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">收益沉淀 7 天后可提现</text>
+            <text class="menu-row-desc">通过悬赏赚取的积分需要留出确认期，避免后期退款或纠纷。</text>
+          </view>
+          <text class="menu-row-meta">平台规则</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">违规内容不产生收益</text>
+            <text class="menu-row-desc">代写、非法换汇、虚假材料、欺诈广告等内容会被下架并限制提现。</text>
+          </view>
+          <text class="menu-row-meta">风控</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'rules'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">社区公约</text>
+      <text class="menu-title">先解决真实问题，再获得收益</text>
+      <text class="menu-intro">售业禁止非法换汇、代写代考、伪造材料、骚扰、人身攻击和虚假广告。</text>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">发布规范</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">经验必须可验证、可执行</text>
+            <text class="menu-row-desc">写清时间、学校、材料、步骤和风险，不制造焦虑。</text>
+          </view>
+          <text class="menu-row-meta">内容要求</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">服务必须写清边界</text>
+            <text class="menu-row-desc">不得发布代考、代写、伪造材料、换钱换米等违法违规服务。</text>
+          </view>
+          <text class="menu-row-meta">服务要求</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">商家广告必须可识别</text>
+            <text class="menu-row-desc">商家资质、价格区间、联系方式和服务范围要清楚展示。</text>
+          </view>
+          <text class="menu-row-meta">广告要求</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'help'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">帮助与客服</text>
+      <text class="menu-title">遇到问题先从这里处理</text>
+      <text class="menu-intro">账号、积分、悬赏、商家合作和内容举报，都可以从这里提交。</text>
+    </view>
+    <view class="menu-search">
+      <text class="menu-search-icon">搜</text>
+      <input value="{{searchValue}}" bindinput="onSearchInput" placeholder="搜：提现、悬赏、举报、商家入驻" />
+    </view>
+    <view class="menu-actions">
+      <button data-label="联系人工客服" bindtap="showTodo">联系人工客服</button>
+      <button data-label="提交问题反馈" bindtap="showTodo">提交问题反馈</button>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">常见问题</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">悬赏完成后多久结算？</text>
+            <text class="menu-row-desc">委托人确认满意后进入结算，收益积分沉淀 7 天后可提现。</text>
+          </view>
+          <text class="menu-row-meta">收益</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">付费干货不满意怎么办？</text>
+            <text class="menu-row-desc">可以提交申诉，平台根据内容是否能解决问题进行审核。</text>
+          </view>
+          <text class="menu-row-meta">申诉</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">怎么举报违规换汇广告？</text>
+            <text class="menu-row-desc">从帖子右上角或客服页提交，平台会下架并限制账号。</text>
+          </view>
+          <text class="menu-row-meta">举报</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'settings'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">设置</text>
+      <text class="menu-title">管理账号、安全和通知</text>
+      <text class="menu-intro">后续会接入微信授权、邮箱绑定、隐私权限和黑名单管理。</text>
+    </view>
+    <view class="setting-panel">
+      <view class="setting-row" data-field="noticeReply" bindtap="toggleNotice">
+        <view>
+          <text class="setting-title">新回复通知</text>
+          <text class="setting-desc" wx:if="{{noticeReply}}">已开启</text>
+          <text class="setting-desc" wx:else>已关闭</text>
+        </view>
+        <view class="setting-switch on" wx:if="{{noticeReply}}"><view></view></view>
+        <view class="setting-switch" wx:else><view></view></view>
+      </view>
+      <view class="setting-row" data-field="noticeReward" bindtap="toggleNotice">
+        <view>
+          <text class="setting-title">悬赏状态提醒</text>
+          <text class="setting-desc" wx:if="{{noticeReward}}">已开启</text>
+          <text class="setting-desc" wx:else>已关闭</text>
+        </view>
+        <view class="setting-switch on" wx:if="{{noticeReward}}"><view></view></view>
+        <view class="setting-switch" wx:else><view></view></view>
+      </view>
+      <view class="setting-row" data-field="noticeMerchant" bindtap="toggleNotice">
+        <view>
+          <text class="setting-title">商家福利推荐</text>
+          <text class="setting-desc" wx:if="{{noticeMerchant}}">已开启</text>
+          <text class="setting-desc" wx:else>已关闭</text>
+        </view>
+        <view class="setting-switch on" wx:if="{{noticeMerchant}}"><view></view></view>
+        <view class="setting-switch" wx:else><view></view></view>
+      </view>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">账号与安全</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">绑定邮箱</text>
+            <text class="menu-row-desc">用于找回账号、接收验证码和重要通知。</text>
+          </view>
+          <text class="menu-row-meta">未绑定</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">隐私设置</text>
+            <text class="menu-row-desc">控制学校、身份阶段和联系方式的展示范围。</text>
+          </view>
+          <text class="menu-row-meta">建议检查</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">黑名单管理</text>
+            <text class="menu-row-desc">被拉黑用户不能私信或评论你的内容。</text>
+          </view>
+          <text class="menu-row-meta">0 人</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{type === 'history'}}">
+    <view class="menu-hero">
+      <text class="eyebrow">浏览记录</text>
+      <text class="menu-title">刚看过的帖子和服务</text>
+      <text class="menu-intro">按最近浏览排序，方便回到之前看到的经验、求助和商家福利。</text>
+    </view>
+    <view class="menu-actions">
+      <button data-label="清空记录" bindtap="showTodo">清空记录</button>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">今天</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">中央大找房怎么避开假房源</text>
+            <text class="menu-row-desc">找房与转租，160 提现积分。</text>
+          </view>
+          <text class="menu-row-meta">浏览 3 次</text>
+        </view>
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">艺术类入学作品集准备顺序</text>
+            <text class="menu-row-desc">入学须知，经验干货。</text>
+          </view>
+          <text class="menu-row-meta">停留 2 分钟</text>
+        </view>
+      </view>
+    </view>
+    <view class="menu-section">
+      <text class="menu-section-title">更早</text>
+      <view class="menu-list-card">
+        <view class="menu-list-row">
+          <view class="menu-row-main">
+            <text class="menu-row-title">D-10 求职签证申请节点</text>
+            <text class="menu-row-desc">毕业后签证/就业相关。</text>
+          </view>
+          <text class="menu-row-meta">2026-05-05</text>
+        </view>
+      </view>
+    </view>
+  </block>
+</view>

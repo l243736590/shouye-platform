@@ -1,0 +1,19 @@
+.partner-feed {
+  background: #f3f5f1;
+}
+
+.merchant-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-top: 12rpx;
+}
+
+.merchant-tags text {
+  padding: 4rpx 10rpx;
+  border-radius: 999rpx;
+  background: rgba(36, 43, 46, 0.08);
+  color: #4c5658;
+  font-size: 18rpx;
+  font-weight: 800;
+}

@@ -1,0 +1,74 @@
+<view class="mini-auth-page" wx:if="{{!user}}">
+  <button class="auth-help" bindtap="showHelp">帮助</button>
+
+  <view class="auth-brand">
+    <image class="auth-logo" src="{{logoLight}}" mode="aspectFit" />
+  </view>
+
+  <view class="auth-copy">
+    <text class="auth-title">技能&经验变现平台</text>
+    <text class="auth-desc">留学生提问求助，也用自己的经验和技能帮别人解决问题。</text>
+  </view>
+
+  <view class="auth-panel">
+    <button class="wechat-login {{loading ? 'is-loading' : ''}}" disabled="{{loading}}" bindtap="wechatLogin">
+      <text class="wechat-icon">●●</text>
+      <text>{{loading ? '登录中...' : '微信登录'}}</text>
+    </button>
+
+    <button class="other-login" bindtap="toggleOtherLogin">
+      其他登录方式
+      <text class="chevron">{{showOtherLogin ? '⌃' : '›'}}</text>
+    </button>
+
+    <view class="email-login" wx:if="{{showOtherLogin}}">
+      <input class="auth-input" data-field="email" value="{{email}}" bindinput="onInput" placeholder="邮箱" />
+      <input class="auth-input" data-field="password" value="{{password}}" bindinput="onInput" password placeholder="密码" />
+      <button class="email-login-button" loading="{{loading}}" bindtap="emailLogin">邮箱登录</button>
+    </view>
+
+    <view class="auth-agreement" bindtap="toggleAgreement">
+      <view class="agree-dot {{agreementAccepted ? 'checked' : ''}}"></view>
+      <view class="agree-text">
+        <text>我已阅读并同意</text>
+        <text class="agree-link" catchtap="openTerms">《用户协议》</text>
+        <text class="agree-link" catchtap="openPrivacy">《隐私政策》</text>
+        <text class="agree-link" catchtap="openMinorPrivacy">《未成年人个人信息保护规则》</text>
+      </view>
+    </view>
+  </view>
+
+  <button class="recover-link" bindtap="recoverAccount">账号丢失了？找回账号</button>
+</view>
+
+<view class="entry-page" wx:else>
+  <view class="entry-shell">
+    <view class="entry-top">
+      <image class="entry-logo" src="{{logoLight}}" mode="aspectFit" />
+    </view>
+
+    <view class="entry-copy">
+      <text class="entry-title">这次你想做什么？</text>
+      <text class="entry-desc">先选入口，再进入对应的信息流。</text>
+    </view>
+
+    <view class="entry-actions">
+      <button class="entry-button share" bindtap="openHelpFeed">
+        <text>我要分享/助人</text>
+        <text class="entry-button-sub">刷求助和悬赏，能解决就回答或接任务</text>
+      </button>
+      <button class="entry-button ask" bindtap="openAskFeed">
+        <text>我要提问/求助</text>
+        <text class="entry-button-sub">发布问题、悬赏解决、顺手看商家福利</text>
+      </button>
+    </view>
+
+    <view class="entry-stats">
+      <view class="entry-stat" wx:for="{{stats}}" wx:key="value">
+        <text class="stat-value">{{item.value}}</text>
+        <text class="stat-label">{{item.label}}</text>
+      </view>
+    </view>
+  </view>
+
+</view>

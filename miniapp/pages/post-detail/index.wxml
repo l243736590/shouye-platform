@@ -1,0 +1,21 @@
+<view class="feed-page" wx:if="{{post}}">
+  <view class="note-card">
+    <view class="note-body">
+      <text class="note-title">{{post.title}}</text>
+      <text class="note-desc">{{post.summary || post.excerpt}}</text>
+      <view class="note-meta-row">
+        <view class="note-author">
+          <text class="note-avatar">{{post.avatar || '售'}}</text>
+          <text class="note-author-name">{{post.author || '售业'}}</text>
+        </view>
+        <text class="note-author-name">{{post.updatedAt || post.createdAt}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="note-card">
+    <view class="note-body">
+      <text class="note-desc" selectable="true">{{bodyText}}</text>
+    </view>
+  </view>
+</view>

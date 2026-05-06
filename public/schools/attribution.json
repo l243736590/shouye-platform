@@ -1,0 +1,731 @@
+[
+  {
+    "id": "ajou",
+    "name": "亚洲大学",
+    "englishName": "Ajou University",
+    "file": "/schools/ajou/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:0-campus-sm-Ajou.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/0-campus-sm-Ajou.jpg?width=1800",
+    "title": "0-campus-sm-Ajou.jpg",
+    "query": "configured image",
+    "bytes": 366728,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/ajou/1.jpg",
+      "/schools/ajou/2.jpg",
+      "/schools/ajou/3.jpg"
+    ]
+  },
+  {
+    "id": "cau",
+    "name": "中央大学",
+    "englishName": "Chung-Ang University",
+    "file": "/schools/cau/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Chung-Ang_University_Building_310_(100th_Anniversary_Hall).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Chung-Ang%20University%20Building%20310%20(100th%20Anniversary%20Hall).jpg?width=1800",
+    "title": "Chung-Ang University Building 310 (100th Anniversary Hall).jpg",
+    "query": "configured image",
+    "bytes": 971475,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/cau/1.jpg",
+      "/schools/cau/2.jpg",
+      "/schools/cau/3.jpg"
+    ]
+  },
+  {
+    "id": "cau-anseong",
+    "name": "中央大学 安城校区",
+    "englishName": "Chung-Ang University Anseong",
+    "file": "/schools/cau-anseong/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Chung-ang_Univ.Ansung_main_building.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Chung-ang%20Univ.Ansung%20main%20building.jpg?width=1800",
+    "title": "Chung-ang Univ.Ansung main building.jpg",
+    "query": "configured image",
+    "bytes": 785115,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/cau-anseong/1.jpg",
+      "/schools/cau-anseong/2.jpg",
+      "/schools/cau-anseong/3.jpg"
+    ]
+  },
+  {
+    "id": "chungnam",
+    "name": "忠南大学",
+    "englishName": "Chungnam National University",
+    "file": "/schools/chungnam/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Chungnam_National_University_Law_School_Building_N12.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Chungnam%20National%20University%20Law%20School%20Building%20N12.jpg?width=1800",
+    "title": "Chungnam National University Law School Building N12.jpg",
+    "query": "configured image",
+    "bytes": 654665,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/chungnam/1.jpg",
+      "/schools/chungnam/2.jpg",
+      "/schools/chungnam/3.jpg"
+    ]
+  },
+  {
+    "id": "dankook-seoul",
+    "name": "檀国大学",
+    "englishName": "Dankook University",
+    "file": "/schools/dankook-seoul/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:0_DankookU_h.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/a/ad/0_DankookU_h.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "title": "File:0 DankookU h.jpg",
+    "query": "Dankook University campus",
+    "bytes": 740807,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/dankook-seoul/1.jpg",
+      "/schools/dankook-seoul/2.jpg",
+      "/schools/dankook-seoul/3.jpg"
+    ]
+  },
+  {
+    "id": "donga",
+    "name": "东亚大学",
+    "englishName": "Dong-A University",
+    "file": "/schools/donga/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Dong-A_Univ_Bumin_Campus.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Dong-A%20Univ%20Bumin%20Campus.JPG?width=1800",
+    "title": "Dong-A Univ Bumin Campus.JPG",
+    "query": "exact commons file",
+    "bytes": 571140,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/donga/1.jpg",
+      "/schools/donga/2.jpg",
+      "/schools/donga/3.jpg"
+    ]
+  },
+  {
+    "id": "dongduk",
+    "name": "同德女子大学",
+    "englishName": "Dongduk Women's University",
+    "file": "/schools/dongduk/1.jpg",
+    "source": "https://www.dongduk.ac.kr/",
+    "originalUrl": "https://www.dongduk.ac.kr/ncmsrsc/templete/www01/img/main/img_guide2.png",
+    "title": "??????? ?? ?? ???",
+    "query": "manual representative image",
+    "bytes": 162421,
+    "contentType": "image/png",
+    "images": [
+      "/schools/dongduk/1.jpg",
+      "/schools/dongduk/2.jpg",
+      "/schools/dongduk/3.jpg"
+    ]
+  },
+  {
+    "id": "dongguk",
+    "name": "东国大学",
+    "englishName": "Dongguk University",
+    "file": "/schools/dongguk/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:DONGGUK_UNIVERSITY_%EB%8F%99%EA%B5%AD%EC%9D%98_%EC%95%BC%EA%B2%BD.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/DONGGUK%20UNIVERSITY%20%EB%8F%99%EA%B5%AD%EC%9D%98%20%EC%95%BC%EA%B2%BD.jpg?width=1800",
+    "title": "DONGGUK UNIVERSITY ??? ??.jpg",
+    "query": "manual representative image",
+    "bytes": 611599,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/dongguk/1.jpg",
+      "/schools/dongguk/2.jpg",
+      "/schools/dongguk/3.jpg"
+    ]
+  },
+  {
+    "id": "duksung",
+    "name": "德成女子大学",
+    "englishName": "Duksung Women's University",
+    "file": "/schools/duksung/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Duksung_Women%27s_University.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Duksung%20Women%27s%20University.jpg?width=1800",
+    "title": "Duksung Women's University.jpg",
+    "query": "manual representative image",
+    "bytes": 355201,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/duksung/1.jpg",
+      "/schools/duksung/2.jpg",
+      "/schools/duksung/3.jpg"
+    ]
+  },
+  {
+    "id": "ewha",
+    "name": "梨花女子大学",
+    "englishName": "Ewha Womans University",
+    "file": "/schools/ewha/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Ewha_Womans_University_Campus_new.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Ewha%20Womans%20University%20Campus%20new.jpg?width=1800",
+    "title": "Ewha Womans University Campus new.jpg",
+    "query": "configured image",
+    "bytes": 611175,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/ewha/1.jpg",
+      "/schools/ewha/2.jpg",
+      "/schools/ewha/3.jpg"
+    ]
+  },
+  {
+    "id": "hansung",
+    "name": "汉城大学",
+    "englishName": "Hansung University",
+    "file": "/schools/hansung/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Hansungdesign1.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Hansungdesign1.jpg?width=1800",
+    "title": "Hansungdesign1.jpg",
+    "query": "manual representative image",
+    "bytes": 222247,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/hansung/1.jpg",
+      "/schools/hansung/2.jpg",
+      "/schools/hansung/3.jpg"
+    ]
+  },
+  {
+    "id": "hanyang",
+    "name": "汉阳大学",
+    "englishName": "Hanyang University",
+    "file": "/schools/hanyang/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Hanyang_University_008.JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Hanyang%20University%20008.JPG?width=1800",
+    "title": "Hanyang University 008.JPG",
+    "query": "manual representative image",
+    "bytes": 580016,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/hanyang/1.jpg",
+      "/schools/hanyang/2.jpg",
+      "/schools/hanyang/3.jpg"
+    ]
+  },
+  {
+    "id": "hanyang-erica",
+    "name": "汉阳大学 ERICA",
+    "englishName": "Hanyang University ERICA",
+    "file": "/schools/hanyang-erica/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Hanyang_University_Erica_Campus_Fountain_(South_Korea)_-_2024.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Hanyang%20University%20Erica%20Campus%20Fountain%20(South%20Korea)%20-%202024.jpg?width=1800",
+    "title": "Hanyang University Erica Campus Fountain (South Korea) - 2024.jpg",
+    "query": "configured image",
+    "bytes": 136851,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/hanyang-erica/1.jpg",
+      "/schools/hanyang-erica/2.jpg",
+      "/schools/hanyang-erica/3.jpg"
+    ]
+  },
+  {
+    "id": "hongik",
+    "name": "弘益大学",
+    "englishName": "Hongik University",
+    "file": "/schools/hongik/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Hongik_University_Gate.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Hongik%20University%20Gate.jpg?width=1800",
+    "title": "Hongik University Gate.jpg",
+    "query": "configured image",
+    "bytes": 833714,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/hongik/1.jpg",
+      "/schools/hongik/2.jpg",
+      "/schools/hongik/3.jpg"
+    ]
+  },
+  {
+    "id": "hufs",
+    "name": "韩国外国语大学",
+    "englishName": "Hankuk University of Foreign Studies",
+    "file": "/schools/hufs/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Hankuk_University_of_Foreign_Studies_Seoul_campus_20180914_090938.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Hankuk_University_of_Foreign_Studies_Seoul_campus_20180914_090938.jpg/1920px-Hankuk_University_of_Foreign_Studies_Seoul_campus_20180914_090938.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "title": "File:Hankuk University of Foreign Studies Seoul campus 20180914 090938.jpg",
+    "query": "Hankuk University of Foreign Studies campus",
+    "bytes": 462236,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/hufs/1.jpg",
+      "/schools/hufs/2.jpg",
+      "/schools/hufs/3.jpg"
+    ]
+  },
+  {
+    "id": "inha",
+    "name": "仁荷大学",
+    "englishName": "Inha University",
+    "file": "/schools/inha/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%EC%9D%B8%ED%95%98%EB%8C%80%ED%95%99%EA%B5%90_%EB%B3%B8%EA%B4%80.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%EC%9D%B8%ED%95%98%EB%8C%80%ED%95%99%EA%B5%90%20%EB%B3%B8%EA%B4%80.jpg?width=1800",
+    "title": "인하대학교 본관.jpg",
+    "query": "configured image",
+    "bytes": 610620,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/inha/1.jpg",
+      "/schools/inha/2.jpg",
+      "/schools/inha/3.jpg"
+    ]
+  },
+  {
+    "id": "inu",
+    "name": "仁川大学",
+    "englishName": "Incheon National University",
+    "file": "/schools/inu/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Songdocampus.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Songdocampus.jpg?width=1800",
+    "title": "Songdocampus.jpg",
+    "query": "manual representative image",
+    "bytes": 25942,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/inu/1.jpg",
+      "/schools/inu/2.jpg",
+      "/schools/inu/3.jpg"
+    ]
+  },
+  {
+    "id": "kaist",
+    "name": "KAIST",
+    "englishName": "Korea Advanced Institute of Science & Technology",
+    "file": "/schools/kaist/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:KAIST_Main_entrance.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/KAIST%20Main%20entrance.jpg?width=1800",
+    "title": "KAIST Main entrance.jpg",
+    "query": "configured image",
+    "bytes": 505311,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/kaist/1.jpg",
+      "/schools/kaist/2.jpg",
+      "/schools/kaist/3.jpg"
+    ]
+  },
+  {
+    "id": "keimyung",
+    "name": "启明大学",
+    "englishName": "Keimyung University",
+    "file": "/schools/keimyung/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Main_building_of_KMU.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5a/Main_building_of_KMU.jpg/1920px-Main_building_of_KMU.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "title": "File:Main building of KMU.jpg",
+    "query": "Keimyung University campus",
+    "bytes": 801039,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/keimyung/1.jpg",
+      "/schools/keimyung/2.jpg",
+      "/schools/keimyung/3.jpg"
+    ]
+  },
+  {
+    "id": "knsu",
+    "name": "韩国体育大学",
+    "englishName": "Korea National Sport University",
+    "file": "/schools/knsu/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Knsu.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Knsu.jpg?width=1800",
+    "title": "Knsu.jpg",
+    "query": "manual representative image",
+    "bytes": 553943,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/knsu/1.jpg",
+      "/schools/knsu/2.jpg",
+      "/schools/knsu/3.jpg"
+    ]
+  },
+  {
+    "id": "knu",
+    "name": "庆北大学",
+    "englishName": "Kyungpook National University",
+    "file": "/schools/knu/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Kyungpook_National_University_in_Daegu.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Kyungpook%20National%20University%20in%20Daegu.jpg?width=1800",
+    "title": "Kyungpook National University in Daegu.jpg",
+    "query": "configured image",
+    "bytes": 468715,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/knu/1.jpg",
+      "/schools/knu/2.jpg",
+      "/schools/knu/3.jpg"
+    ]
+  },
+  {
+    "id": "knua",
+    "file": "/schools/knua/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%ED%95%9C%EA%B5%AD%EC%98%88%EC%88%A0%EC%A2%85%ED%95%A9%ED%95%99%EA%B5%90.jpg",
+    "title": "????????.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%ED%95%9C%EA%B5%AD%EC%98%88%EC%88%A0%EC%A2%85%ED%95%A9%ED%95%99%EA%B5%90.jpg?width=1800",
+    "query": "manual representative image",
+    "bytes": 763949,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/knua/1.jpg",
+      "/schools/knua/2.jpg",
+      "/schools/knua/3.jpg"
+    ]
+  },
+  {
+    "id": "konkuk",
+    "name": "建国大学",
+    "englishName": "Konkuk University",
+    "file": "/schools/konkuk/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Seoul_Campus.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6f/Seoul_Campus.jpg/1920px-Seoul_Campus.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "title": "File:Seoul Campus.jpg",
+    "query": "Konkuk University campus",
+    "bytes": 642846,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/konkuk/1.jpg",
+      "/schools/konkuk/2.jpg",
+      "/schools/konkuk/3.jpg"
+    ]
+  },
+  {
+    "id": "kookmin",
+    "name": "国民大学",
+    "englishName": "Kookmin University",
+    "file": "/schools/kookmin/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Kmusc.jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/1/16/Kmusc.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "title": "File:Kmusc.jpg",
+    "query": "Kookmin University university building",
+    "bytes": 91609,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/kookmin/1.jpg",
+      "/schools/kookmin/2.jpg",
+      "/schools/kookmin/3.jpg"
+    ]
+  },
+  {
+    "id": "korea",
+    "name": "高丽大学",
+    "englishName": "Korea University",
+    "file": "/schools/korea/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Korea_University_Main_Hall.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Korea%20University%20Main%20Hall.jpg?width=1800",
+    "title": "Korea University Main Hall.jpg",
+    "query": "configured image",
+    "bytes": 435593,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/korea/1.jpg",
+      "/schools/korea/2.jpg",
+      "/schools/korea/3.jpg"
+    ]
+  },
+  {
+    "id": "kwangwoon",
+    "name": "光云大学",
+    "englishName": "Kwangwoon University",
+    "file": "/schools/kwangwoon/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Kwangwoon_University.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Kwangwoon%20University.jpg?width=1800",
+    "title": "Kwangwoon University.jpg",
+    "query": "exact commons file",
+    "bytes": 526478,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/kwangwoon/1.jpg",
+      "/schools/kwangwoon/2.jpg",
+      "/schools/kwangwoon/3.jpg"
+    ]
+  },
+  {
+    "id": "kyunghee",
+    "name": "庆熙大学",
+    "englishName": "Kyung Hee University",
+    "file": "/schools/kyunghee/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Kyung_Hee_Univ._Administration_Building(Seoul_Campus).JPG",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Kyung%20Hee%20Univ.%20Administration%20Building(Seoul%20Campus).JPG?width=1800",
+    "title": "Kyung Hee Univ. Administration Building(Seoul Campus).JPG",
+    "query": "configured image",
+    "bytes": 674239,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/kyunghee/1.jpg",
+      "/schools/kyunghee/2.jpg",
+      "/schools/kyunghee/3.jpg"
+    ]
+  },
+  {
+    "id": "myongji",
+    "name": "明知大学",
+    "englishName": "Myongji University",
+    "file": "/schools/myongji/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:20100831_myongji_university.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/20100831%20myongji%20university.jpg?width=1800",
+    "title": "20100831 myongji university.jpg",
+    "query": "manual representative image",
+    "bytes": 388592,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/myongji/1.jpg",
+      "/schools/myongji/2.jpg",
+      "/schools/myongji/3.jpg"
+    ]
+  },
+  {
+    "id": "pnu",
+    "name": "釜山大学",
+    "englishName": "Pusan National University",
+    "file": "/schools/pnu/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%EB%B6%80%EC%82%B0%EB%8C%80(%EB%B3%B8%EA%B4%80).jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%EB%B6%80%EC%82%B0%EB%8C%80(%EB%B3%B8%EA%B4%80).jpg?width=1800",
+    "title": "부산대(본관).jpg",
+    "query": "configured image",
+    "bytes": 1094516,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/pnu/1.jpg",
+      "/schools/pnu/2.jpg",
+      "/schools/pnu/3.jpg"
+    ]
+  },
+  {
+    "id": "sahmyook",
+    "name": "三育大学",
+    "englishName": "Sahmyook University",
+    "file": "/schools/sahmyook/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%27100th_Anniversary_Memorial_Hall%27_of_Sahmyook_University.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%27100th%20Anniversary%20Memorial%20Hall%27%20of%20Sahmyook%20University.jpg?width=1800",
+    "title": "'100th Anniversary Memorial Hall' of Sahmyook University.jpg",
+    "query": "manual representative image",
+    "bytes": 144181,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/sahmyook/1.jpg",
+      "/schools/sahmyook/2.jpg",
+      "/schools/sahmyook/3.jpg"
+    ]
+  },
+  {
+    "id": "sangmyung",
+    "name": "祥明大学",
+    "englishName": "Sangmyung University",
+    "file": "/schools/sangmyung/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sangmyung_University_4.JPG",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/cb/Sangmyung_University_4.JPG/1920px-Sangmyung_University_4.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "title": "File:Sangmyung University 4.JPG",
+    "query": "Sangmyung University",
+    "bytes": 688918,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/sangmyung/1.jpg",
+      "/schools/sangmyung/2.jpg",
+      "/schools/sangmyung/3.jpg"
+    ]
+  },
+  {
+    "id": "sejong",
+    "name": "世宗大学",
+    "englishName": "Sejong University",
+    "file": "/schools/sejong/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:SejongCampus.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/SejongCampus.jpg?width=1800",
+    "title": "SejongCampus.jpg",
+    "query": "manual representative image",
+    "bytes": 187730,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/sejong/1.jpg",
+      "/schools/sejong/2.jpg",
+      "/schools/sejong/3.jpg"
+    ]
+  },
+  {
+    "id": "seoultech",
+    "name": "首尔科技大学",
+    "englishName": "Seoul National University of Science and Technology",
+    "file": "/schools/seoultech/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Campus_of_Seoul_National_University_of_Technology._Seoultech._Snut..jpg",
+    "originalUrl": "https://upload.wikimedia.org/wikipedia/commons/b/b1/Campus_of_Seoul_National_University_of_Technology._Seoultech._Snut..jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "title": "File:Campus of Seoul National University of Technology. Seoultech. Snut..jpg",
+    "query": "Seoul National University of Science and Technology campus",
+    "bytes": 161288,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/seoultech/1.jpg",
+      "/schools/seoultech/2.jpg",
+      "/schools/seoultech/3.jpg"
+    ]
+  },
+  {
+    "id": "skku",
+    "name": "成均馆大学",
+    "englishName": "Sungkyunkwan University",
+    "file": "/schools/skku/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sungkyunkwan_University_Bicheondang_and_600th_Anniversary_Hall.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Sungkyunkwan%20University%20Bicheondang%20and%20600th%20Anniversary%20Hall.jpg?width=1800",
+    "title": "Sungkyunkwan University Bicheondang and 600th Anniversary Hall.jpg",
+    "query": "configured image",
+    "bytes": 764024,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/skku/1.jpg",
+      "/schools/skku/2.jpg",
+      "/schools/skku/3.jpg"
+    ]
+  },
+  {
+    "id": "skku-seoul",
+    "name": "成均馆大学",
+    "englishName": "Sungkyunkwan University",
+    "file": "/schools/skku-seoul/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sungkyunkwan_University_Bicheondang_and_600th_Anniversary_Hall.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Sungkyunkwan%20University%20Bicheondang%20and%20600th%20Anniversary%20Hall.jpg?width=1800",
+    "title": "Sungkyunkwan University Bicheondang and 600th Anniversary Hall.jpg",
+    "query": "configured image",
+    "bytes": 764024,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/skku-seoul/1.jpg",
+      "/schools/skku-seoul/2.jpg",
+      "/schools/skku-seoul/3.jpg"
+    ]
+  },
+  {
+    "id": "snu",
+    "name": "首尔大学",
+    "englishName": "Seoul National University",
+    "file": "/schools/snu/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Seoul_National_University_20171026_164458.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Seoul%20National%20University%2020171026%20164458.jpg?width=1800",
+    "title": "Seoul National University 20171026 164458.jpg",
+    "query": "configured image",
+    "bytes": 531134,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/snu/1.jpg",
+      "/schools/snu/2.jpg",
+      "/schools/snu/3.jpg"
+    ]
+  },
+  {
+    "id": "sogang",
+    "name": "西江大学",
+    "englishName": "Sogang University",
+    "file": "/schools/sogang/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Sguniv.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Sguniv.jpg?width=1800",
+    "title": "Sguniv.jpg",
+    "query": "manual representative image",
+    "bytes": 480628,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/sogang/1.jpg",
+      "/schools/sogang/2.jpg",
+      "/schools/sogang/3.jpg"
+    ]
+  },
+  {
+    "id": "sookmyung",
+    "name": "淑明女子大学",
+    "englishName": "Kwangwoon University",
+    "file": "/schools/sookmyung/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%EC%88%99%EB%AA%85%EC%97%AC%EC%9E%90%EB%8C%80%ED%95%99%EA%B5%90_001.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%EC%88%99%EB%AA%85%EC%97%AC%EC%9E%90%EB%8C%80%ED%95%99%EA%B5%90_001.jpg?width=1800",
+    "title": "??????? 001.jpg",
+    "query": "manual representative image",
+    "bytes": 921452,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/sookmyung/1.jpg",
+      "/schools/sookmyung/2.jpg",
+      "/schools/sookmyung/3.jpg"
+    ]
+  },
+  {
+    "id": "soongsil",
+    "name": "崇实大学",
+    "englishName": "Soongsil University",
+    "file": "/schools/soongsil/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Soongsil_University.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Soongsil%20University.jpg?width=1800",
+    "title": "Soongsil University.jpg",
+    "query": "exact commons file",
+    "bytes": 714904,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/soongsil/1.jpg",
+      "/schools/soongsil/2.jpg",
+      "/schools/soongsil/3.jpg"
+    ]
+  },
+  {
+    "id": "sungshin",
+    "name": "诚信女子大学",
+    "englishName": "Korea National University of Arts",
+    "file": "/schools/sungshin/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%EB%8F%88%EC%95%94%EC%88%98%EC%A0%95%EC%BA%A0%ED%8D%BC%EC%8A%A4_%EC%A0%84%EA%B2%BD.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%EB%8F%88%EC%95%94%EC%88%98%EC%A0%95%EC%BA%A0%ED%8D%BC%EC%8A%A4_%EC%A0%84%EA%B2%BD.jpg?width=1800",
+    "title": "??????? ??.jpg",
+    "query": "manual representative image",
+    "bytes": 595037,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/sungshin/1.jpg",
+      "/schools/sungshin/2.jpg",
+      "/schools/sungshin/3.jpg"
+    ]
+  },
+  {
+    "id": "swu",
+    "name": "首尔女子大学",
+    "englishName": "Seoul Women's University",
+    "file": "/schools/swu/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:SWU-maincampus-gates-daytime.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/SWU-maincampus-gates-daytime.jpg?width=1800",
+    "title": "SWU-maincampus-gates-daytime.jpg",
+    "query": "exact commons file",
+    "bytes": 152596,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/swu/1.jpg",
+      "/schools/swu/2.jpg",
+      "/schools/swu/3.jpg"
+    ]
+  },
+  {
+    "id": "uos",
+    "name": "首尔市立大学",
+    "englishName": "University of Seoul",
+    "file": "/schools/uos/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:%EC%84%9C%EC%9A%B8%EC%8B%9C%EB%A6%BD%EB%8C%80%ED%95%99%EA%B5%90_%EB%8C%80%EA%B0%95%EB%8B%B9.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/%EC%84%9C%EC%9A%B8%EC%8B%9C%EB%A6%BD%EB%8C%80%ED%95%99%EA%B5%90_%EB%8C%80%EA%B0%95%EB%8B%B9.jpg?width=1800",
+    "title": "??????? ???.jpg",
+    "query": "manual representative image",
+    "bytes": 702774,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/uos/1.jpg",
+      "/schools/uos/2.jpg",
+      "/schools/uos/3.jpg"
+    ]
+  },
+  {
+    "id": "yonsei",
+    "name": "延世大学",
+    "englishName": "Yonsei University",
+    "file": "/schools/yonsei/1.jpg",
+    "source": "https://commons.wikimedia.org/wiki/File:Yonsei-university-main-building.jpg",
+    "originalUrl": "https://commons.wikimedia.org/wiki/Special:FilePath/Yonsei-university-main-building.jpg?width=1800",
+    "title": "Yonsei-university-main-building.jpg",
+    "query": "configured image",
+    "bytes": 405807,
+    "contentType": "image/jpeg",
+    "images": [
+      "/schools/yonsei/1.jpg",
+      "/schools/yonsei/2.jpg",
+      "/schools/yonsei/3.jpg"
+    ]
+  }
+]

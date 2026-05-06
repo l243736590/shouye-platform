@@ -1,0 +1,74 @@
+.mode-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12rpx;
+  margin-bottom: 22rpx;
+}
+
+.mode-chip {
+  min-height: 72rpx;
+  border-radius: 16rpx;
+  background: #fffdf7;
+  border: 1rpx solid rgba(36, 43, 46, 0.14);
+  color: #242b2e;
+  font-size: 23rpx;
+  font-weight: 900;
+}
+
+.mode-chip.active {
+  background: #242b2e;
+  color: #fffdf7;
+}
+
+.mode-chip.gold-mode {
+  background: #c99b2b;
+  color: #fffdf7;
+}
+
+.page-head .h1 {
+  font-size: 44rpx;
+  line-height: 1.15;
+}
+
+.form {
+  padding: 26rpx;
+  margin-top: 20rpx;
+}
+
+.field {
+  margin-bottom: 20rpx;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+.label {
+  display: block;
+  margin-bottom: 10rpx;
+  color: #242b2e;
+  font-size: 24rpx;
+  font-weight: 950;
+}
+
+.select-row {
+  display: flex;
+  align-items: center;
+}
+
+.notice {
+  margin: 4rpx 0 22rpx;
+  padding: 18rpx;
+  border-radius: 16rpx;
+  background: rgba(216, 47, 63, 0.08);
+  color: #9e2630;
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.submit-button {
+  margin-top: 10rpx;
+}

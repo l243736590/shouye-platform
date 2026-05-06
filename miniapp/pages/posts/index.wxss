@@ -1,0 +1,12 @@
+.experience-search {
+  margin: 14rpx 8rpx 4rpx;
+  padding: 0 22rpx;
+  border-radius: 999rpx;
+  background: #f2f4f1;
+}
+
+.experience-search input {
+  height: 72rpx;
+  color: #242b2e;
+  font-size: 26rpx;
+}

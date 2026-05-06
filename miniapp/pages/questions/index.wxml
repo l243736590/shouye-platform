@@ -1,0 +1,53 @@
+<view class="feed-page">
+  <view class="feed-top">
+    <button class="feed-menu" bindtap="openSideMenu">☰</button>
+    <view class="feed-tabs">
+      <text class="feed-tab {{activeTab === '关注' ? 'active' : ''}}" data-tab="关注" bindtap="switchTopTab">关注</text>
+      <text class="feed-tab {{activeTab === '发现' ? 'active' : ''}}" data-tab="发现" bindtap="switchTopTab">发现</text>
+      <text class="feed-tab {{activeTab === '商家福利' ? 'active' : ''}}" data-tab="商家福利" bindtap="switchTopTab">商家福利</text>
+    </view>
+  </view>
+
+  <view class="feed-cat-shell">
+    <view class="feed-cat-cue left" wx:if="{{showLeftCatCue}}" bindtap="scrollCatsLeft">‹</view>
+    <scroll-view class="feed-cats" scroll-x enable-flex enhanced show-scrollbar="{{false}}" scroll-left="{{catScrollLeft}}" bindscroll="onCatScroll">
+      <button class="feed-cat {{item.className}}" wx:for="{{categoryTabs}}" wx:key="name" data-name="{{item.name}}" bindtap="chooseCategory">{{item.name}}</button>
+    </scroll-view>
+    <view class="feed-cat-cue right" bindtap="scrollCatsRight">›</view>
+  </view>
+
+  <view class="feed-search-box">
+    <input value="{{searchValue}}" bindinput="onSearchInput" placeholder="搜：中央大找房、艺术类入学、D-10..." />
+  </view>
+
+  <view class="feed-grid">
+    <view class="note-card {{item.className}} {{item.type === 'ad' ? 'ad-card' : ''}}" wx:for="{{feedItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openFeedCard">
+      <view class="note-cover-wrap">
+        <text class="ad-label" wx:if="{{item.type === 'ad'}}">商家福利</text>
+        <text class="ad-label" wx:if="{{item.type === 'info'}}">常识信息</text>
+        <image class="note-cover" src="{{item.image}}" mode="aspectFill" lazy-load="true" />
+        <view class="note-cover-mask">
+          <text class="note-cover-text">{{item.coverText}}</text>
+        </view>
+      </view>
+      <view class="note-body">
+        <text class="note-title">{{item.type === 'ad' ? item.title : item.title}}</text>
+        <text class="note-desc">{{item.type === 'ad' || item.type === 'info' ? item.subtitle : item.detail}}</text>
+        <view class="note-meta-row">
+          <view class="note-author">
+            <text class="note-avatar">{{item.avatar}}</text>
+            <text class="note-author-name">{{item.author}}</text>
+          </view>
+          <button class="like-button {{item.liked ? 'liked' : ''}}" data-id="{{item.id}}" catchtap="likeItem">
+            <text class="like-heart">{{item.liked ? '♥' : '♡'}}</text>
+            <text>{{item.likes}}</text>
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && feedItems.length === 0}}">
+    暂时没有匹配内容，可以点底部发帖发布求助。
+  </view>
+</view>

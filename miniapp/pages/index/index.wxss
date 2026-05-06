@@ -1,0 +1,302 @@
+.mini-auth-page {
+  min-height: 100vh;
+  padding: 88rpx 64rpx 76rpx;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(255, 253, 247, 0.08), rgba(255, 253, 247, 0) 36%),
+    #242b2e;
+  color: #fffdf7;
+}
+
+.auth-help {
+  position: fixed;
+  top: 52rpx;
+  right: 42rpx;
+  z-index: 2;
+  color: rgba(255, 253, 247, 0.72);
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.auth-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 57rpx;
+}
+
+.auth-logo {
+  width: 520rpx;
+  height: 340rpx;
+}
+
+.auth-subtitle {
+  margin-top: 12rpx;
+  color: rgba(255, 253, 247, 0.68);
+  font-size: 22rpx;
+  font-weight: 900;
+  letter-spacing: 5rpx;
+  text-transform: uppercase;
+}
+
+.auth-copy {
+  margin-top: 58rpx;
+  text-align: center;
+}
+
+.auth-title {
+  display: block;
+  color: #fffdf7;
+  font-size: 56rpx;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.auth-desc {
+  display: block;
+  margin: 20rpx auto 0;
+  max-width: 550rpx;
+  color: rgba(255, 253, 247, 0.7);
+  font-size: 25rpx;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.auth-panel {
+  margin-top: 90rpx;
+  transform: translateY(-20rpx);
+}
+
+.wechat-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  min-height: 92rpx;
+  border-radius: 999rpx;
+  background: #13c264;
+  color: #ffffff;
+  font-size: 31rpx;
+  font-weight: 900;
+  box-shadow: 0 20rpx 52rpx rgba(19, 194, 100, 0.28);
+}
+
+.wechat-login.is-loading {
+  opacity: 0.86;
+}
+
+.wechat-icon {
+  font-size: 22rpx;
+  letter-spacing: -6rpx;
+}
+
+.other-login {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12rpx;
+  min-height: 82rpx;
+  color: rgba(255, 253, 247, 0.78);
+  font-size: 25rpx;
+  font-weight: 800;
+}
+
+.chevron {
+  font-size: 30rpx;
+}
+
+.email-login {
+  display: grid;
+  gap: 14rpx;
+  margin-bottom: 22rpx;
+}
+
+.auth-input {
+  height: 84rpx;
+  padding: 0 24rpx;
+  border-radius: 18rpx;
+  background: rgba(255, 253, 247, 0.1);
+  border: 1rpx solid rgba(255, 253, 247, 0.18);
+  color: #fffdf7;
+  font-size: 27rpx;
+}
+
+.email-login-button {
+  min-height: 84rpx;
+  border-radius: 18rpx;
+  background: #fffdf7;
+  color: #242b2e;
+  font-size: 28rpx;
+  font-weight: 950;
+}
+
+.auth-agreement {
+  display: flex;
+  align-items: flex-start;
+  gap: 14rpx;
+  margin-top: 8rpx;
+}
+
+.agree-dot {
+  flex: 0 0 auto;
+  width: 26rpx;
+  height: 26rpx;
+  margin-top: 6rpx;
+  border: 2rpx solid rgba(255, 253, 247, 0.72);
+  border-radius: 50%;
+}
+
+.agree-dot.checked {
+  background: #fffdf7;
+  box-shadow: inset 0 0 0 7rpx #242b2e;
+}
+
+.agree-text {
+  flex: 1;
+  color: rgba(255, 253, 247, 0.66);
+  font-size: 24rpx;
+  font-weight: 700;
+  line-height: 1.85;
+}
+
+.agree-link {
+  color: #fffdf7;
+  font-weight: 900;
+}
+
+.recover-link {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 86rpx;
+  color: rgba(255, 253, 247, 0.68);
+  font-size: 25rpx;
+  font-weight: 750;
+  text-align: center;
+}
+
+.entry-page {
+  min-height: 100vh;
+  padding: 64rpx 32rpx 72rpx;
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 253, 247, 0.08), rgba(255, 253, 247, 0) 34%),
+    #242b2e;
+  color: #fffdf7;
+}
+
+.entry-shell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100vh - 220rpx);
+}
+
+.entry-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 30rpx;
+  margin-bottom: 54rpx;
+}
+
+.entry-logo {
+  width: 520rpx;
+  height: 340rpx;
+}
+
+.entry-en {
+  margin-top: 10rpx;
+  color: rgba(255, 253, 247, 0.62);
+  font-size: 21rpx;
+  font-weight: 900;
+  letter-spacing: 5rpx;
+}
+
+.entry-copy {
+  text-align: center;
+}
+
+.entry-title {
+  display: block;
+  color: #fffdf7;
+  font-size: 58rpx;
+  font-weight: 950;
+  line-height: 1.04;
+}
+
+.entry-desc {
+  display: block;
+  width: 560rpx;
+  margin: 24rpx auto 0;
+  color: rgba(255, 253, 247, 0.68);
+  font-size: 27rpx;
+  font-weight: 800;
+  line-height: 1.5;
+}
+
+.entry-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-top: 74rpx;
+}
+
+.entry-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 174rpx;
+  padding: 0 38rpx;
+  border-radius: 32rpx;
+  text-align: left;
+  font-size: 38rpx;
+  font-weight: 950;
+  box-shadow: 0 24rpx 54rpx rgba(0, 0, 0, 0.22);
+}
+
+.entry-button.share {
+  background: #d82f3f;
+  color: #fffdf7;
+}
+
+.entry-button.ask {
+  background: #fffdf7;
+  color: #242b2e;
+}
+
+.entry-button-sub {
+  display: block;
+  margin-top: 12rpx;
+  font-size: 23rpx;
+  font-weight: 800;
+  opacity: 0.78;
+}
+
+.entry-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14rpx;
+  margin-top: 34rpx;
+}
+
+.entry-stat {
+  min-height: 112rpx;
+  padding: 22rpx 10rpx;
+  border-radius: 24rpx;
+  background: rgba(255, 253, 247, 0.08);
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  color: #fffdf7;
+  font-size: 30rpx;
+  font-weight: 950;
+}
+
+.stat-label {
+  display: block;
+  margin-top: 6rpx;
+  color: rgba(255, 253, 247, 0.58);
+  font-size: 21rpx;
+  font-weight: 800;
+}

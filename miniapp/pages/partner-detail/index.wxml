@@ -1,0 +1,39 @@
+<view class="feed-page" wx:if="{{merchant}}">
+  <view class="note-card ad-card">
+    <view class="note-cover-wrap">
+      <text class="ad-label">{{merchant.type}}</text>
+      <image class="note-cover" src="{{merchant.image}}" mode="aspectFill" lazy-load="true" />
+      <view class="note-cover-mask">
+        <text class="note-cover-text">{{merchant.title}}</text>
+      </view>
+    </view>
+    <view class="note-body">
+      <text class="note-title">{{merchant.title}}</text>
+      <text class="note-desc">{{merchant.subtitle}}</text>
+      <view class="merchant-tags">
+        <text wx:for="{{merchant.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+      </view>
+      <view class="note-meta-row">
+        <view class="note-author">
+          <text class="note-avatar">{{merchant.avatar || '商'}}</text>
+          <text class="note-author-name">{{merchant.author}}</text>
+        </view>
+        <text class="note-author-name">认证商家样例</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="helper-note">
+    <text>商家信息用于帮助学生货比三家。正式版会展示认证状态、服务边界、价格范围、联系方式、投诉入口和下单记录。</text>
+  </view>
+
+  <view class="note-card">
+    <view class="note-body">
+      <text class="note-title">我要咨询</text>
+      <textarea class="textarea" value="{{note}}" bindinput="onNoteInput" placeholder="写下你的学校、城市、预算、时间和想咨询的问题。" />
+      <button class="primary-button" bindtap="submitLead">提交咨询意向</button>
+      <button class="primary-button" bindtap="copyContactHint">复制咨询提示</button>
+      <button class="primary-button" bindtap="reportMerchant">举报/反馈商家</button>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,58 @@
+<view class="feed-page" wx:if="{{question}}">
+  <view class="note-card">
+    <view class="note-body">
+      <text class="note-title">{{question.title}}</text>
+      <text class="note-desc" selectable="true">{{question.detail}}</text>
+      <view class="reward-line">
+        <text>{{question.category}}</text>
+        <text>{{question.rewardPoints || 0}} 提现积分</text>
+      </view>
+      <view class="note-meta-row">
+        <view class="note-author">
+          <text class="note-avatar">{{question.avatar || '求'}}</text>
+          <text class="note-author-name">{{question.author || '求助人'}}</text>
+        </view>
+        <text class="note-author-name">{{question.school}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="helper-note" wx:if="{{settled}}">
+    <text>提问者已采纳回答，回答者获得 {{settledPoints}} 积分。争议可提交人工处理。</text>
+  </view>
+
+  <view class="note-card">
+    <view class="note-body">
+      <text class="note-title">我来回答</text>
+      <textarea class="textarea" value="{{answerText}}" bindinput="onAnswerInput" placeholder="写清步骤、材料、注意事项或你能提供的帮助。不要发布代写、代考、非法换汇等违规内容。" />
+      <button class="primary-button" bindtap="submitAnswer">提交回答/帮助方案</button>
+    </view>
+  </view>
+
+  <view class="note-card">
+    <view class="note-body">
+      <text class="note-title">退款 / 申诉</text>
+      <text class="note-desc">未产生有效回答时可申请退回悬赏；已有回答或已采纳后，请提交申诉由管理员处理。</text>
+      <textarea class="textarea" value="{{disputeText}}" bindinput="onDisputeInput" placeholder="写明退款、恶意采纳、服务未完成或其他争议情况。" />
+      <button class="primary-button" bindtap="requestRefund">申请退回悬赏</button>
+      <button class="primary-button" bindtap="submitDispute">提交人工申诉</button>
+    </view>
+  </view>
+
+  <view class="note-card" wx:for="{{answers}}" wx:key="id">
+    <view class="note-body">
+      <view class="note-meta-row">
+        <view class="note-author">
+          <text class="note-avatar">{{item.avatar || '答'}}</text>
+          <text class="note-author-name">{{item.author}}</text>
+        </view>
+        <text class="note-author-name">{{item.identity}}</text>
+      </view>
+      <text class="note-desc" selectable="true">{{item.content}}</text>
+      <view class="helper-note" wx:if="{{item.accepted}}">
+        <text>已采纳：这条回答进入积分结算。</text>
+      </view>
+      <button class="primary-button" wx:if="{{!item.accepted}}" data-id="{{item.id}}" bindtap="acceptAnswer">采纳这条回答</button>
+    </view>
+  </view>
+</view>

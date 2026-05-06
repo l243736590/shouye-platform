@@ -1,0 +1,67 @@
+<view class="page publish-page">
+  <view class="mode-row">
+    <button class="mode-chip {{mode === 'question' ? 'active' : ''}}" data-mode="question" bindtap="chooseMode">我要提问/悬赏</button>
+    <button class="mode-chip {{mode === 'experience' ? 'active' : ''}}" data-mode="experience" bindtap="chooseMode">我知道</button>
+    <button class="mode-chip {{mode === 'skill' ? 'active gold-mode' : ''}}" data-mode="skill" bindtap="chooseMode">我能做</button>
+  </view>
+
+  <view class="section-head page-head">
+    <view>
+      <text class="eyebrow">{{config.eyebrow}}</text>
+      <text class="h1">{{config.title}}</text>
+    </view>
+  </view>
+
+  <view class="form card">
+    <view class="field">
+      <text class="label">标题</text>
+      <input class="input" data-field="title" value="{{form.title}}" bindinput="onInput" placeholder="{{config.titlePlaceholder}}" />
+    </view>
+
+    <view class="field-grid">
+      <view class="field">
+        <text class="label">学校</text>
+        <picker mode="selector" range="{{schools}}" value="{{schoolIndex}}" bindchange="onSchoolChange">
+          <view class="select-row">{{form.school}}</view>
+        </picker>
+      </view>
+      <view class="field">
+        <text class="label">分类</text>
+        <picker mode="selector" range="{{categories}}" value="{{categoryIndex}}" bindchange="onCategoryChange">
+          <view class="select-row">{{form.category}}</view>
+        </picker>
+      </view>
+    </view>
+
+    <view class="field-grid">
+      <view class="field" wx:if="{{mode === 'question'}}">
+        <text class="label">悬赏积分</text>
+        <input class="input" type="number" data-field="rewardPoints" value="{{form.rewardPoints}}" bindinput="onInput" placeholder="0" />
+      </view>
+      <view class="field" wx:if="{{mode !== 'question'}}">
+        <text class="label">{{mode === 'skill' ? '服务积分' : '解锁积分'}}</text>
+        <input class="input" type="number" data-field="price" value="{{form.price}}" bindinput="onInput" placeholder="0" />
+      </view>
+      <view class="field" wx:if="{{mode === 'skill'}}">
+        <text class="label">服务城市/区域</text>
+        <input class="input" data-field="city" value="{{form.city}}" bindinput="onInput" placeholder="例如：首尔弘大/新村" />
+      </view>
+    </view>
+
+    <view class="field" wx:if="{{mode !== 'question'}}">
+      <text class="label">摘要</text>
+      <input class="input" data-field="excerpt" value="{{form.excerpt}}" bindinput="onInput" placeholder="一句话说明这条内容能解决什么问题" />
+    </view>
+
+    <view class="field">
+      <text class="label">{{mode === 'question' ? '问题详情' : '正文'}}</text>
+      <textarea class="textarea" data-field="{{mode === 'question' ? 'detail' : 'body'}}" value="{{mode === 'question' ? form.detail : form.body}}" bindinput="onInput" placeholder="{{config.detailPlaceholder}}" />
+    </view>
+
+    <view class="notice" wx:if="{{mode === 'skill'}}">
+      发布技能服务请写清边界。平台不允许代写、代考、替课、伪造材料、非法换汇或其他违规服务。
+    </view>
+
+    <button class="primary-button submit-button" loading="{{submitting}}" bindtap="submit">{{config.submitText}}</button>
+  </view>
+</view>

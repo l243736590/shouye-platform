@@ -1,0 +1,54 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/questions/index",
+    "pages/solve/index",
+    "pages/posts/index",
+    "pages/schools/index",
+    "pages/partners/index",
+    "pages/post-detail/index",
+    "pages/question-detail/index",
+    "pages/partner-detail/index",
+    "pages/toolbox/index",
+    "pages/publish/index",
+    "pages/profile/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "售业",
+    "navigationBarBackgroundColor": "#f8faf6",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f4f7f1",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#687174",
+    "selectedColor": "#242b2e",
+    "backgroundColor": "#fffdf7",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/questions/index",
+        "text": "提问"
+      },
+      {
+        "pagePath": "pages/publish/index",
+        "text": "发帖"
+      },
+      {
+        "pagePath": "pages/posts/index",
+        "text": "经验"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

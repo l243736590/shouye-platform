@@ -1,0 +1,20 @@
+.helper-note {
+  margin: 16rpx 10rpx 4rpx;
+  padding: 18rpx 22rpx;
+  border-radius: 18rpx;
+  background: #f5f1e5;
+  color: #6a4d00;
+  font-size: 24rpx;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.reward-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-top: 12rpx;
+  color: #b37700;
+  font-size: 21rpx;
+  font-weight: 900;
+}

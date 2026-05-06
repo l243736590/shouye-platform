@@ -1,0 +1,51 @@
+<view class="page profile-page">
+  <view class="section-head page-head">
+    <view>
+      <text class="eyebrow">个人中心</text>
+      <text class="h1">登录后发布、接悬赏和查看积分</text>
+    </view>
+  </view>
+
+  <view class="user-card dark-card" wx:if="{{user}}">
+    <text class="user-name">{{user.name}}</text>
+    <text class="user-meta">{{user.email}}</text>
+    <view class="points-grid">
+      <view>
+        <text class="point-number">{{user.points || 0}}</text>
+        <text class="point-label">消费积分</text>
+      </view>
+      <view>
+        <text class="point-number">{{user.earningPoints || user.earning_points || 0}}</text>
+        <text class="point-label">可提现积分</text>
+      </view>
+    </view>
+    <text class="settle-note">通过悬赏赚取的积分需要沉淀一周后提现，避免后期纠纷。</text>
+    <button class="logout-button" bindtap="logout">退出登录</button>
+  </view>
+
+  <view class="login-card card" wx:else>
+    <text class="login-title">先回首页登录</text>
+    <text class="login-desc">首页已经改成微信登录和其他方式登录，登录后这里会展示积分和发布记录。</text>
+    <button class="primary-button" bindtap="goHome">去登录</button>
+    <view class="profile-email-login">
+      <text class="login-subtitle">也可以临时用邮箱登录</text>
+      <input class="input" data-field="email" value="{{email}}" bindinput="onInput" placeholder="邮箱" />
+      <input class="input" data-field="password" value="{{password}}" bindinput="onInput" password placeholder="密码" />
+      <button class="secondary-button" loading="{{loading}}" bindtap="doLogin">邮箱登录</button>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-head">
+      <view>
+        <text class="eyebrow">快速发布</text>
+        <text class="h2">你要做哪件事</text>
+      </view>
+    </view>
+    <view class="quick-grid">
+      <button class="quick-card deep" data-mode="question" bindtap="openPublish">提问/悬赏</button>
+      <button class="quick-card red" data-mode="experience" bindtap="openPublish">我知道</button>
+      <button class="quick-card gold" data-mode="skill" bindtap="openPublish">我能做</button>
+    </view>
+  </view>
+</view>

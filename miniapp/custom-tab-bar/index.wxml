@@ -1,0 +1,12 @@
+<view class="shouye-tabbar" wx:if="{{visible}}">
+  <view
+    class="tab-item {{selected === index ? 'active' : ''}} {{item.isPost ? 'post-tab' : ''}}"
+    wx:for="{{list}}"
+    wx:key="pagePath"
+    data-index="{{index}}"
+    bindtap="switchTab"
+  >
+    <view class="post-pill" wx:if="{{item.isPost}}">{{item.text}}</view>
+    <view class="tab-label" wx:else>{{item.text}}</view>
+  </view>
+</view>
