@@ -6325,12 +6325,13 @@ video.partner-detail-floating-image {
   }
 
   .partner-showcase-window {
-    padding: 48px 54px 34px 0;
+    overflow: visible;
+    padding: 48px 0 34px;
   }
 
   .partner-looseleaf-rings {
-    left: 54px;
-    right: 86px;
+    left: 34px;
+    right: 34px;
   }
 
   .partner-looseleaf-rings span {
@@ -6345,6 +6346,8 @@ video.partner-detail-floating-image {
 
   .partner-showcase-card.partner-looseleaf-card {
     min-height: 0;
+    overflow: hidden;
+    width: 100%;
   }
 
   .partner-looseleaf-main {
@@ -6440,7 +6443,41 @@ video.partner-detail-floating-image {
   }
 
   .partner-looseleaf-art {
-    display: none;
+    display: grid;
+    min-height: 146px;
+    order: 2;
+    padding: 4px 0 0;
+  }
+
+  .partner-looseleaf-art strong {
+    font-size: clamp(58px, 21vw, 92px);
+  }
+
+  .partner-looseleaf-art small {
+    font-size: clamp(13px, 4vw, 18px);
+    margin-top: 8px;
+  }
+
+  .partner-art-map {
+    height: 150px;
+    right: 50%;
+    top: 0;
+    transform: translateX(50%);
+    width: 260px;
+  }
+
+  .partner-art-plane {
+    height: 92px;
+    right: 50%;
+    top: 26px;
+    transform: translateX(50%) rotate(-18deg);
+    width: 170px;
+  }
+
+  .partner-art-plane::after {
+    font-size: 22px;
+    right: 14px;
+    top: 3px;
   }
 
   .partner-service-strip {
