@@ -2571,6 +2571,43 @@ const resizeImageFileToDataUrl = (file: File, maxSize = 420, quality = 0.82) =>
     reader.readAsDataURL(file)
   })
 
+const resizeTransparentImageFileToDataUrl = (file: File, maxSize = 520) =>
+  new Promise<string>((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('请上传图片文件。'))
+      return
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      reject(new Error('图片不能超过 6MB。'))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('图片读取失败。'))
+    reader.onload = () => {
+      const image = new Image()
+      image.onerror = () => reject(new Error('图片解析失败。'))
+      image.onload = () => {
+        const ratio = Math.min(1, maxSize / Math.max(image.width, image.height))
+        const width = Math.max(1, Math.round(image.width * ratio))
+        const height = Math.max(1, Math.round(image.height * ratio))
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const context = canvas.getContext('2d')
+        if (!context) {
+          reject(new Error('图片处理失败。'))
+          return
+        }
+        context.clearRect(0, 0, width, height)
+        context.drawImage(image, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/png'))
+      }
+      image.src = String(reader.result ?? '')
+    }
+    reader.readAsDataURL(file)
+  })
+
 const readVideoFileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     if (!file.type.startsWith('video/')) {
@@ -6273,7 +6310,7 @@ function App() {
     }
 
     try {
-      const pendingLogoImage = await resizeImageFileToDataUrl(file)
+      const pendingLogoImage = await resizeTransparentImageFileToDataUrl(file)
       setMerchantDecorationDrafts((drafts) => {
         const fallback =
           drafts[activePartnerDetailSlug] ??
