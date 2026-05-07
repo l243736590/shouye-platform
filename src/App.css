@@ -2333,6 +2333,24 @@ h3 {
   z-index: 1;
 }
 
+.partner-logo-mark.has-image {
+  background: #111817;
+  color: transparent;
+  overflow: hidden;
+}
+
+.partner-logo-mark.has-image img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.partner-logo-mark.has-image::before,
+.partner-logo-mark.has-image::after {
+  display: none;
+}
+
 .partner-logo-mark::before,
 .partner-logo-mark::after {
   border: 2px solid currentColor;

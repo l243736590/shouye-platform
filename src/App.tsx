@@ -2097,6 +2097,7 @@ const partnerShowcases = [
         id: 'wala-study',
         name: '瓦剌留学',
         logo: '瓦剌',
+        logoImage: '/merchant-logos/wala-study.png',
         summary: '韩国留学申请、签证续签、语学院和大学院规划',
         description: '瓦剌留学专注韩国院校申请与在韩升学规划，提供择校评估、材料核对、文书节奏、签证指导和入学后续服务，适合准备申请或已经在韩转阶段的学生对比咨询。',
         tags: ['院校规划', '材料审核', '签证指导', '全程陪伴'],
@@ -2408,6 +2409,12 @@ const manageablePartnerBrands = partnerMerchantEntries
     name: entry.merchant.name,
     type: entry.showcase.type,
   }))
+
+const getPartnerLogoImage = (merchant: unknown) => {
+  if (!merchant || typeof merchant !== 'object' || !('logoImage' in merchant)) return ''
+  const logoImage = (merchant as { logoImage?: unknown }).logoImage
+  return typeof logoImage === 'string' ? logoImage : ''
+}
 
 const seedQuestions: CommunityQuestion[] = [
   {
@@ -5133,6 +5140,8 @@ function App() {
         entry.merchant.name === decodedPartnerRouteSlug ||
         encodeURIComponent(entry.merchant.name) === partnerRouteSlug,
     ) ?? partnerMerchantEntries[0]
+  const activePartnerMerchantLogoImage = getPartnerLogoImage(activePartnerMerchant)
+  const activePartnerDetailLogoImage = getPartnerLogoImage(activePartnerDetail.merchant)
   const selectedSchoolGallery = schoolCampusImages(selectedSchool.id)
   const selectedSchoolGalleryKey = selectedSchoolGallery.join('|')
   const selectedSchoolBaseHeroImage = selectedSchoolGallery[0] ?? selectedSchool.image
@@ -7991,8 +8000,16 @@ function App() {
             <div className="partner-detail-copy">
               <p className="eyebrow dark">{partnerDetailBadge}</p>
               <div className="partner-brand-lockup partner-detail-lockup">
-                <div className={`partner-logo-mark ${activePartnerDetail.showcase.tone}`}>
-                  <span>{activePartnerDetail.merchant.logo}</span>
+                <div
+                  className={`partner-logo-mark ${activePartnerDetail.showcase.tone} ${
+                    activePartnerDetailLogoImage ? 'has-image' : ''
+                  }`}
+                >
+                  {activePartnerDetailLogoImage ? (
+                    <img src={activePartnerDetailLogoImage} alt={`${activePartnerDetail.merchant.name} Logo`} />
+                  ) : (
+                    <span>{activePartnerDetail.merchant.logo}</span>
+                  )}
                 </div>
                 <div>
                   <span>{activePartnerDetail.showcase.type}</span>
@@ -9312,8 +9329,16 @@ function App() {
             <div className="partner-looseleaf-main">
               <div className="partner-looseleaf-copy">
                 <div className="partner-brand-lockup">
-                  <div className={`partner-logo-mark ${selectedPartnerShowcase.tone}`}>
-                    <span>{activePartnerMerchant.logo}</span>
+                  <div
+                    className={`partner-logo-mark ${selectedPartnerShowcase.tone} ${
+                      activePartnerMerchantLogoImage ? 'has-image' : ''
+                    }`}
+                  >
+                    {activePartnerMerchantLogoImage ? (
+                      <img src={activePartnerMerchantLogoImage} alt={`${activePartnerMerchant.name} Logo`} />
+                    ) : (
+                      <span>{activePartnerMerchant.logo}</span>
+                    )}
                   </div>
                   <div>
                     <span>{selectedPartnerShowcase.type}</span>
