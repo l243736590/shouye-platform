@@ -7023,6 +7023,10 @@ function App() {
     partnerShowcaseEditMode && canManageActivePartnerMerchant
       ? {
           'data-partner-showcase-editable': 'true',
+          'data-partner-showcase-active': activePartnerShowcaseTextEditor === field ? 'true' : undefined,
+          onClick: (event: MouseEvent<HTMLElement>) => {
+            event.stopPropagation()
+          },
           onDoubleClick: (event: MouseEvent<HTMLElement>) => {
             event.preventDefault()
             event.stopPropagation()

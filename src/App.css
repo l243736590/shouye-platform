@@ -2521,6 +2521,19 @@ h3 {
 
 [data-partner-showcase-editable='true'] {
   cursor: text;
+  outline: 1px dashed rgba(239, 90, 60, 0.42);
+  outline-offset: 4px;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    outline-color 160ms ease;
+}
+
+[data-partner-showcase-editable='true']:hover,
+[data-partner-showcase-active='true'] {
+  background: rgba(239, 90, 60, 0.06);
+  box-shadow: 0 0 0 7px rgba(239, 90, 60, 0.1);
+  outline-color: rgba(239, 90, 60, 0.88);
 }
 
 .partner-showcase-text-popover {
@@ -2593,16 +2606,13 @@ h3 {
   z-index: 25;
 }
 
-.is-showcase-editing .partner-showcase-design-layer {
-  pointer-events: auto;
-}
-
 .partner-showcase-design-item {
   cursor: grab;
   display: grid;
   min-width: 52px;
   overflow: visible;
   position: absolute;
+  pointer-events: auto;
   touch-action: none;
   transform: translate(-50%, -50%);
   user-select: none;
