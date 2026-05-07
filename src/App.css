@@ -2389,6 +2389,8 @@ h3 {
 
 .partner-logo-mark.has-image {
   background: transparent;
+  border-radius: 0;
+  box-shadow: none;
   box-sizing: border-box;
   color: transparent;
   overflow: visible;
@@ -2402,6 +2404,7 @@ h3 {
   max-width: 100%;
   object-fit: contain;
   width: auto;
+  filter: drop-shadow(0 14px 22px rgba(16, 32, 29, 0.16));
 }
 
 .partner-logo-mark.has-image::before,
