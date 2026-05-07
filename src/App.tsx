@@ -133,6 +133,8 @@ type MerchantBrandDecoration = {
   contactCopy: string
   caseOne: string
   caseTwo: string
+  showcaseArtTitle: string
+  showcaseArtSubtitle: string
   logoImage: string
   pendingLogoImage: string
   logoReviewStatus: VerificationStatus
@@ -803,6 +805,8 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    showcaseArtTitle: '土著人',
+    showcaseArtSubtitle: '开启世界视野 · 成就未来可能',
     logoImage: '',
     pendingLogoImage: '',
     logoReviewStatus: 'approved',
@@ -903,6 +907,8 @@ const normalizeMerchantBrandDecoration = (
     contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
     caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
     caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+    showcaseArtTitle: decoration.showcaseArtTitle ?? fallback?.showcaseArtTitle ?? '',
+    showcaseArtSubtitle: decoration.showcaseArtSubtitle ?? fallback?.showcaseArtSubtitle ?? '',
     logoImage: decoration.logoImage ?? fallback?.logoImage ?? '',
     pendingLogoImage: decoration.pendingLogoImage ?? fallback?.pendingLogoImage ?? '',
     logoReviewStatus: decoration.logoReviewStatus ?? fallback?.logoReviewStatus ?? 'approved',
@@ -4996,6 +5002,8 @@ type MerchantEditableTextField =
   | 'contactCopy'
   | 'caseOne'
   | 'caseTwo'
+  | 'showcaseArtTitle'
+  | 'showcaseArtSubtitle'
   | 'titleColor'
   | 'bodyColor'
   | 'accentColor'
@@ -5459,6 +5467,8 @@ function App() {
       caseTwo: activePartnerMerchant.tags[1]
         ? `${activePartnerMerchant.tags[1]}：展示咨询前需要准备的信息。`
         : '咨询准备：整理需求、预算、时间节点和联系方式。',
+      showcaseArtTitle: selectedPartnerShowcase.type === '留学咨询' ? '留学' : activePartnerMerchant.logo,
+      showcaseArtSubtitle: '开启世界视野 · 成就未来可能',
     })
   const showcaseUserBioSettings = parseUserBioSettings(currentUser?.bio)
   const canManageActivePartnerMerchant =
@@ -5475,6 +5485,11 @@ function App() {
     (activePartnerMerchant.name === '瓦剌留学' ? 'WALA STUDY · 留学生服务展示' : 'SHOUYE PARTNER · 商家广告展示')
   const activePartnerShowcaseTitle = activePartnerMerchantPreviewDecoration?.heroTitle ?? activePartnerMerchant.summary
   const activePartnerShowcaseDescription = activePartnerMerchantPreviewDecoration?.intro ?? activePartnerMerchant.description
+  const activePartnerShowcaseArtTitle =
+    activePartnerMerchantPreviewDecoration?.showcaseArtTitle ||
+    (selectedPartnerShowcase.type === '留学咨询' ? '留学' : activePartnerMerchant.logo)
+  const activePartnerShowcaseArtSubtitle =
+    activePartnerMerchantPreviewDecoration?.showcaseArtSubtitle || '开启世界视野 · 成就未来可能'
   const activePartnerShowcaseFontStyle: CSSProperties = activePartnerMerchantPreviewDecoration?.fontFamily
     ? { fontFamily: activePartnerMerchantPreviewDecoration.fontFamily }
     : {}
@@ -7038,7 +7053,17 @@ function App() {
   const renderPartnerShowcaseTextEditor = (field: MerchantEditableTextField) => {
     if (!partnerShowcaseEditMode || activePartnerShowcaseTextEditor !== field) return null
     const fieldLabel =
-      field === 'badge' ? '展示标识' : field === 'heroTitle' ? '展示标题' : field === 'intro' ? '展示说明' : '展示文字'
+      field === 'badge'
+        ? '展示标识'
+        : field === 'heroTitle'
+          ? '展示标题'
+          : field === 'intro'
+            ? '展示说明'
+            : field === 'showcaseArtTitle'
+              ? '右侧大字'
+              : field === 'showcaseArtSubtitle'
+                ? '右侧副标题'
+                : '展示文字'
     return (
       <div className="partner-showcase-text-popover" onDoubleClick={(event) => event.stopPropagation()}>
         <label>
@@ -11233,11 +11258,27 @@ function App() {
                   </a>
                 </div>
               </div>
-              <div className="partner-looseleaf-art" aria-hidden="true">
+              <div className="partner-looseleaf-art">
                 <span className="partner-art-map" />
                 <span className="partner-art-plane" />
-                <strong>{selectedPartnerShowcase.type === '留学咨询' ? '留学' : activePartnerMerchant.logo}</strong>
-                <small>开启世界视野 · 成就未来可能</small>
+                <span className="partner-showcase-text-wrap partner-showcase-art-text">
+                  <strong
+                    style={activePartnerShowcaseTitleStyle}
+                    {...getPartnerShowcaseEditableTextProps('showcaseArtTitle')}
+                  >
+                    {activePartnerShowcaseArtTitle}
+                  </strong>
+                  {renderPartnerShowcaseTextEditor('showcaseArtTitle')}
+                </span>
+                <span className="partner-showcase-text-wrap partner-showcase-art-text">
+                  <small
+                    style={activePartnerShowcaseTitleStyle}
+                    {...getPartnerShowcaseEditableTextProps('showcaseArtSubtitle')}
+                  >
+                    {activePartnerShowcaseArtSubtitle}
+                  </small>
+                  {renderPartnerShowcaseTextEditor('showcaseArtSubtitle')}
+                </span>
               </div>
             </div>
             <div className="partner-service-strip">

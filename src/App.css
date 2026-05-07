@@ -3788,6 +3788,24 @@ video.partner-detail-floating-image {
   position: relative;
 }
 
+.partner-looseleaf-art .partner-showcase-art-text {
+  display: grid;
+  justify-items: center;
+  max-width: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+.partner-looseleaf-art [data-partner-showcase-editable='true'] {
+  display: inline-block;
+}
+
+.partner-looseleaf-art .partner-showcase-text-popover {
+  left: 50%;
+  min-width: min(520px, 72vw);
+  transform: translateX(-50%);
+}
+
 .partner-looseleaf-art strong {
   color: #12345d;
   font-size: clamp(92px, 10vw, 170px);
