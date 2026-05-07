@@ -685,6 +685,12 @@ type SiteContentSettings = {
   mobileHeroTitleSize: number
   mobileHeroCopySize: number
   mobileSearchScale: number
+  merchantWalaBadge: string
+  merchantWalaHeroTitle: string
+  merchantWalaIntro: string
+  merchantWalaContactCopy: string
+  merchantWalaCaseOne: string
+  merchantWalaCaseTwo: string
 }
 
 const heroImage =
@@ -713,6 +719,13 @@ const defaultSiteContent: SiteContentSettings = {
   mobileHeroTitleSize: 50,
   mobileHeroCopySize: 32,
   mobileSearchScale: 1.3,
+  merchantWalaBadge: '认证商家展示页',
+  merchantWalaHeroTitle: '韩国留学申请、签证续签、语学院和大学院规划',
+  merchantWalaIntro:
+    '瓦剌留学专注韩国院校申请与在韩升学规划，适合准备申请、语学院转本科、本科申请大学院，以及需要核对签证续签材料的学生先做对比咨询。',
+  merchantWalaContactCopy: '咨询前建议先整理目标学校、当前阶段、语言成绩、预算和预计入学时间，方便商家判断服务边界。',
+  merchantWalaCaseOne: '本科/大学院申请：择校评估、材料节奏、文书修改范围、面试准备和入学后续提醒。',
+  merchantWalaCaseTwo: '签证与在韩升学：D-2/D-4续签材料核对、语学院升本科、研究计划书节奏和窗口风险提示。',
 }
 
 const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteContentSettings => {
@@ -1993,11 +2006,29 @@ const partnerShowcases = [
     tone: 'consulting',
     merchants: [
       {
+        id: 'wala-study',
         name: '瓦剌留学',
         logo: '瓦剌',
         summary: '韩国留学申请、签证续签、语学院和大学院规划',
         description: '瓦剌留学专注韩国院校申请与在韩升学规划，提供择校评估、材料核对、文书节奏、签证指导和入学后续服务，适合准备申请或已经在韩转阶段的学生对比咨询。',
         tags: ['院校规划', '材料审核', '签证指导', '全程陪伴'],
+        verified: true,
+        location: '韩国 · 首尔',
+        detailTone: '专业留学规划与服务',
+        detailSections: [
+          {
+            title: '适合咨询的人',
+            text: '准备韩国本科、大学院、语学院申请，或者已经在韩读书但要换阶段、换学校、续签材料的学生。',
+          },
+          {
+            title: '咨询前先准备',
+            text: '目标专业、当前学历、语言成绩、成绩单、预算、预计入学时间和目前滞留资格，信息越清楚越容易判断服务范围。',
+          },
+          {
+            title: '平台提醒',
+            text: '商家展示页用于信息对比，不代表平台承诺录取、签证结果或具体政策结论；最终以学校、HiKorea 和出入境最新公告为准。',
+          },
+        ],
       },
       {
         name: '大学院申请规划',
@@ -2191,6 +2222,14 @@ const partnerShowcases = [
     ],
   },
 ]
+
+const partnerMerchantEntries = partnerShowcases.flatMap((showcase) =>
+  showcase.merchants.map((merchant) => ({
+    showcase,
+    merchant,
+    slug: 'id' in merchant ? merchant.id : encodeURIComponent(merchant.name),
+  })),
+)
 
 const seedQuestions: CommunityQuestion[] = [
   {
@@ -4593,6 +4632,8 @@ function App() {
   const isCategoriesRoute = currentPath === '/categories'
   const isAboutRoute = currentPath === '/about'
   const isHowItWorksRoute = currentPath === '/how-it-works'
+  const partnerRouteSlug = typeof window !== 'undefined' ? currentPath.match(/^\/partners\/([^/]+)$/)?.[1] : undefined
+  const isPartnerDetailRoute = Boolean(partnerRouteSlug)
   const policyRoute = currentPath.match(/^\/(terms|privacy|content-rules|minor-privacy)$/)?.[1] as
     | LegalPolicyRoute
     | undefined
@@ -4608,6 +4649,7 @@ function App() {
     isCategoriesRoute ||
     isAboutRoute ||
     isHowItWorksRoute ||
+    isPartnerDetailRoute ||
     Boolean(policyRoute) ||
     isTopicRoute
   const schoolRouteId =
@@ -4884,6 +4926,14 @@ function App() {
   const activePartnerMerchant =
     selectedPartnerShowcase.merchants[selectedPartnerMerchantIndex % selectedPartnerShowcase.merchants.length] ??
     selectedPartnerShowcase.merchants[0]
+  const decodedPartnerRouteSlug = partnerRouteSlug ? decodeURIComponent(partnerRouteSlug) : ''
+  const activePartnerDetail =
+    partnerMerchantEntries.find(
+      (entry) =>
+        entry.slug === decodedPartnerRouteSlug ||
+        entry.merchant.name === decodedPartnerRouteSlug ||
+        encodeURIComponent(entry.merchant.name) === partnerRouteSlug,
+    ) ?? partnerMerchantEntries[0]
   const selectedSchoolGallery = schoolCampusImages(selectedSchool.id)
   const selectedSchoolGalleryKey = selectedSchoolGallery.join('|')
   const selectedSchoolBaseHeroImage = selectedSchoolGallery[0] ?? selectedSchool.image
@@ -5152,6 +5202,31 @@ function App() {
   }, [appState.posts, query])
   const siteContent = normalizeSiteContent(appState.siteContent)
   const activeSiteContent = inlineEditMode ? contentDraft : siteContent
+  const isWalaPartnerDetail = activePartnerDetail.slug === 'wala-study'
+  const fallbackPartnerDetailSections = [
+    {
+      title: '服务说明',
+      text: activePartnerDetail.merchant.description,
+    },
+    {
+      title: '对比建议',
+      text: '建议先比较服务范围、价格区间、交付方式、售后规则和真实评价，再决定是否咨询或下单。',
+    },
+    {
+      title: '平台提醒',
+      text: '商家展示页用于信息对比，不代表平台担保服务结果；线下交易、付款和售后由用户与商家自行确认。',
+    },
+  ]
+  const partnerDetailSections =
+    'detailSections' in activePartnerDetail.merchant
+      ? activePartnerDetail.merchant.detailSections ?? fallbackPartnerDetailSections
+      : fallbackPartnerDetailSections
+  const partnerDetailHeroTitle = isWalaPartnerDetail ? activeSiteContent.merchantWalaHeroTitle : activePartnerDetail.merchant.summary
+  const partnerDetailIntro = isWalaPartnerDetail ? activeSiteContent.merchantWalaIntro : activePartnerDetail.merchant.description
+  const partnerDetailBadge = isWalaPartnerDetail ? activeSiteContent.merchantWalaBadge : '认证商家展示页'
+  const partnerDetailCases = isWalaPartnerDetail
+    ? [activeSiteContent.merchantWalaCaseOne, activeSiteContent.merchantWalaCaseTwo]
+    : activePartnerDetail.merchant.tags.map((tag) => `${tag}：查看服务边界、价格区间、交付方式和售后规则。`)
   const heroStyle = {
     '--mobile-logo-width': `${activeSiteContent.mobileLogoWidth}vw`,
     '--mobile-hero-title-size': `${activeSiteContent.mobileHeroTitleSize}px`,
@@ -7606,6 +7681,68 @@ function App() {
         </section>
       )}
 
+      {isPartnerDetailRoute && (
+        <section className="info-page partner-detail-page">
+          <div className="partner-detail-hero">
+            <div className="partner-detail-copy">
+              <p className="eyebrow dark">{partnerDetailBadge}</p>
+              <div className="partner-brand-lockup partner-detail-lockup">
+                <div className={`partner-logo-mark ${activePartnerDetail.showcase.tone}`}>
+                  <span>{activePartnerDetail.merchant.logo}</span>
+                </div>
+                <div>
+                  <span>{activePartnerDetail.showcase.type}</span>
+                  <strong>{activePartnerDetail.merchant.name}</strong>
+                  <small>
+                    {'location' in activePartnerDetail.merchant ? activePartnerDetail.merchant.location : '售业认证商家展示'}
+                  </small>
+                </div>
+              </div>
+              <h1>{partnerDetailHeroTitle}</h1>
+              <p>{partnerDetailIntro}</p>
+              <a
+                className="partner-detail-link partner-detail-back"
+                href="/#partners"
+                onClick={(event) => {
+                  event.preventDefault()
+                  navigateToPath('/')
+                  window.setTimeout(() => {
+                    document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                  }, 0)
+                }}
+              >
+                返回商家展示区
+                <ArrowRight size={18} aria-hidden="true" />
+              </a>
+            </div>
+            <div className="partner-detail-panel" aria-label={`${activePartnerDetail.merchant.name}服务标签`}>
+              <span>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
+              <strong>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
+              <p>{isWalaPartnerDetail ? activeSiteContent.merchantWalaContactCopy : '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}</p>
+            </div>
+          </div>
+
+          <div className="partner-detail-grid">
+            {partnerDetailSections.map((section) => (
+              <article key={section.title}>
+                <span>{section.title}</span>
+                <p>{section.text}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="partner-detail-cases">
+            <div>
+              <p className="eyebrow dark">服务展示</p>
+              <h2>先看服务边界，再决定是否咨询。</h2>
+            </div>
+            {partnerDetailCases.map((item) => (
+              <article key={item}>{item}</article>
+            ))}
+          </div>
+        </section>
+      )}
+
       {isWalletRoute && (
         <section className="info-page wallet-page">
           <div className="section-heading rewards-heading wallet-heading">
@@ -8816,6 +8953,19 @@ function App() {
                 <div className="partner-showcase-copy">
                   <h3>{activePartnerMerchant.summary}</h3>
                   <p>{activePartnerMerchant.description}</p>
+                  <a
+                    className="partner-detail-link"
+                    href={`/partners/${'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)}`}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      navigateToPath(
+                        `/partners/${'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)}`,
+                      )
+                    }}
+                  >
+                    进入商家详情页
+                    <ArrowRight size={18} aria-hidden="true" />
+                  </a>
                 </div>
               </div>
               <div className="partner-looseleaf-art" aria-hidden="true">
@@ -9902,6 +10052,56 @@ function App() {
                     <input
                       value={contentDraft.metricRewardCopy}
                       onChange={(event) => updateContentDraft('metricRewardCopy', event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                <div className="admin-content-grid">
+                  <label>
+                    瓦剌详情页标识
+                    <input
+                      value={contentDraft.merchantWalaBadge}
+                      onChange={(event) => updateContentDraft('merchantWalaBadge', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    瓦剌详情页标题
+                    <textarea
+                      rows={2}
+                      value={contentDraft.merchantWalaHeroTitle}
+                      onChange={(event) => updateContentDraft('merchantWalaHeroTitle', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    瓦剌详情页介绍
+                    <textarea
+                      rows={3}
+                      value={contentDraft.merchantWalaIntro}
+                      onChange={(event) => updateContentDraft('merchantWalaIntro', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    咨询前提示
+                    <textarea
+                      rows={2}
+                      value={contentDraft.merchantWalaContactCopy}
+                      onChange={(event) => updateContentDraft('merchantWalaContactCopy', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    服务展示 1
+                    <textarea
+                      rows={2}
+                      value={contentDraft.merchantWalaCaseOne}
+                      onChange={(event) => updateContentDraft('merchantWalaCaseOne', event.target.value)}
+                    />
+                  </label>
+                  <label className="wide-field">
+                    服务展示 2
+                    <textarea
+                      rows={2}
+                      value={contentDraft.merchantWalaCaseTwo}
+                      onChange={(event) => updateContentDraft('merchantWalaCaseTwo', event.target.value)}
                     />
                   </label>
                 </div>

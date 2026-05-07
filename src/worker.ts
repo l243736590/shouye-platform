@@ -219,6 +219,12 @@ type SiteContentSettings = {
   mobileHeroTitleSize: number
   mobileHeroCopySize: number
   mobileSearchScale: number
+  merchantWalaBadge: string
+  merchantWalaHeroTitle: string
+  merchantWalaIntro: string
+  merchantWalaContactCopy: string
+  merchantWalaCaseOne: string
+  merchantWalaCaseTwo: string
 }
 
 const defaultSiteContent: SiteContentSettings = {
@@ -239,6 +245,13 @@ const defaultSiteContent: SiteContentSettings = {
   mobileHeroTitleSize: 50,
   mobileHeroCopySize: 32,
   mobileSearchScale: 1.3,
+  merchantWalaBadge: '认证商家展示页',
+  merchantWalaHeroTitle: '韩国留学申请、签证续签、语学院和大学院规划',
+  merchantWalaIntro:
+    '瓦剌留学专注韩国院校申请与在韩升学规划，适合准备申请、语学院转本科、本科申请大学院，以及需要核对签证续签材料的学生先做对比咨询。',
+  merchantWalaContactCopy: '咨询前建议先整理目标学校、当前阶段、语言成绩、预算和预计入学时间，方便商家判断服务边界。',
+  merchantWalaCaseOne: '本科/大学院申请：择校评估、材料节奏、文书修改范围、面试准备和入学后续提醒。',
+  merchantWalaCaseTwo: '签证与在韩升学：D-2/D-4续签材料核对、语学院升本科、研究计划书节奏和窗口风险提示。',
 }
 
 const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteContentSettings => {
@@ -441,6 +454,15 @@ const pageMeta = (pathname: string): PageMeta => {
     }
   }
 
+  if (pathname === '/partners/wala-study') {
+    return {
+      title: '瓦剌留学商家详情 - 韩国留学申请与签证续签服务展示',
+      description:
+        '瓦剌留学认证商家详情页，展示韩国留学申请、签证续签、语学院、本科和大学院规划等服务说明。',
+      keywords: `${defaultKeywords}, 瓦剌留学, 韩国留学申请, 签证续签`,
+    }
+  }
+
   return {
     title: '留学生首页 - 留学生经验分享与问题解决平台',
     description:
@@ -605,6 +627,25 @@ const routeSeoContent = (pathname: string) => {
       </noscript>`
   }
 
+  if (pathname === '/partners/wala-study') {
+    return `
+      <noscript id="seo-prerender-partner-wala">
+        <main>
+          <h1>瓦剌留学商家详情</h1>
+          <p>瓦剌留学提供韩国留学申请、签证续签、语学院和大学院规划服务展示。商家页面用于服务信息对比，不代表平台担保结果。</p>
+          ${seoLinks}
+          <section>
+            <h2>服务说明</h2>
+            <ul>
+              <li>院校规划、材料审核、签证指导和全程陪伴。</li>
+              <li>咨询前建议准备目标学校、当前阶段、语言成绩、预算和预计入学时间。</li>
+              <li>用户应自行确认服务范围、价格、交付方式和售后规则。</li>
+            </ul>
+          </section>
+        </main>
+      </noscript>`
+  }
+
   const schoolMatch = pathname.match(/^\/schools\/([^/]+)$/) ?? pathname.match(/^\/school\/([^/]+)$/)
   if (schoolMatch) {
     const schoolMap: Record<string, { zh: string; en: string; area: string }> = {
@@ -648,6 +689,7 @@ const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>${siteOrigin}/privacy</loc></url>
   <url><loc>${siteOrigin}/minor-privacy</loc></url>
   <url><loc>${siteOrigin}/content-rules</loc></url>
+  <url><loc>${siteOrigin}/partners/wala-study</loc></url>
   <url><loc>${siteOrigin}/schools/konkuk</loc></url>
   <url><loc>${siteOrigin}/schools/chungang</loc></url>
   <url><loc>${siteOrigin}/schools/korea</loc></url>
