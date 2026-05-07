@@ -105,6 +105,7 @@ type MerchantLead = {
 }
 
 type MerchantDesignZone = 'hero' | 'service'
+type MerchantStageLayerId = `text:${MerchantEditableTextField}` | `media:${'hero' | 'service'}` | `design:${string}`
 type MerchantDesignItem = {
   id: string
   zone: MerchantDesignZone
@@ -5109,6 +5110,7 @@ function App() {
   const [activeMerchantTextEditor, setActiveMerchantTextEditor] = useState<MerchantEditableTextField | null>(null)
   const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
   const [activeMerchantDesignItemId, setActiveMerchantDesignItemId] = useState<string | null>(null)
+  const [activeMerchantStageLayerId, setActiveMerchantStageLayerId] = useState<MerchantStageLayerId | null>(null)
   const merchantImageDragRef = useRef<{
     zone: 'hero' | 'service'
     startX: number
@@ -5253,6 +5255,7 @@ function App() {
         mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
       })
       setActiveMerchantDesignItemId(itemId)
+      setActiveMerchantStageLayerId(`design:${itemId}`)
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
     } finally {
@@ -5737,6 +5740,24 @@ function App() {
   const activeMerchantPreviewDecoration =
     canManageActivePartnerBrand && merchantDesignEditMode ? activeMerchantDecorationDraft : activeMerchantDecoration
   const activeMerchantDesignItem = activeMerchantDecorationDraft.designItems.find((item) => item.id === activeMerchantDesignItemId) ?? null
+  const selectMerchantTextLayer = (field: MerchantEditableTextField, openEditor = false) => {
+    setActiveMerchantStageLayerId(`text:${field}`)
+    setActiveMerchantDesignItemId(null)
+    setActiveMerchantMediaZone(null)
+    if (openEditor) setActiveMerchantTextEditor(field)
+  }
+  const selectMerchantMediaLayer = (zone: 'hero' | 'service') => {
+    setActiveMerchantStageLayerId(`media:${zone}`)
+    setActiveMerchantDesignItemId(null)
+    setActiveMerchantTextEditor(null)
+    setActiveMerchantMediaZone(zone)
+  }
+  const selectMerchantDesignLayer = (itemId: string) => {
+    setActiveMerchantStageLayerId(`design:${itemId}`)
+    setActiveMerchantTextEditor(null)
+    setActiveMerchantMediaZone(null)
+    setActiveMerchantDesignItemId(itemId)
+  }
   const fallbackPartnerDetailSections = [
     {
       title: '服务说明',
@@ -6370,17 +6391,28 @@ function App() {
   ) => {
     const file = event.target.files?.[0]
     event.target.value = ''
-    if (file) await updateMerchantDecorationImage(zone, file)
+    if (file) {
+      selectMerchantMediaLayer(zone)
+      await updateMerchantDecorationImage(zone, file)
+    }
   }
 
   const handleMerchantDecorationImageDrop = async (zone: 'hero' | 'service', event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
     const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
-    if (file) await updateMerchantDecorationImage(zone, file)
+    if (file) {
+      selectMerchantMediaLayer(zone)
+      await updateMerchantDecorationImage(zone, file)
+    }
   }
 
   const startMerchantDecorationImageDrag = (zone: 'hero' | 'service', event: PointerEvent<HTMLElement>) => {
     event.preventDefault()
+    event.stopPropagation()
+    setActiveMerchantStageLayerId(`media:${zone}`)
+    setActiveMerchantDesignItemId(null)
+    setActiveMerchantTextEditor(null)
+    setActiveMerchantMediaZone(zone)
     event.currentTarget.setPointerCapture(event.pointerId)
     merchantImageDragRef.current = {
       zone,
@@ -6437,6 +6469,7 @@ function App() {
     }
     updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, item])
     setActiveMerchantDesignItemId(item.id)
+    setActiveMerchantStageLayerId(`design:${item.id}`)
   }
 
   const deleteMerchantDesignItem = (itemId: string) => {
@@ -6446,6 +6479,7 @@ function App() {
       activeMerchantDecorationDraft.designItems.filter((item) => item.id !== itemId),
     )
     setActiveMerchantDesignItemId((selectedId) => (selectedId === itemId ? null : selectedId))
+    setActiveMerchantStageLayerId((selectedId) => (selectedId === `design:${itemId}` ? null : selectedId))
   }
 
   const moveMerchantDesignItemLayer = (itemId: string, direction: 1 | -1) => {
@@ -6464,6 +6498,7 @@ function App() {
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     setActiveMerchantDesignItemId(item.id)
+    setActiveMerchantStageLayerId(`design:${item.id}`)
     merchantDesignItemDragRef.current = {
       id: item.id,
       mode,
@@ -6514,6 +6549,7 @@ function App() {
         mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
       })
       setActiveMerchantDesignItemId(itemId)
+      setActiveMerchantStageLayerId(`design:${itemId}`)
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
     }
@@ -6625,7 +6661,7 @@ function App() {
     return (
       <div className="merchant-design-layer" aria-hidden={!editable}>
         {items.map((item) => {
-          const selected = editable && activeMerchantDesignItemId === item.id
+          const selected = editable && activeMerchantStageLayerId === `design:${item.id}`
           const itemStyle: CSSProperties = {
             left: `${item.x}%`,
             top: `${item.y}%`,
@@ -6646,7 +6682,7 @@ function App() {
                 if (!editable) return
                 event.preventDefault()
                 event.stopPropagation()
-                setActiveMerchantDesignItemId(item.id)
+                selectMerchantDesignLayer(item.id)
               }}
               onDoubleClick={(event) => {
                 if (!editable || item.kind === 'media') return
@@ -6704,11 +6740,14 @@ function App() {
     const style = getMerchantDecorationImageStyle(decoration, zone)
     const editable = canManageActivePartnerBrand && merchantDesignEditMode
     const sharedProps = {
-      className: editable && activeMerchantMediaZone === zone ? `${className} is-selected` : className,
+      className: editable && activeMerchantStageLayerId === `media:${zone}` ? `${className} is-selected` : className,
       draggable: false,
       style,
-      onClick: () => {
-        if (editable) setActiveMerchantMediaZone(zone)
+      onClick: (event: MouseEvent<HTMLElement>) => {
+        if (!editable) return
+        event.preventDefault()
+        event.stopPropagation()
+        selectMerchantMediaLayer(zone)
       },
       onPointerDown: (event: PointerEvent<HTMLElement>) => {
         if (editable) startMerchantDecorationImageDrag(zone, event)
@@ -6784,10 +6823,16 @@ function App() {
     merchantDesignEditMode && canManageActivePartnerBrand
       ? {
           'data-merchant-inline-edit': 'true',
+          'data-merchant-layer-active': activeMerchantStageLayerId === `text:${field}` ? 'true' : undefined,
+          onClick: (event: MouseEvent<HTMLElement>) => {
+            event.preventDefault()
+            event.stopPropagation()
+            selectMerchantTextLayer(field)
+          },
           onDoubleClick: (event: MouseEvent<HTMLElement>) => {
             event.preventDefault()
             event.stopPropagation()
-            setActiveMerchantTextEditor(field)
+            selectMerchantTextLayer(field, true)
           },
         }
       : {}
@@ -6893,12 +6938,83 @@ function App() {
 
   const renderMerchantStudioInspector = () => {
     if (!canManageActivePartnerBrand || !merchantDesignEditMode) return null
-    const layers = [...activeMerchantDecorationDraft.designItems].sort((a, b) => b.z - a.z)
+    type MerchantStudioLayer =
+      | {
+          id: MerchantStageLayerId
+          kind: 'text'
+          field: MerchantEditableTextField
+          group: string
+          title: string
+          preview: string
+        }
+      | {
+          id: MerchantStageLayerId
+          kind: 'media'
+          zone: 'hero' | 'service'
+          group: string
+          title: string
+          preview: string
+        }
+      | {
+          id: MerchantStageLayerId
+          kind: 'design'
+          item: MerchantDesignItem
+          group: string
+          title: string
+          preview: string
+        }
+    const textLayers: MerchantStudioLayer[] = [
+      { id: 'text:badge', kind: 'text', field: 'badge', group: '主视觉', title: '页面标识', preview: activeMerchantDecorationDraft.badge },
+      { id: 'text:heroTitle', kind: 'text', field: 'heroTitle', group: '主视觉', title: '主标题', preview: activeMerchantDecorationDraft.heroTitle },
+      { id: 'text:intro', kind: 'text', field: 'intro', group: '主视觉', title: '品牌介绍', preview: activeMerchantDecorationDraft.intro },
+      { id: 'text:contactCopy', kind: 'text', field: 'contactCopy', group: '右侧卡片', title: '咨询提示', preview: activeMerchantDecorationDraft.contactCopy },
+      { id: 'text:caseOne', kind: 'text', field: 'caseOne', group: '服务区', title: '服务展示 1', preview: activeMerchantDecorationDraft.caseOne },
+      { id: 'text:caseTwo', kind: 'text', field: 'caseTwo', group: '服务区', title: '服务展示 2', preview: activeMerchantDecorationDraft.caseTwo },
+    ]
+    const mediaLayers: MerchantStudioLayer[] = [
+      activeMerchantDecorationDraft.heroImage
+        ? {
+            id: 'media:hero',
+            kind: 'media',
+            zone: 'hero',
+            group: '素材',
+            title: '主视觉图片/视频',
+            preview: isVideoDataUrl(activeMerchantDecorationDraft.heroImage) ? '视频素材' : '图片素材',
+          }
+        : null,
+      activeMerchantDecorationDraft.serviceImage
+        ? {
+            id: 'media:service',
+            kind: 'media',
+            zone: 'service',
+            group: '素材',
+            title: '服务区图片/视频',
+            preview: isVideoDataUrl(activeMerchantDecorationDraft.serviceImage) ? '视频素材' : '图片素材',
+          }
+        : null,
+    ].filter(Boolean) as MerchantStudioLayer[]
+    const designLayers: MerchantStudioLayer[] = [...activeMerchantDecorationDraft.designItems]
+      .sort((a, b) => b.z - a.z)
+      .map((item) => ({
+        id: `design:${item.id}`,
+        kind: 'design',
+        item,
+        group: item.zone === 'hero' ? '主视觉自定义' : '服务区自定义',
+        title: item.kind === 'media' ? `${item.mediaKind === 'video' ? '视频' : '图片'}图层` : '文本泡泡',
+        preview: item.kind === 'media' ? `位置 ${Math.round(item.x)}%, ${Math.round(item.y)}%` : item.text || '空文本框',
+      }))
+    const stageLayers = [...textLayers, ...mediaLayers, ...designLayers]
+    const selectedStageLayer = stageLayers.find((layer) => layer.id === activeMerchantStageLayerId)
+    const selectMerchantStudioLayer = (layer: MerchantStudioLayer) => {
+      if (layer.kind === 'text') selectMerchantTextLayer(layer.field)
+      if (layer.kind === 'media') selectMerchantMediaLayer(layer.zone)
+      if (layer.kind === 'design') selectMerchantDesignLayer(layer.item.id)
+    }
     return (
       <aside className="merchant-studio-panel merchant-studio-inspector" aria-label="商家编辑属性面板">
         <div className="merchant-studio-heading">
           <strong>调色盘</strong>
-          <span>{activeMerchantDesignItem ? '已选中元素' : '未选中元素'}</span>
+          <span>{selectedStageLayer ? selectedStageLayer.title : '未选中元素'}</span>
         </div>
         <div className="merchant-studio-section">
           <label>
@@ -7002,23 +7118,24 @@ function App() {
         <div className="merchant-studio-section merchant-studio-layers">
           <div className="merchant-studio-heading is-small">
             <strong>图层</strong>
-            <span>{layers.length} 个对象</span>
+            <span>{stageLayers.length} 个对象</span>
           </div>
           <div className="merchant-studio-layer-list">
-            {layers.length ? (
-              layers.map((item) => (
+            {stageLayers.length ? (
+              stageLayers.map((layer) => (
                 <button
-                  className={activeMerchantDesignItemId === item.id ? 'is-selected' : ''}
-                  key={item.id}
+                  className={activeMerchantStageLayerId === layer.id ? 'is-selected' : ''}
+                  key={layer.id}
                   type="button"
-                  onClick={() => setActiveMerchantDesignItemId(item.id)}
+                  onClick={() => selectMerchantStudioLayer(layer)}
                 >
-                  <span>{item.kind === 'media' ? '素材' : '文本'}</span>
-                  <strong>{item.kind === 'media' ? `${item.mediaKind === 'video' ? '视频' : '图片'}图层` : item.text || '空文本框'}</strong>
+                  <span>{layer.group}</span>
+                  <strong>{layer.title}</strong>
+                  <small>{layer.preview}</small>
                 </button>
               ))
             ) : (
-              <p className="merchant-studio-tip">还没有自定义图层，从左侧添加文本框开始。</p>
+              <p className="merchant-studio-tip">舞台上还没有可选择对象。</p>
             )}
           </div>
         </div>
