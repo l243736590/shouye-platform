@@ -2270,6 +2270,7 @@ const partnerShowcases = [
         id: 'tuzhuren-thesis',
         name: '土著人',
         logo: '土著人',
+        logoImage: '/merchant-logos/native-education.png',
         summary: '韩国论文流程、毕业审查、韩文发表和延毕节点支持',
         description:
           '土著人品牌展示韩国论文流程、毕业材料、韩文表达、发表准备和延毕节点提醒等合规学业支持，适合本科、大学院和毕业阶段学生对比咨询。',
@@ -5436,7 +5437,10 @@ function App() {
         entry.merchant.name === decodedPartnerRouteSlug ||
         encodeURIComponent(entry.merchant.name) === partnerRouteSlug,
     ) ?? partnerMerchantEntries[0]
-  const activePartnerMerchantLogoImage = activePartnerMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerMerchant)
+  const activePartnerMerchantLogoImage =
+    activePartnerMerchantSlug === 'tuzhuren-thesis'
+      ? getPartnerLogoImage(activePartnerMerchant) || activePartnerMerchantApprovedLogoImage
+      : activePartnerMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerMerchant)
   const selectedSchoolGallery = schoolCampusImages(selectedSchool.id)
   const selectedSchoolGalleryKey = selectedSchoolGallery.join('|')
   const selectedSchoolBaseHeroImage = selectedSchoolGallery[0] ?? selectedSchool.image
@@ -5712,7 +5716,10 @@ function App() {
   )
   const activeMerchantApprovedLogoImage =
     activeMerchantDecoration?.logoReviewStatus === 'approved' ? activeMerchantDecoration.logoImage : ''
-  const activePartnerDetailLogoImage = activeMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerDetail.merchant)
+  const activePartnerDetailLogoImage =
+    activePartnerDetailSlug === 'tuzhuren-thesis'
+      ? getPartnerLogoImage(activePartnerDetail.merchant) || activeMerchantApprovedLogoImage
+      : activeMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerDetail.merchant)
   const currentUserBioSettings = parseUserBioSettings(currentUser?.bio)
   const canManageActivePartnerBrand =
     Boolean(currentUser) &&
