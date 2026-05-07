@@ -2491,8 +2491,13 @@ h3 {
   position: relative;
 }
 
-.partner-detail-copy > *:not(.partner-detail-floating-image),
-.partner-detail-cases > *:not(.partner-detail-floating-image) {
+.partner-detail-hero.is-direct-editing .partner-detail-copy,
+.partner-detail-cases.is-direct-editing {
+  overflow: visible;
+}
+
+.partner-detail-copy > *:not(.partner-detail-floating-image):not(.merchant-design-layer),
+.partner-detail-cases > *:not(.partner-detail-floating-image):not(.merchant-design-layer) {
   position: relative;
   z-index: 1;
 }
@@ -2751,8 +2756,8 @@ video.partner-detail-floating-image {
   min-width: min(520px, 86vw);
   padding: 12px;
   position: absolute;
-  top: calc(100% + 10px);
-  z-index: 20;
+  bottom: calc(100% + 12px);
+  z-index: 10000;
 }
 
 .merchant-inline-edit-popover textarea {
@@ -2824,6 +2829,128 @@ video.partner-detail-floating-image {
   background: #ffffff;
   color: var(--coral);
   padding: 7px 10px;
+}
+
+.merchant-design-layer {
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 12;
+}
+
+.is-direct-editing .merchant-design-layer {
+  pointer-events: auto;
+}
+
+.merchant-design-item {
+  align-content: center;
+  border: 1px solid rgba(16, 32, 29, 0.15);
+  border-radius: 14px;
+  box-shadow: 0 16px 34px rgba(16, 32, 29, 0.12);
+  cursor: grab;
+  display: grid;
+  font-weight: 900;
+  line-height: 1.25;
+  min-width: 80px;
+  overflow: hidden;
+  padding: 12px;
+  position: absolute;
+  touch-action: none;
+  user-select: none;
+}
+
+.merchant-design-item:active {
+  cursor: grabbing;
+}
+
+.merchant-design-item.is-media {
+  background: rgba(16, 32, 29, 0.2);
+  padding: 0;
+}
+
+.merchant-design-item.is-selected {
+  box-shadow:
+    0 0 0 2px rgba(239, 90, 60, 0.88),
+    0 18px 38px rgba(16, 32, 29, 0.18);
+}
+
+.merchant-design-item img,
+.merchant-design-item video {
+  display: block;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  width: 100%;
+}
+
+.merchant-design-delete {
+  align-items: center;
+  background: var(--coral);
+  border-radius: 999px;
+  color: #ffffff;
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  padding: 0;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  width: 24px;
+}
+
+.merchant-design-resize {
+  background: #ffffff;
+  border: 2px solid var(--coral);
+  border-radius: 5px;
+  bottom: 6px;
+  cursor: nwse-resize;
+  height: 18px;
+  position: absolute;
+  right: 6px;
+  width: 18px;
+}
+
+.merchant-design-item-panel {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.merchant-design-item-panel strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.merchant-design-item-controls {
+  align-items: end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.merchant-design-item-controls label {
+  color: var(--muted);
+  display: grid;
+  flex: 1 1 150px;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 6px;
+}
+
+.merchant-design-item-controls button {
+  background: var(--ink);
+  color: #ffffff;
+  padding: 8px 10px;
+}
+
+.merchant-design-empty-tip {
+  color: var(--muted);
+  font-weight: 850;
+  margin: 0;
 }
 
 .workspace-panel .merchant-profile-entry-button {

@@ -79,6 +79,24 @@ type MerchantLeadRecord = {
   updatedAt: string
 }
 
+type MerchantDesignItemRecord = {
+  id: string
+  zone: 'hero' | 'service'
+  kind: 'bubble' | 'media'
+  text: string
+  mediaUrl: string
+  mediaKind: 'image' | 'video'
+  x: number
+  y: number
+  width: number
+  height: number
+  z: number
+  opacity: number
+  fontSize: number
+  color: string
+  background: string
+}
+
 type MerchantBrandDecorationRecord = {
   brandId: string
   ownerUserId?: string
@@ -103,6 +121,7 @@ type MerchantBrandDecorationRecord = {
   serviceImageX: number
   serviceImageY: number
   serviceImageScale: number
+  designItems: MerchantDesignItemRecord[]
   updatedAt: string
 }
 
@@ -316,6 +335,7 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
     serviceImageX: 50,
     serviceImageY: 50,
     serviceImageScale: 1,
+    designItems: [],
     updatedAt: '2026-05-07',
   },
 ]
@@ -365,6 +385,39 @@ const clampNumber = (value: unknown, fallback: number, min: number, max: number)
   return Number.isFinite(numericValue) ? Math.min(max, Math.max(min, numericValue)) : fallback
 }
 
+const normalizeMerchantDesignItems = (items?: Partial<MerchantDesignItemRecord>[]): MerchantDesignItemRecord[] =>
+  (Array.isArray(items) ? items : [])
+    .filter((item) => item && typeof item === 'object')
+    .map((item, index): MerchantDesignItemRecord => ({
+      id: typeof item.id === 'string' && item.id ? item.id : `merchant-item-${index}`,
+      zone: item.zone === 'service' ? 'service' : 'hero',
+      kind: item.kind === 'media' ? 'media' : 'bubble',
+      text: typeof item.text === 'string' ? item.text : '新内容',
+      mediaUrl: typeof item.mediaUrl === 'string' ? item.mediaUrl : '',
+      mediaKind: item.mediaKind === 'video' ? 'video' : 'image',
+      x: clampNumber(item.x, 10 + index * 4, 0, 96),
+      y: clampNumber(item.y, 12 + index * 4, 0, 96),
+      width: clampNumber(item.width, 28, 10, 92),
+      height: clampNumber(item.height, 16, 8, 92),
+      z: clampNumber(item.z, 10 + index, 1, 80),
+      opacity: clampNumber(item.opacity, 0.92, 0.08, 1),
+      fontSize: clampNumber(item.fontSize, 18, 12, 72),
+      color: typeof item.color === 'string' && item.color ? item.color : '#10201d',
+      background: typeof item.background === 'string' && item.background ? item.background : 'rgba(255, 253, 247, 0.84)',
+    }))
+    .slice(0, 30)
+
+const parseMerchantDesignItems = (value: unknown): MerchantDesignItemRecord[] => {
+  if (Array.isArray(value)) return normalizeMerchantDesignItems(value as Partial<MerchantDesignItemRecord>[])
+  if (typeof value !== 'string' || !value.trim()) return []
+  try {
+    const parsed = JSON.parse(value)
+    return normalizeMerchantDesignItems(Array.isArray(parsed) ? parsed : [])
+  } catch {
+    return []
+  }
+}
+
 const normalizeMerchantBrandDecoration = (
   decoration: Partial<MerchantBrandDecorationRecord>,
   fallback?: MerchantBrandDecorationRecord,
@@ -392,6 +445,7 @@ const normalizeMerchantBrandDecoration = (
   serviceImageX: clampNumber(decoration.serviceImageX ?? fallback?.serviceImageX, 50, 0, 100),
   serviceImageY: clampNumber(decoration.serviceImageY ?? fallback?.serviceImageY, 50, 0, 100),
   serviceImageScale: clampNumber(decoration.serviceImageScale ?? fallback?.serviceImageScale, 1, 0.35, 2.4),
+  designItems: normalizeMerchantDesignItems(decoration.designItems ?? fallback?.designItems ?? []),
   updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? new Date().toISOString(),
 })
 
@@ -1087,6 +1141,7 @@ const rowToMerchantBrandDecoration = (row: Record<string, unknown>): MerchantBra
   serviceImageX: clampNumber(row.service_image_x, 50, 0, 100),
   serviceImageY: clampNumber(row.service_image_y, 50, 0, 100),
   serviceImageScale: clampNumber(row.service_image_scale, 1, 0.35, 2.4),
+  designItems: parseMerchantDesignItems(row.design_items),
   updatedAt: String(row.updated_at ?? ''),
 })
 
@@ -1639,6 +1694,7 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
       service_image_x REAL NOT NULL DEFAULT 50,
       service_image_y REAL NOT NULL DEFAULT 50,
       service_image_scale REAL NOT NULL DEFAULT 1,
+      design_items TEXT NOT NULL DEFAULT '[]',
       updated_at TEXT NOT NULL
     )`,
   ).run()
@@ -1657,6 +1713,7 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
   await ensureColumn(env, 'merchant_brand_decorations', 'service_image_x', 'service_image_x REAL NOT NULL DEFAULT 50')
   await ensureColumn(env, 'merchant_brand_decorations', 'service_image_y', 'service_image_y REAL NOT NULL DEFAULT 50')
   await ensureColumn(env, 'merchant_brand_decorations', 'service_image_scale', 'service_image_scale REAL NOT NULL DEFAULT 1')
+  await ensureColumn(env, 'merchant_brand_decorations', 'design_items', "design_items TEXT NOT NULL DEFAULT '[]'")
 }
 
 const getMerchantBrandDecorations = async (env: Env) => {
@@ -3060,8 +3117,8 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, design_items, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -3085,6 +3142,7 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
         service_image_x = excluded.service_image_x,
         service_image_y = excluded.service_image_y,
         service_image_scale = excluded.service_image_scale,
+        design_items = excluded.design_items,
         updated_at = excluded.updated_at`,
   )
     .bind(
@@ -3111,6 +3169,7 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
       decoration.serviceImageX,
       decoration.serviceImageY,
       decoration.serviceImageScale,
+      JSON.stringify(decoration.designItems),
       decoration.updatedAt,
     )
     .run()
@@ -3142,8 +3201,8 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, design_items, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -3167,6 +3226,7 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
         service_image_x = excluded.service_image_x,
         service_image_y = excluded.service_image_y,
         service_image_scale = excluded.service_image_scale,
+        design_items = excluded.design_items,
         updated_at = excluded.updated_at`,
   )
     .bind(
@@ -3193,6 +3253,7 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
       decoration.serviceImageX,
       decoration.serviceImageY,
       decoration.serviceImageScale,
+      JSON.stringify(decoration.designItems),
       decoration.updatedAt,
     )
     .run()

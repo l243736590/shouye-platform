@@ -98,6 +98,25 @@ type MerchantLead = {
   updatedAt: string
 }
 
+type MerchantDesignZone = 'hero' | 'service'
+type MerchantDesignItem = {
+  id: string
+  zone: MerchantDesignZone
+  kind: 'bubble' | 'media'
+  text: string
+  mediaUrl: string
+  mediaKind: 'image' | 'video'
+  x: number
+  y: number
+  width: number
+  height: number
+  z: number
+  opacity: number
+  fontSize: number
+  color: string
+  background: string
+}
+
 type MerchantBrandDecoration = {
   brandId: string
   ownerUserId?: string
@@ -122,6 +141,7 @@ type MerchantBrandDecoration = {
   serviceImageX: number
   serviceImageY: number
   serviceImageScale: number
+  designItems: MerchantDesignItem[]
   updatedAt: string
 }
 
@@ -791,6 +811,7 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     serviceImageX: 50,
     serviceImageY: 50,
     serviceImageScale: 1,
+    designItems: [],
     updatedAt: '2026-05-07',
   },
 ]
@@ -840,6 +861,32 @@ const normalizeMerchantBrandDecoration = (
   fallback?: MerchantBrandDecoration,
 ): MerchantBrandDecoration => {
   const now = new Date().toISOString()
+  const normalizeDesignItems = (
+    items?: Partial<MerchantDesignItem>[],
+    fallbackItems?: MerchantDesignItem[],
+  ): MerchantDesignItem[] => {
+    const source = Array.isArray(items) ? items : fallbackItems ?? []
+    return source
+      .filter((item) => item && typeof item === 'object')
+      .map((item, index): MerchantDesignItem => ({
+        id: typeof item.id === 'string' && item.id ? item.id : createId('merchant-item'),
+        zone: item.zone === 'service' ? 'service' : 'hero',
+        kind: item.kind === 'media' ? 'media' : 'bubble',
+        text: typeof item.text === 'string' ? item.text : '新内容',
+        mediaUrl: typeof item.mediaUrl === 'string' ? item.mediaUrl : '',
+        mediaKind: item.mediaKind === 'video' ? 'video' : 'image',
+        x: Math.min(92, Math.max(0, Number.isFinite(Number(item.x)) ? Number(item.x) : 10 + index * 4)),
+        y: Math.min(92, Math.max(0, Number.isFinite(Number(item.y)) ? Number(item.y) : 12 + index * 4)),
+        width: Math.min(90, Math.max(10, Number.isFinite(Number(item.width)) ? Number(item.width) : 28)),
+        height: Math.min(90, Math.max(8, Number.isFinite(Number(item.height)) ? Number(item.height) : 16)),
+        z: Math.min(80, Math.max(1, Number.isFinite(Number(item.z)) ? Number(item.z) : 10 + index)),
+        opacity: Math.min(1, Math.max(0.08, Number.isFinite(Number(item.opacity)) ? Number(item.opacity) : 0.92)),
+        fontSize: Math.min(72, Math.max(12, Number.isFinite(Number(item.fontSize)) ? Number(item.fontSize) : 18)),
+        color: typeof item.color === 'string' && item.color ? item.color : '#10201d',
+        background: typeof item.background === 'string' && item.background ? item.background : 'rgba(255, 253, 247, 0.84)',
+      }))
+      .slice(0, 30)
+  }
   return {
     brandId: decoration.brandId ?? fallback?.brandId ?? '',
     ownerUserId: decoration.ownerUserId ?? fallback?.ownerUserId,
@@ -883,6 +930,7 @@ const normalizeMerchantBrandDecoration = (
           : 1,
       ),
     ),
+    designItems: normalizeDesignItems(decoration.designItems, fallback?.designItems),
     updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? now,
   }
 }
@@ -5018,12 +5066,23 @@ function App() {
   const [merchantDesignEditMode, setMerchantDesignEditMode] = useState(false)
   const [activeMerchantTextEditor, setActiveMerchantTextEditor] = useState<MerchantEditableTextField | null>(null)
   const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
+  const [activeMerchantDesignItemId, setActiveMerchantDesignItemId] = useState<string | null>(null)
   const merchantImageDragRef = useRef<{
     zone: 'hero' | 'service'
     startX: number
     startY: number
     originX: number
     originY: number
+  } | null>(null)
+  const merchantDesignItemDragRef = useRef<{
+    id: string
+    mode: 'move' | 'resize'
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+    originWidth: number
+    originHeight: number
   } | null>(null)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
@@ -5608,6 +5667,7 @@ function App() {
     )
   const activeMerchantPreviewDecoration =
     canManageActivePartnerBrand && merchantDesignEditMode ? activeMerchantDecorationDraft : activeMerchantDecoration
+  const activeMerchantDesignItem = activeMerchantDecorationDraft.designItems.find((item) => item.id === activeMerchantDesignItemId) ?? null
   const fallbackPartnerDetailSections = [
     {
       title: '服务说明',
@@ -6281,6 +6341,128 @@ function App() {
     merchantImageDragRef.current = null
   }
 
+  const updateMerchantDesignItem = (itemId: string, patch: Partial<MerchantDesignItem>) => {
+    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', activeMerchantDecorationDraft.designItems.map((item) =>
+      item.id === itemId ? { ...item, ...patch } : item,
+    ))
+  }
+
+  const addMerchantDesignBubble = (zone: MerchantDesignZone) => {
+    const maxZ = Math.max(10, ...activeMerchantDecorationDraft.designItems.map((item) => item.z))
+    const item: MerchantDesignItem = {
+      id: createId('merchant-item'),
+      zone,
+      kind: 'bubble',
+      text: '双击修改文字',
+      mediaUrl: '',
+      mediaKind: 'image',
+      x: zone === 'hero' ? 58 : 8,
+      y: zone === 'hero' ? 16 : 18,
+      width: zone === 'hero' ? 30 : 28,
+      height: zone === 'hero' ? 18 : 20,
+      z: maxZ + 1,
+      opacity: 0.92,
+      fontSize: 18,
+      color: '#10201d',
+      background: 'rgba(255, 253, 247, 0.88)',
+    }
+    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, item])
+    setActiveMerchantDesignItemId(item.id)
+  }
+
+  const deleteMerchantDesignItem = (itemId: string) => {
+    updateMerchantDecorationDraft(
+      activePartnerDetailSlug,
+      'designItems',
+      activeMerchantDecorationDraft.designItems.filter((item) => item.id !== itemId),
+    )
+    setActiveMerchantDesignItemId((selectedId) => (selectedId === itemId ? null : selectedId))
+  }
+
+  const moveMerchantDesignItemLayer = (itemId: string, direction: 1 | -1) => {
+    const item = activeMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
+    if (!item) return
+    updateMerchantDesignItem(itemId, { z: Math.min(80, Math.max(1, item.z + direction)) })
+  }
+
+  const startMerchantDesignItemDrag = (
+    item: MerchantDesignItem,
+    mode: 'move' | 'resize',
+    event: PointerEvent<HTMLElement>,
+  ) => {
+    if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setActiveMerchantDesignItemId(item.id)
+    merchantDesignItemDragRef.current = {
+      id: item.id,
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: item.x,
+      originY: item.y,
+      originWidth: item.width,
+      originHeight: item.height,
+    }
+  }
+
+  const moveMerchantDesignItemDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = merchantDesignItemDragRef.current
+    if (!drag) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const deltaX = ((event.clientX - drag.startX) / rect.width) * 100
+    const deltaY = ((event.clientY - drag.startY) / rect.height) * 100
+    if (drag.mode === 'resize') {
+      updateMerchantDesignItem(drag.id, {
+        width: Number(Math.min(92, Math.max(10, drag.originWidth + deltaX)).toFixed(1)),
+        height: Number(Math.min(92, Math.max(8, drag.originHeight + deltaY)).toFixed(1)),
+      })
+      return
+    }
+    updateMerchantDesignItem(drag.id, {
+      x: Number(Math.min(96, Math.max(0, drag.originX + deltaX)).toFixed(1)),
+      y: Number(Math.min(96, Math.max(0, drag.originY + deltaY)).toFixed(1)),
+    })
+  }
+
+  const endMerchantDesignItemDrag = () => {
+    merchantDesignItemDragRef.current = null
+  }
+
+  const handleMerchantDesignItemDrop = async (itemId: string, event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    event.stopPropagation()
+    const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
+    if (!file) return
+    try {
+      const mediaUrl = file.type.startsWith('video/')
+        ? await readVideoFileToDataUrl(file)
+        : await resizeImageFileToDataUrl(file, 1100, 0.86)
+      updateMerchantDesignItem(itemId, {
+        kind: 'media',
+        mediaUrl,
+        mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
+      })
+      setActiveMerchantDesignItemId(itemId)
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
+    }
+  }
+
+  useEffect(() => {
+    if (!merchantDesignEditMode || !activeMerchantDesignItemId) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select')) return
+      event.preventDefault()
+      deleteMerchantDesignItem(activeMerchantDesignItemId)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [merchantDesignEditMode, activeMerchantDesignItemId, activeMerchantDecorationDraft.designItems])
+
   const renderMerchantDecorationImageEditor = (zone: 'hero' | 'service', title: string, description: string) => {
     const image = zone === 'hero' ? activeMerchantDecorationDraft.heroImage : activeMerchantDecorationDraft.serviceImage
     const scale = zone === 'hero' ? activeMerchantDecorationDraft.heroImageScale : activeMerchantDecorationDraft.serviceImageScale
@@ -6363,6 +6545,82 @@ function App() {
             </button>
           )}
         </div>
+      </div>
+    )
+  }
+
+  const renderMerchantDesignItems = (zone: MerchantDesignZone, decoration?: MerchantBrandDecoration) => {
+    const editable = canManageActivePartnerBrand && merchantDesignEditMode
+    const items = (decoration?.designItems ?? []).filter((item) => item.zone === zone)
+    if (!items.length && !editable) return null
+    return (
+      <div className="merchant-design-layer" aria-hidden={!editable}>
+        {items.map((item) => {
+          const selected = editable && activeMerchantDesignItemId === item.id
+          const itemStyle: CSSProperties = {
+            left: `${item.x}%`,
+            top: `${item.y}%`,
+            width: `${item.width}%`,
+            minHeight: `${item.height}%`,
+            zIndex: item.z,
+            opacity: item.opacity,
+            color: item.color,
+            background: item.background,
+            fontSize: item.fontSize,
+          }
+          return (
+            <div
+              className={`merchant-design-item ${item.kind === 'media' ? 'is-media' : 'is-bubble'} ${selected ? 'is-selected' : ''}`}
+              key={item.id}
+              style={itemStyle}
+              onClick={(event) => {
+                if (!editable) return
+                event.preventDefault()
+                event.stopPropagation()
+                setActiveMerchantDesignItemId(item.id)
+              }}
+              onDoubleClick={(event) => {
+                if (!editable || item.kind === 'media') return
+                event.preventDefault()
+                event.stopPropagation()
+                const nextText = window.prompt('修改泡泡框文字', item.text)
+                if (nextText !== null) updateMerchantDesignItem(item.id, { text: nextText })
+              }}
+              onDragOver={(event) => editable && event.preventDefault()}
+              onDrop={(event) => editable && handleMerchantDesignItemDrop(item.id, event)}
+              onPointerDown={(event) => startMerchantDesignItemDrag(item, 'move', event)}
+            >
+              {item.kind === 'media' && item.mediaUrl ? (
+                item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
+                  <video draggable={false} muted playsInline src={item.mediaUrl} />
+                ) : (
+                  <img alt="" draggable={false} src={item.mediaUrl} />
+                )
+              ) : (
+                <span>{item.text}</span>
+              )}
+              {selected && (
+                <>
+                  <button
+                    className="merchant-design-delete"
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      deleteMerchantDesignItem(item.id)
+                    }}
+                  >
+                    ×
+                  </button>
+                  <span
+                    className="merchant-design-resize"
+                    onPointerDown={(event) => startMerchantDesignItemDrag(item, 'resize', event)}
+                  />
+                </>
+              )}
+            </div>
+          )
+        })}
       </div>
     )
   }
@@ -8575,7 +8833,13 @@ function App() {
         <section className="info-page partner-detail-page">
           {canManageActivePartnerBrand && merchantDesignEditMode && (
             <div className="merchant-direct-edit-toolbar">
-              <span>编辑模式：双击文字修改，拖入图片/视频到展示区。</span>
+              <span>编辑模式：双击文字修改，拖入图片/视频到泡泡框。</span>
+              <button type="button" onClick={() => addMerchantDesignBubble('hero')}>
+                添加主视觉泡泡
+              </button>
+              <button type="button" onClick={() => addMerchantDesignBubble('service')}>
+                添加服务区泡泡
+              </button>
               <button type="button" onClick={saveMerchantDecoration}>
                 保存修改
               </button>
@@ -8589,12 +8853,22 @@ function App() {
               className="partner-detail-copy"
               onDragOver={(event) => merchantDesignEditMode && event.preventDefault()}
               onDrop={(event) => merchantDesignEditMode && handleMerchantDecorationImageDrop('hero', event)}
-              onPointerMove={moveMerchantDecorationImageDrag}
-              onPointerUp={endMerchantDecorationImageDrag}
-              onPointerCancel={endMerchantDecorationImageDrag}
+              onPointerMove={(event) => {
+                moveMerchantDecorationImageDrag(event)
+                moveMerchantDesignItemDrag(event)
+              }}
+              onPointerUp={() => {
+                endMerchantDecorationImageDrag()
+                endMerchantDesignItemDrag()
+              }}
+              onPointerCancel={() => {
+                endMerchantDecorationImageDrag()
+                endMerchantDesignItemDrag()
+              }}
             >
               {renderMerchantDecorationMedia('hero', activeMerchantPreviewDecoration)}
               {renderMerchantMediaControls('hero')}
+              {renderMerchantDesignItems('hero', activeMerchantPreviewDecoration)}
               {merchantDesignEditMode && canManageActivePartnerBrand && !activeMerchantPreviewDecoration?.heroImage && (
                 <span className="merchant-direct-drop-hint">拖入图片/视频到主视觉区</span>
               )}
@@ -8678,12 +8952,22 @@ function App() {
             className={`partner-detail-cases ${merchantDesignEditMode && canManageActivePartnerBrand ? 'is-direct-editing' : ''}`}
             onDragOver={(event) => merchantDesignEditMode && event.preventDefault()}
             onDrop={(event) => merchantDesignEditMode && handleMerchantDecorationImageDrop('service', event)}
-            onPointerMove={moveMerchantDecorationImageDrag}
-            onPointerUp={endMerchantDecorationImageDrag}
-            onPointerCancel={endMerchantDecorationImageDrag}
+            onPointerMove={(event) => {
+              moveMerchantDecorationImageDrag(event)
+              moveMerchantDesignItemDrag(event)
+            }}
+            onPointerUp={() => {
+              endMerchantDecorationImageDrag()
+              endMerchantDesignItemDrag()
+            }}
+            onPointerCancel={() => {
+              endMerchantDecorationImageDrag()
+              endMerchantDesignItemDrag()
+            }}
           >
             {renderMerchantDecorationMedia('service', activeMerchantPreviewDecoration)}
             {renderMerchantMediaControls('service')}
+            {renderMerchantDesignItems('service', activeMerchantPreviewDecoration)}
             {merchantDesignEditMode && canManageActivePartnerBrand && !activeMerchantPreviewDecoration?.serviceImage && (
               <span className="merchant-direct-drop-hint">拖入图片/视频到服务展示区</span>
             )}
@@ -8788,6 +9072,62 @@ function App() {
                   <div className="merchant-image-editor-grid">
                     {renderMerchantDecorationImageEditor('hero', '主视觉图片区', '拖入图片或点击上传，按住图片可自由拉动位置。')}
                     {renderMerchantDecorationImageEditor('service', '服务展示图片区', '用于下方服务展示区域，保存后对外展示。')}
+                  </div>
+                  <div className="merchant-design-item-panel">
+                    <div>
+                      <strong>泡泡框和素材框</strong>
+                      <p>在展示区点击泡泡框后，可拖动、拉伸、调透明度、调层级或删除；也可以直接把图片/视频拖进泡泡框。</p>
+                    </div>
+                    <div className="partner-brand-manager-actions">
+                      <button type="button" onClick={() => addMerchantDesignBubble('hero')}>添加主视觉泡泡</button>
+                      <button type="button" onClick={() => addMerchantDesignBubble('service')}>添加服务区泡泡</button>
+                    </div>
+                    {activeMerchantDesignItem ? (
+                      <div className="merchant-design-item-controls">
+                        <label>
+                          字号
+                          <input
+                            max="72"
+                            min="12"
+                            type="range"
+                            value={activeMerchantDesignItem.fontSize}
+                            onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { fontSize: Number(event.target.value) })}
+                          />
+                        </label>
+                        <label>
+                          透明度
+                          <input
+                            max="1"
+                            min="0.08"
+                            step="0.02"
+                            type="range"
+                            value={activeMerchantDesignItem.opacity}
+                            onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { opacity: Number(event.target.value) })}
+                          />
+                        </label>
+                        <label>
+                          字色
+                          <input
+                            type="color"
+                            value={activeMerchantDesignItem.color}
+                            onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { color: event.target.value })}
+                          />
+                        </label>
+                        <label>
+                          底色
+                          <input
+                            type="color"
+                            value={activeMerchantDesignItem.background.startsWith('#') ? activeMerchantDesignItem.background : '#fffdf7'}
+                            onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { background: event.target.value })}
+                          />
+                        </label>
+                        <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, 1)}>图层上移</button>
+                        <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, -1)}>图层下移</button>
+                        <button type="button" onClick={() => deleteMerchantDesignItem(activeMerchantDesignItem.id)}>删除</button>
+                      </div>
+                    ) : (
+                      <p className="merchant-design-empty-tip">还没有选中泡泡框。点击展示区里的泡泡框后，这里会显示调节项。</p>
+                    )}
                   </div>
                 </div>
               )}
