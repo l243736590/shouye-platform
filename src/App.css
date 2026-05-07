@@ -2334,11 +2334,11 @@ h3 {
 }
 
 .partner-logo-mark.has-image {
-  background: #fffdf7;
+  background: transparent;
   box-sizing: border-box;
   color: transparent;
   overflow: visible;
-  padding: 6px;
+  padding: 0;
 }
 
 .partner-logo-mark.has-image img {
