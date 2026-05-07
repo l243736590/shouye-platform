@@ -2825,6 +2825,12 @@ video.partner-detail-floating-image {
   padding: 7px 10px;
 }
 
+.workspace-panel .merchant-profile-entry-button {
+  background: var(--coral);
+  color: #ffffff;
+  margin-top: 10px;
+}
+
 .partner-brand-design-editor {
   background: #f6f8f4;
   border: 1px solid var(--line);

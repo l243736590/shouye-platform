@@ -10135,6 +10135,15 @@ function App() {
                 <button type="button" onClick={() => navigateToPath('/wallet')}>
                   充值/提现
                 </button>
+                {currentUserBioSettings.managedBrandId && (
+                  <button
+                    className="merchant-profile-entry-button"
+                    type="button"
+                    onClick={() => navigateToPath(`/partners/${currentUserBioSettings.managedBrandId}`)}
+                  >
+                    进入我的商家展示页
+                  </button>
+                )}
               </>
             ) : (
               <>
