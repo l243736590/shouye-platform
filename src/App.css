@@ -2467,6 +2467,10 @@ h3 {
   color: #fffdf0;
 }
 
+.partner-logo-mark.has-image {
+  background: transparent;
+}
+
 .partner-showcase-copy {
   display: grid;
   gap: 18px;
