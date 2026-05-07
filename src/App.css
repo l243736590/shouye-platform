@@ -2646,6 +2646,11 @@ video.partner-detail-floating-image {
   margin-top: 8px;
 }
 
+.partner-brand-manager-panel > .admin-content-grid,
+.partner-brand-manager-panel > .partner-brand-design-editor {
+  display: none;
+}
+
 .partner-brand-avatar-row {
   align-items: center;
   background: #f6f8f4;
@@ -2733,6 +2738,248 @@ video.partner-detail-floating-image {
   background: #ffffff;
   color: var(--ink);
   padding: 8px 12px;
+}
+
+.partner-detail-page.is-studio-editing {
+  position: relative;
+}
+
+.merchant-studio-panel {
+  background: #1f2527;
+  border: 1px solid rgba(255, 253, 247, 0.14);
+  border-radius: 14px;
+  box-shadow: 0 22px 60px rgba(16, 32, 29, 0.28);
+  color: #fffdf7;
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  z-index: 80;
+}
+
+.merchant-studio-heading {
+  align-items: baseline;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.merchant-studio-heading strong {
+  color: #fffdf7;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.merchant-studio-heading span {
+  color: rgba(255, 253, 247, 0.64);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.merchant-studio-heading.is-small strong {
+  font-size: 15px;
+}
+
+.merchant-studio-avatar-mini {
+  align-items: center;
+  background: rgba(255, 253, 247, 0.07);
+  border: 1px solid rgba(255, 253, 247, 0.12);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 68px minmax(0, 1fr);
+  padding: 10px;
+}
+
+.merchant-studio-avatar-mini .partner-logo-mark {
+  height: 64px;
+  width: 64px;
+}
+
+.merchant-studio-tool-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.merchant-studio-tool-grid button,
+.merchant-studio-actions button,
+.merchant-studio-file-button {
+  align-items: center;
+  background: rgba(255, 253, 247, 0.08);
+  border: 1px solid rgba(255, 253, 247, 0.16);
+  border-radius: 10px;
+  color: #fffdf7;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 950;
+  gap: 7px;
+  justify-content: center;
+  padding: 10px;
+  text-align: center;
+}
+
+.merchant-studio-tool-grid button.is-active,
+.merchant-studio-actions button:first-child {
+  background: #fffdf7;
+  color: var(--ink);
+}
+
+.merchant-studio-file-button input {
+  display: none;
+}
+
+.merchant-studio-file-button.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.merchant-studio-section {
+  background: rgba(255, 253, 247, 0.07);
+  border: 1px solid rgba(255, 253, 247, 0.12);
+  border-radius: 12px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+}
+
+.merchant-studio-section label,
+.merchant-studio-controls label {
+  color: rgba(255, 253, 247, 0.72);
+  display: grid;
+  font-size: 12px;
+  font-weight: 900;
+  gap: 7px;
+}
+
+.merchant-studio-section select,
+.merchant-studio-section input:not([type='color']),
+.merchant-studio-controls input:not([type='color']) {
+  background: rgba(255, 253, 247, 0.94);
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink);
+  min-height: 34px;
+}
+
+.merchant-studio-color-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.merchant-studio-color-grid input[type='color'] {
+  background: transparent;
+  border: 1px solid rgba(255, 253, 247, 0.22);
+  border-radius: 8px;
+  height: 38px;
+  padding: 3px;
+  width: 100%;
+}
+
+.merchant-studio-controls {
+  display: grid;
+  gap: 12px;
+}
+
+.merchant-studio-actions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.merchant-studio-actions.is-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.merchant-studio-tip,
+.merchant-studio-notice {
+  color: rgba(255, 253, 247, 0.68);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.merchant-studio-notice {
+  color: #ffd36a;
+}
+
+.merchant-studio-layer-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.merchant-studio-layer-list button {
+  align-items: center;
+  background: rgba(255, 253, 247, 0.08);
+  border: 1px solid rgba(255, 253, 247, 0.13);
+  border-radius: 10px;
+  color: #fffdf7;
+  display: grid;
+  gap: 3px;
+  justify-items: start;
+  padding: 9px 10px;
+  text-align: left;
+}
+
+.merchant-studio-layer-list button.is-selected {
+  background: #fffdf7;
+  color: var(--ink);
+}
+
+.merchant-studio-layer-list span {
+  color: var(--coral);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.merchant-studio-layer-list strong {
+  font-size: 13px;
+  font-weight: 950;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+@media (min-width: 1180px) {
+  .partner-detail-page.is-studio-editing {
+    max-width: min(1180px, calc(100vw - 580px));
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+
+  .merchant-studio-panel {
+    bottom: 24px;
+    overflow: auto;
+    position: fixed;
+    top: 92px;
+    width: 244px;
+  }
+
+  .merchant-studio-tools {
+    left: 18px;
+  }
+
+  .merchant-studio-inspector {
+    right: 18px;
+  }
+}
+
+@media (max-width: 1179px) {
+  .merchant-studio-panel {
+    position: sticky;
+    top: 78px;
+  }
+
+  .merchant-studio-tool-grid,
+  .merchant-studio-actions,
+  .merchant-studio-color-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .merchant-inline-edit-wrap {

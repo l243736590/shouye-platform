@@ -16,12 +16,18 @@ import {
   LogIn,
   MapPin,
   MessageSquareText,
+  MousePointer2,
   PenLine,
+  Pipette,
   Plus,
   Search,
   ShieldCheck,
   Sparkles,
+  SquareDashedMousePointer,
+  Trash2,
   TrendingUp,
+  Type,
+  UploadCloud,
   UserPlus,
   X,
 } from 'lucide-react'
@@ -5198,6 +5204,26 @@ function App() {
     documents: [] as CredentialDocument[],
   })
 
+  const handleMerchantDesignItemInput = async (itemId: string, event: ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(event.target.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
+    if (!file) return
+    try {
+      const mediaUrl = file.type.startsWith('video/')
+        ? await readVideoFileToDataUrl(file)
+        : await resizeImageFileToDataUrl(file, 1100, 0.86)
+      updateMerchantDesignItem(itemId, {
+        kind: 'media',
+        mediaUrl,
+        mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
+      })
+      setActiveMerchantDesignItemId(itemId)
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
+    } finally {
+      event.target.value = ''
+    }
+  }
+
   useEffect(() => {
     window.localStorage.setItem(storageKey, JSON.stringify(appState))
   }, [appState])
@@ -6753,6 +6779,207 @@ function App() {
           删除
         </button>
       </div>
+    )
+  }
+
+  const renderMerchantStudioTools = () => {
+    if (!canManageActivePartnerBrand || !merchantDesignEditMode) return null
+    return (
+      <aside className="merchant-studio-panel merchant-studio-tools" aria-label="商家编辑工具栏">
+        <div className="merchant-studio-heading">
+          <strong>工具</strong>
+          <span>编辑模式</span>
+        </div>
+        <div className="merchant-studio-avatar-mini">
+          <div
+            className={`partner-logo-mark ${activePartnerDetail.showcase.tone} ${
+              activeMerchantDecorationDraft.pendingLogoImage || activePartnerDetailLogoImage ? 'has-image' : ''
+            }`}
+          >
+            {activeMerchantDecorationDraft.pendingLogoImage ? (
+              <img src={activeMerchantDecorationDraft.pendingLogoImage} alt="" />
+            ) : activePartnerDetailLogoImage ? (
+              <img src={activePartnerDetailLogoImage} alt="" />
+            ) : (
+              <span>{activePartnerDetail.merchant.logo}</span>
+            )}
+          </div>
+          <label className="merchant-studio-file-button">
+            <UploadCloud size={16} aria-hidden="true" />
+            上传头像
+            <input accept="image/*" type="file" onChange={handleMerchantLogoUpload} />
+          </label>
+        </div>
+        <div className="merchant-studio-tool-grid">
+          <button className="is-active" type="button">
+            <MousePointer2 size={18} aria-hidden="true" />
+            移动
+          </button>
+          <button type="button" onClick={() => addMerchantDesignBubble('hero')}>
+            <Type size={18} aria-hidden="true" />
+            主视觉文本
+          </button>
+          <button type="button" onClick={() => addMerchantDesignBubble('service')}>
+            <SquareDashedMousePointer size={18} aria-hidden="true" />
+            服务区文本
+          </button>
+          <button type="button" onClick={() => setActiveMerchantTextEditor(null)}>
+            <Pipette size={18} aria-hidden="true" />
+            吸管
+          </button>
+        </div>
+        <label className={`merchant-studio-file-button ${activeMerchantDesignItem ? '' : 'is-disabled'}`}>
+          <UploadCloud size={16} aria-hidden="true" />
+          上传到选中框
+          <input
+            accept="image/*,video/*"
+            disabled={!activeMerchantDesignItem}
+            type="file"
+            onChange={(event) => activeMerchantDesignItem && handleMerchantDesignItemInput(activeMerchantDesignItem.id, event)}
+          />
+        </label>
+        <p className="merchant-studio-tip">双击原有文字可改文案；选中泡泡框后可拖动、拉伸、调色、换图或删除。</p>
+        <div className="merchant-studio-actions">
+          <button type="button" onClick={saveMerchantDecoration}>保存</button>
+          <button type="button" onClick={() => setMerchantDesignEditMode(false)}>退出</button>
+        </div>
+        {merchantDecorationNotice && <p className="merchant-studio-notice">{merchantDecorationNotice}</p>}
+      </aside>
+    )
+  }
+
+  const renderMerchantStudioInspector = () => {
+    if (!canManageActivePartnerBrand || !merchantDesignEditMode) return null
+    const layers = [...activeMerchantDecorationDraft.designItems].sort((a, b) => b.z - a.z)
+    return (
+      <aside className="merchant-studio-panel merchant-studio-inspector" aria-label="商家编辑属性面板">
+        <div className="merchant-studio-heading">
+          <strong>调色盘</strong>
+          <span>{activeMerchantDesignItem ? '已选中元素' : '未选中元素'}</span>
+        </div>
+        <div className="merchant-studio-section">
+          <label>
+            全局字体
+            <select
+              value={activeMerchantDecorationDraft.fontFamily}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'fontFamily', event.target.value)}
+            >
+              <option value="">跟随平台默认</option>
+              <option value={'"Noto Sans SC", "Microsoft YaHei", sans-serif'}>现代黑体</option>
+              <option value={'"Songti SC", "SimSun", serif'}>宋体/衬线</option>
+              <option value={'Arial, sans-serif'}>Arial</option>
+            </select>
+          </label>
+          <div className="merchant-studio-color-grid">
+            <label>
+              标题色
+              <input
+                type="color"
+                value={activeMerchantDecorationDraft.titleColor || '#10201d'}
+                onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'titleColor', event.target.value)}
+              />
+            </label>
+            <label>
+              正文色
+              <input
+                type="color"
+                value={activeMerchantDecorationDraft.bodyColor || '#4d5d58'}
+                onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'bodyColor', event.target.value)}
+              />
+            </label>
+            <label>
+              重点色
+              <input
+                type="color"
+                value={activeMerchantDecorationDraft.accentColor || '#ef5a3c'}
+                onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'accentColor', event.target.value)}
+              />
+            </label>
+          </div>
+        </div>
+        <div className="merchant-studio-section">
+          <div className="merchant-studio-heading is-small">
+            <strong>选中对象</strong>
+            <span>{activeMerchantDesignItem ? activeMerchantDesignItem.kind === 'media' ? '图片/视频' : '文本泡泡' : '请选择舞台元素'}</span>
+          </div>
+          {activeMerchantDesignItem ? (
+            <div className="merchant-studio-controls">
+              <label>
+                字号
+                <input
+                  max="72"
+                  min="12"
+                  type="range"
+                  value={activeMerchantDesignItem.fontSize}
+                  onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { fontSize: Number(event.target.value) })}
+                />
+              </label>
+              <label>
+                透明度
+                <input
+                  max="1"
+                  min="0.08"
+                  step="0.02"
+                  type="range"
+                  value={activeMerchantDesignItem.opacity}
+                  onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { opacity: Number(event.target.value) })}
+                />
+              </label>
+              <div className="merchant-studio-color-grid">
+                <label>
+                  字色
+                  <input
+                    type="color"
+                    value={activeMerchantDesignItem.color}
+                    onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { color: event.target.value })}
+                  />
+                </label>
+                <label>
+                  底色
+                  <input
+                    type="color"
+                    value={activeMerchantDesignItem.background.startsWith('#') ? activeMerchantDesignItem.background : '#fffdf7'}
+                    onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { background: event.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="merchant-studio-actions is-grid">
+                <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, 1)}>上移</button>
+                <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, -1)}>下移</button>
+                <button type="button" onClick={() => deleteMerchantDesignItem(activeMerchantDesignItem.id)}>
+                  <Trash2 size={15} aria-hidden="true" />
+                  删除
+                </button>
+              </div>
+            </div>
+          ) : (
+            <p className="merchant-studio-tip">点选中间舞台里的泡泡框或素材后，这里会显示大小、颜色、透明度和图层设置。</p>
+          )}
+        </div>
+        <div className="merchant-studio-section merchant-studio-layers">
+          <div className="merchant-studio-heading is-small">
+            <strong>图层</strong>
+            <span>{layers.length} 个对象</span>
+          </div>
+          <div className="merchant-studio-layer-list">
+            {layers.length ? (
+              layers.map((item) => (
+                <button
+                  className={activeMerchantDesignItemId === item.id ? 'is-selected' : ''}
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveMerchantDesignItemId(item.id)}
+                >
+                  <span>{item.kind === 'media' ? '素材' : '文本'}</span>
+                  <strong>{item.kind === 'media' ? `${item.mediaKind === 'video' ? '视频' : '图片'}图层` : item.text || '空文本框'}</strong>
+                </button>
+              ))
+            ) : (
+              <p className="merchant-studio-tip">还没有自定义图层，从左侧添加文本框开始。</p>
+            )}
+          </div>
+        </div>
+      </aside>
     )
   }
 
@@ -8830,24 +9057,13 @@ function App() {
       )}
 
       {isPartnerDetailRoute && (
-        <section className="info-page partner-detail-page">
-          {canManageActivePartnerBrand && merchantDesignEditMode && (
-            <div className="merchant-direct-edit-toolbar">
-              <span>编辑模式：双击文字修改，拖入图片/视频到泡泡框。</span>
-              <button type="button" onClick={() => addMerchantDesignBubble('hero')}>
-                添加主视觉泡泡
-              </button>
-              <button type="button" onClick={() => addMerchantDesignBubble('service')}>
-                添加服务区泡泡
-              </button>
-              <button type="button" onClick={saveMerchantDecoration}>
-                保存修改
-              </button>
-              <button type="button" onClick={() => setMerchantDesignEditMode(false)}>
-                退出编辑
-              </button>
-            </div>
-          )}
+        <section
+          className={`info-page partner-detail-page ${
+            merchantDesignEditMode && canManageActivePartnerBrand ? 'is-studio-editing' : ''
+          }`}
+        >
+          {renderMerchantStudioTools()}
+          {renderMerchantStudioInspector()}
           <div className={`partner-detail-hero ${merchantDesignEditMode && canManageActivePartnerBrand ? 'is-direct-editing' : ''}`}>
             <div
               className="partner-detail-copy"
@@ -8985,7 +9201,7 @@ function App() {
             ))}
           </div>
 
-          {canManageActivePartnerBrand && (
+          {canManageActivePartnerBrand && !merchantDesignEditMode && (
             <section className="partner-brand-manager-panel">
               <div>
                 <p className="eyebrow dark">品牌装饰权限</p>
