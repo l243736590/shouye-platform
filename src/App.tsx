@@ -7360,6 +7360,20 @@ function App() {
     }
   }
 
+  const handleProfileAvatarUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    try {
+      const image = await resizeImageFileToDataUrl(file, 420, 0.84)
+      setProfileForm((form) => ({ ...form, avatarUrl: image }))
+      setMessage('头像已上传到表单，点击保存个人信息后生效。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '头像上传失败，请换一张图片重试。')
+    } finally {
+      event.target.value = ''
+    }
+  }
+
   const removeOwnPost = (postId: string) => {
     if (currentUser) {
       fetch(`/api/posts/${encodeURIComponent(postId)}`, {
@@ -9125,14 +9139,14 @@ function App() {
                   <div className="profile-avatar">
                     {profileForm.avatarUrl ? <img src={profileForm.avatarUrl} alt="" /> : currentUser.name.slice(0, 1)}
                   </div>
-                  <label>
-                    头像图片链接
-                    <input
-                      value={profileForm.avatarUrl}
-                      onChange={(event) => setProfileForm({ ...profileForm, avatarUrl: event.target.value })}
-                      placeholder="https://..."
-                    />
-                  </label>
+                  <div className="profile-avatar-upload-copy">
+                    <strong>个人头像</strong>
+                    <span>点击上传头像，保存后会展示在个人中心和你发布的内容旁。</span>
+                    <label className="merchant-logo-upload-button">
+                      上传头像
+                      <input accept="image/*" type="file" onChange={handleProfileAvatarUpload} />
+                    </label>
+                  </div>
                 </div>
                 <label>
                   昵称

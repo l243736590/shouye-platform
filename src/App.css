@@ -2647,6 +2647,7 @@ video.partner-detail-floating-image {
   border: 1px solid var(--line);
   border-radius: 8px;
   display: flex;
+  flex-wrap: wrap;
   gap: 18px;
   padding: 18px;
 }
@@ -4220,30 +4221,53 @@ video.partner-detail-floating-image {
 }
 
 .profile-avatar-row {
-  align-items: end;
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 86px minmax(0, 1fr);
+  align-items: center;
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  padding: 18px;
 }
 
 .profile-avatar {
   align-items: center;
-  aspect-ratio: 1;
   background: var(--forest);
   border-radius: 8px;
   color: #fffdf0;
+  flex: 0 0 auto;
   display: flex;
   font-size: 34px;
   font-weight: 900;
+  height: 96px;
   justify-content: center;
   overflow: hidden;
-  width: 86px;
+  width: 128px;
 }
 
 .profile-avatar img {
   height: 100%;
   object-fit: cover;
   width: 100%;
+}
+
+.profile-avatar-upload-copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.profile-avatar-upload-copy strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.profile-avatar-upload-copy span {
+  color: var(--muted);
+  font-weight: 850;
+  line-height: 1.45;
 }
 
 .profile-post-row {
