@@ -40,6 +40,16 @@ type UserRecord = {
   documents: CredentialDocument[]
 }
 
+type UserBioSettings = {
+  userType?: 'student' | 'merchant'
+  businessName?: string
+  businessCategory?: string
+  country?: string
+  city?: string
+  managedBrandId?: string
+  managedBrandName?: string
+}
+
 type PartnerApplicationRecord = {
   id: string
   company: string
@@ -66,6 +76,18 @@ type MerchantLeadRecord = {
   adminNote: string
   status: 'pending' | 'contacted' | 'closed'
   createdAt: string
+  updatedAt: string
+}
+
+type MerchantBrandDecorationRecord = {
+  brandId: string
+  ownerUserId?: string
+  badge: string
+  heroTitle: string
+  intro: string
+  contactCopy: string
+  caseOne: string
+  caseTwo: string
   updatedAt: string
 }
 
@@ -254,6 +276,20 @@ const defaultSiteContent: SiteContentSettings = {
   merchantWalaCaseTwo: '签证与在韩升学：D-2/D-4续签材料核对、语学院升本科、研究计划书节奏和窗口风险提示。',
 }
 
+const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
+  {
+    brandId: 'tuzhuren-thesis',
+    badge: '认证商家展示页',
+    heroTitle: '韩国论文流程、毕业审查、韩文发表和延毕节点支持',
+    intro:
+      '土著人面向在韩本科、大学院和毕业阶段学生，展示论文流程说明、毕业材料检查、韩文表达校对和发表准备等合规学业支持服务。',
+    contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
+    caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
+    caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    updatedAt: '2026-05-07',
+  },
+]
+
 const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteContentSettings => {
   const mergedContent = { ...defaultSiteContent, ...(content ?? {}) }
 
@@ -291,6 +327,45 @@ const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteConte
     ),
     mobileHeroCopySize: Math.min(48, Math.max(18, Number(content?.mobileHeroCopySize ?? defaultSiteContent.mobileHeroCopySize))),
     mobileSearchScale: Math.min(2.2, Math.max(0.9, Number(content?.mobileSearchScale ?? defaultSiteContent.mobileSearchScale))),
+  }
+}
+
+const normalizeMerchantBrandDecoration = (
+  decoration: Partial<MerchantBrandDecorationRecord>,
+  fallback?: MerchantBrandDecorationRecord,
+): MerchantBrandDecorationRecord => ({
+  brandId: decoration.brandId ?? fallback?.brandId ?? '',
+  ownerUserId: decoration.ownerUserId ?? fallback?.ownerUserId,
+  badge: decoration.badge ?? fallback?.badge ?? '认证商家展示页',
+  heroTitle: decoration.heroTitle ?? fallback?.heroTitle ?? '',
+  intro: decoration.intro ?? fallback?.intro ?? '',
+  contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
+  caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
+  caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+  updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? new Date().toISOString(),
+})
+
+const mergeMerchantBrandDecorations = (decorations?: Partial<MerchantBrandDecorationRecord>[]) => {
+  const decorationMap = new Map(
+    defaultMerchantBrandDecorations.map((decoration) => [decoration.brandId, normalizeMerchantBrandDecoration(decoration)]),
+  )
+  for (const decoration of decorations ?? []) {
+    if (!decoration.brandId) continue
+    decorationMap.set(
+      decoration.brandId,
+      normalizeMerchantBrandDecoration(decoration, decorationMap.get(decoration.brandId)),
+    )
+  }
+  return Array.from(decorationMap.values())
+}
+
+const parseUserBioSettings = (bio?: string): UserBioSettings => {
+  if (!bio?.trim()) return {}
+  try {
+    const parsed = JSON.parse(bio) as UserBioSettings
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
   }
 }
 
@@ -460,6 +535,15 @@ const pageMeta = (pathname: string): PageMeta => {
       description:
         '瓦剌留学认证商家详情页，展示韩国留学申请、签证续签、语学院、本科和大学院规划等服务说明。',
       keywords: `${defaultKeywords}, 瓦剌留学, 韩国留学申请, 签证续签`,
+    }
+  }
+
+  if (pathname === '/partners/tuzhuren-thesis') {
+    return {
+      title: '土著人商家详情 - 韩国论文流程与毕业审查服务展示',
+      description:
+        '土著人认证商家详情页，展示韩国论文流程、毕业审查、韩文发表、延毕节点和材料检查等服务说明。',
+      keywords: `${defaultKeywords}, 土著人, 韩国论文, 韩国毕业, 韩文发表`,
     }
   }
 
@@ -646,6 +730,25 @@ const routeSeoContent = (pathname: string) => {
       </noscript>`
   }
 
+  if (pathname === '/partners/tuzhuren-thesis') {
+    return `
+      <noscript id="seo-prerender-partner-tuzhuren">
+        <main>
+          <h1>土著人商家详情</h1>
+          <p>土著人展示韩国论文流程、毕业审查、韩文发表和延毕节点相关服务说明。商家页面用于服务信息对比，不代表平台担保结果。</p>
+          ${seoLinks}
+          <section>
+            <h2>服务说明</h2>
+            <ul>
+              <li>论文流程、毕业材料、韩文表达、发表准备和延毕节点提醒。</li>
+              <li>咨询前建议准备学校、专业、毕业要求、导师反馈和提交节点。</li>
+              <li>不提供代写、代投、替考、伪造材料等违规服务。</li>
+            </ul>
+          </section>
+        </main>
+      </noscript>`
+  }
+
   const schoolMatch = pathname.match(/^\/schools\/([^/]+)$/) ?? pathname.match(/^\/school\/([^/]+)$/)
   if (schoolMatch) {
     const schoolMap: Record<string, { zh: string; en: string; area: string }> = {
@@ -690,6 +793,7 @@ const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>${siteOrigin}/minor-privacy</loc></url>
   <url><loc>${siteOrigin}/content-rules</loc></url>
   <url><loc>${siteOrigin}/partners/wala-study</loc></url>
+  <url><loc>${siteOrigin}/partners/tuzhuren-thesis</loc></url>
   <url><loc>${siteOrigin}/schools/konkuk</loc></url>
   <url><loc>${siteOrigin}/schools/chungang</loc></url>
   <url><loc>${siteOrigin}/schools/korea</loc></url>
@@ -907,6 +1011,18 @@ const rowToMerchantLead = (row: Record<string, unknown>): MerchantLeadRecord => 
   status: String(row.status ?? 'pending') as MerchantLeadRecord['status'],
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at ?? row.created_at),
+})
+
+const rowToMerchantBrandDecoration = (row: Record<string, unknown>): MerchantBrandDecorationRecord => ({
+  brandId: String(row.brand_id),
+  ownerUserId: row.owner_user_id ? String(row.owner_user_id) : undefined,
+  badge: String(row.badge ?? '认证商家展示页'),
+  heroTitle: String(row.hero_title ?? ''),
+  intro: String(row.intro ?? ''),
+  contactCopy: String(row.contact_copy ?? ''),
+  caseOne: String(row.case_one ?? ''),
+  caseTwo: String(row.case_two ?? ''),
+  updatedAt: String(row.updated_at ?? ''),
 })
 
 const rowToQuestionBounty = (row: Record<string, unknown>): QuestionBountyRecord => ({
@@ -1429,6 +1545,32 @@ const getMerchantLeads = async (env: Env) => {
   await ensureMerchantLeadTables(env)
   const rows = await env.DB.prepare('SELECT * FROM merchant_leads ORDER BY created_at DESC').all<Record<string, unknown>>()
   return (rows.results ?? []).map(rowToMerchantLead)
+}
+
+const ensureMerchantBrandDecorationTables = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS merchant_brand_decorations (
+      brand_id TEXT PRIMARY KEY,
+      owner_user_id TEXT NOT NULL DEFAULT '',
+      badge TEXT NOT NULL DEFAULT '',
+      hero_title TEXT NOT NULL DEFAULT '',
+      intro TEXT NOT NULL DEFAULT '',
+      contact_copy TEXT NOT NULL DEFAULT '',
+      case_one TEXT NOT NULL DEFAULT '',
+      case_two TEXT NOT NULL DEFAULT '',
+      updated_at TEXT NOT NULL
+    )`,
+  ).run()
+}
+
+const getMerchantBrandDecorations = async (env: Env) => {
+  if (!env.DB) return defaultMerchantBrandDecorations
+  await ensureMerchantBrandDecorationTables(env)
+  const rows = await env.DB.prepare('SELECT * FROM merchant_brand_decorations ORDER BY updated_at DESC').all<
+    Record<string, unknown>
+  >()
+  return mergeMerchantBrandDecorations((rows.results ?? []).map(rowToMerchantBrandDecoration))
 }
 
 const ensureWalletTables = async (env: Env) => {
@@ -2758,6 +2900,88 @@ const updateMerchantLead = async (request: Request, env: Env, leadId: string) =>
   return json({ merchantLeads: await getMerchantLeads(env) })
 }
 
+const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureMerchantBrandDecorationTables(env)
+  const body = await readBody<{ userId: string; decoration: Partial<MerchantBrandDecorationRecord> }>(request)
+  const userId = body.userId?.trim()
+  if (!userId) return json({ error: '请先登录商家账号。' }, { status: 401 })
+
+  const userRow = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!userRow) return json({ error: '账号不存在。' }, { status: 404 })
+  const user = rowToUser(userRow)
+  const userBio = parseUserBioSettings(user.bio)
+  if (user.status !== 'active') return json({ error: '账号状态异常，暂时不能装饰品牌页。' }, { status: 403 })
+  if (user.verificationStatus !== 'approved') return json({ error: '商家账号认证通过后，才能装饰品牌页。' }, { status: 403 })
+  if (userBio.managedBrandId !== brandId) {
+    return json({ error: '当前账号没有这个品牌详情页的装饰权限。' }, { status: 403 })
+  }
+
+  const now = new Date().toISOString()
+  const incoming = body.decoration ?? {}
+  const fallback = mergeMerchantBrandDecorations([]).find((decoration) => decoration.brandId === brandId)
+  const decoration = normalizeMerchantBrandDecoration(
+    {
+      ...incoming,
+      brandId,
+      ownerUserId: userId,
+      updatedAt: now,
+    },
+    fallback,
+  )
+  const violation = findComplianceViolation([
+    decoration.badge,
+    decoration.heroTitle,
+    decoration.intro,
+    decoration.contactCopy,
+    decoration.caseOne,
+    decoration.caseTwo,
+  ])
+  if (violation) {
+    await recordModerationEvent(env, {
+      contentType: 'merchant-brand-decoration',
+      contentId: brandId,
+      userId,
+      action: 'blocked',
+      reason: violation.reason,
+      matchedTerms: violation.matchedTerms,
+    })
+    return json({ error: violation.reason }, { status: 400 })
+  }
+
+  await env.DB.prepare(
+    `INSERT INTO merchant_brand_decorations
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(brand_id) DO UPDATE SET
+        owner_user_id = excluded.owner_user_id,
+        badge = excluded.badge,
+        hero_title = excluded.hero_title,
+        intro = excluded.intro,
+        contact_copy = excluded.contact_copy,
+        case_one = excluded.case_one,
+        case_two = excluded.case_two,
+        updated_at = excluded.updated_at`,
+  )
+    .bind(
+      decoration.brandId,
+      decoration.ownerUserId ?? '',
+      decoration.badge,
+      decoration.heroTitle,
+      decoration.intro,
+      decoration.contactCopy,
+      decoration.caseOne,
+      decoration.caseTwo,
+      decoration.updatedAt,
+    )
+    .run()
+
+  return json({
+    merchantBrandDecoration: decoration,
+    merchantBrandDecorations: await getMerchantBrandDecorations(env),
+  })
+}
+
 const handleReportCreate = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   await ensureComplianceTables(env)
@@ -3442,6 +3666,13 @@ export default {
       return handlePartnerCreate(request, env)
     }
     if (url.pathname === '/api/merchant-leads' && request.method === 'POST') return handleMerchantLeadCreate(request, env)
+    if (url.pathname === '/api/merchant-brand-decorations' && request.method === 'GET') {
+      return json({ merchantBrandDecorations: await getMerchantBrandDecorations(env) })
+    }
+    const merchantBrandDecorationMatch = url.pathname.match(/^\/api\/merchant-brand-decorations\/([^/]+)$/)
+    if (merchantBrandDecorationMatch && request.method === 'PUT') {
+      return saveMerchantBrandDecoration(request, env, decodeURIComponent(merchantBrandDecorationMatch[1]))
+    }
     if (url.pathname === '/api/admin/login' && request.method === 'POST') return handleAdminLogin(request, env)
 
     const publicUserMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/)
@@ -3457,6 +3688,7 @@ export default {
           reports: await getContentReports(env),
           partnerApplications: await getPartnerApplications(env),
           merchantLeads: await getMerchantLeads(env),
+          merchantBrandDecorations: await getMerchantBrandDecorations(env),
           questionDisputes: await getQuestionDisputes(env),
           questionBounties: await getQuestionBounties(env),
           pointOrders: await getPointOrders(env),

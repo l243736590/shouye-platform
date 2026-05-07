@@ -2554,6 +2554,46 @@ h3 {
   padding: 18px;
 }
 
+.partner-brand-manager-panel {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 22px;
+  padding: clamp(22px, 3vw, 34px);
+}
+
+.partner-brand-manager-panel h2 {
+  color: var(--ink);
+  font-size: clamp(26px, 3vw, 42px);
+  line-height: 1.1;
+}
+
+.partner-brand-manager-panel p:not(.eyebrow) {
+  color: var(--muted);
+  font-weight: 780;
+  line-height: 1.65;
+  margin-top: 8px;
+}
+
+.partner-brand-manager-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.partner-brand-manager-actions button {
+  background: var(--ink);
+  color: #ffffff;
+}
+
+.partner-brand-manager-actions span {
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .partner-looseleaf-art {
   align-items: center;
   display: grid;
@@ -4550,6 +4590,27 @@ h3 {
   font-size: 13px;
   line-height: 1.55;
   margin: 0;
+}
+
+.admin-brand-access-note {
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 5px;
+  padding: 12px;
+}
+
+.admin-brand-access-note span,
+.admin-brand-access-note small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.admin-brand-access-note strong {
+  color: var(--ink);
+  font-size: 14px;
 }
 
 .admin-actions {

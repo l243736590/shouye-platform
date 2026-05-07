@@ -59,6 +59,16 @@ type User = {
   documents: CredentialDocument[]
 }
 
+type UserBioSettings = {
+  userType?: AuthUserType
+  businessName?: string
+  businessCategory?: string
+  country?: string
+  city?: string
+  managedBrandId?: string
+  managedBrandName?: string
+}
+
 type PartnerApplication = {
   id: string
   company: string
@@ -85,6 +95,18 @@ type MerchantLead = {
   adminNote: string
   status: 'pending' | 'contacted' | 'closed'
   createdAt: string
+  updatedAt: string
+}
+
+type MerchantBrandDecoration = {
+  brandId: string
+  ownerUserId?: string
+  badge: string
+  heroTitle: string
+  intro: string
+  contactCopy: string
+  caseOne: string
+  caseTwo: string
   updatedAt: string
 }
 
@@ -656,6 +678,7 @@ type StoredState = {
   answers: QuestionAnswer[]
   partnerApplications: PartnerApplication[]
   merchantLeads: MerchantLead[]
+  merchantBrandDecorations: MerchantBrandDecoration[]
   questionBounties: QuestionBounty[]
   questionDisputes: QuestionDispute[]
   pointOrders: PointOrder[]
@@ -728,6 +751,20 @@ const defaultSiteContent: SiteContentSettings = {
   merchantWalaCaseTwo: '签证与在韩升学：D-2/D-4续签材料核对、语学院升本科、研究计划书节奏和窗口风险提示。',
 }
 
+const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
+  {
+    brandId: 'tuzhuren-thesis',
+    badge: '认证商家展示页',
+    heroTitle: '韩国论文流程、毕业审查、韩文发表和延毕节点支持',
+    intro:
+      '土著人面向在韩本科、大学院和毕业阶段学生，展示论文流程说明、毕业材料检查、韩文表达校对和发表准备等合规学业支持服务。',
+    contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
+    caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
+    caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    updatedAt: '2026-05-07',
+  },
+]
+
 const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteContentSettings => {
   const mergedContent = { ...defaultSiteContent, ...(content ?? {}) }
 
@@ -766,6 +803,57 @@ const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteConte
     mobileHeroCopySize: Math.min(48, Math.max(18, Number(content?.mobileHeroCopySize ?? defaultSiteContent.mobileHeroCopySize))),
     mobileSearchScale: Math.min(2.2, Math.max(0.9, Number(content?.mobileSearchScale ?? defaultSiteContent.mobileSearchScale))),
   }
+}
+
+const normalizeMerchantBrandDecoration = (
+  decoration: Partial<MerchantBrandDecoration>,
+  fallback?: MerchantBrandDecoration,
+): MerchantBrandDecoration => {
+  const now = new Date().toISOString()
+  return {
+    brandId: decoration.brandId ?? fallback?.brandId ?? '',
+    ownerUserId: decoration.ownerUserId ?? fallback?.ownerUserId,
+    badge: decoration.badge ?? fallback?.badge ?? '认证商家展示页',
+    heroTitle: decoration.heroTitle ?? fallback?.heroTitle ?? '',
+    intro: decoration.intro ?? fallback?.intro ?? '',
+    contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
+    caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
+    caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+    updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? now,
+  }
+}
+
+const mergeMerchantBrandDecorations = (decorations?: Partial<MerchantBrandDecoration>[]) => {
+  const decorationMap = new Map(
+    defaultMerchantBrandDecorations.map((decoration) => [decoration.brandId, normalizeMerchantBrandDecoration(decoration)]),
+  )
+  for (const decoration of decorations ?? []) {
+    if (!decoration.brandId) continue
+    decorationMap.set(
+      decoration.brandId,
+      normalizeMerchantBrandDecoration(decoration, decorationMap.get(decoration.brandId)),
+    )
+  }
+  return Array.from(decorationMap.values())
+}
+
+const parseUserBioSettings = (bio?: string): UserBioSettings => {
+  if (!bio?.trim()) return {}
+  try {
+    const parsed = JSON.parse(bio) as UserBioSettings
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+const serializeUserBrandAccess = (bio: string, brandId: string, brandName: string) => {
+  const settings = parseUserBioSettings(bio)
+  if (!brandId) {
+    const { managedBrandId: _managedBrandId, managedBrandName: _managedBrandName, ...rest } = settings
+    return Object.keys(rest).length ? JSON.stringify(rest) : ''
+  }
+  return JSON.stringify({ ...settings, managedBrandId: brandId, managedBrandName: brandName })
 }
 
 const storageKey = 'shouye-platform-mvp-v1'
@@ -2059,6 +2147,32 @@ const partnerShowcases = [
     tone: 'academic',
     merchants: [
       {
+        id: 'tuzhuren-thesis',
+        name: '土著人',
+        logo: '土著人',
+        summary: '韩国论文流程、毕业审查、韩文发表和延毕节点支持',
+        description:
+          '土著人品牌展示韩国论文流程、毕业材料、韩文表达、发表准备和延毕节点提醒等合规学业支持，适合本科、大学院和毕业阶段学生对比咨询。',
+        tags: ['论文流程', '毕业审查', '韩文发表'],
+        verified: true,
+        location: '韩国 · 线上/首尔',
+        detailTone: '土著人品牌的管理商家',
+        detailSections: [
+          {
+            title: '适合咨询的人',
+            text: '正在准备论文、毕业材料、发表稿、延毕申请或学院窗口材料的本科、大学院和毕业阶段学生。',
+          },
+          {
+            title: '咨询前先准备',
+            text: '学校、专业、毕业要求、论文阶段、导师反馈、提交截止日、已写材料和目前最卡的具体问题。',
+          },
+          {
+            title: '平台提醒',
+            text: '只展示合规学业支持边界，不提供代写、代投、替考、伪造材料等服务；毕业要求以学校和学院最新通知为准。',
+          },
+        ],
+      },
+      {
         name: '论文流程与毕业审查支持',
         logo: '论文',
         summary: '论文流程、发表准备、延毕材料和毕业审查',
@@ -2286,6 +2400,14 @@ const partnerMerchantEntries = partnerShowcases.flatMap((showcase) =>
     slug: 'id' in merchant ? merchant.id : encodeURIComponent(merchant.name),
   })),
 )
+
+const manageablePartnerBrands = partnerMerchantEntries
+  .filter((entry) => 'id' in entry.merchant)
+  .map((entry) => ({
+    id: 'id' in entry.merchant ? entry.merchant.id : entry.slug,
+    name: entry.merchant.name,
+    type: entry.showcase.type,
+  }))
 
 const seedQuestions: CommunityQuestion[] = [
   {
@@ -4564,6 +4686,7 @@ const initialState = (): StoredState => {
       answers: seedAnswers,
       partnerApplications: [],
       merchantLeads: [],
+      merchantBrandDecorations: defaultMerchantBrandDecorations,
       questionBounties: [],
       questionDisputes: [],
       pointOrders: [],
@@ -4585,6 +4708,7 @@ const initialState = (): StoredState => {
       answers: seedAnswers,
       partnerApplications: [],
       merchantLeads: [],
+      merchantBrandDecorations: defaultMerchantBrandDecorations,
       questionBounties: [],
       questionDisputes: [],
       pointOrders: [],
@@ -4606,6 +4730,7 @@ const initialState = (): StoredState => {
       answers: parsed.answers?.length ? parsed.answers : seedAnswers,
       partnerApplications: parsed.partnerApplications ?? [],
       merchantLeads: parsed.merchantLeads ?? [],
+      merchantBrandDecorations: mergeMerchantBrandDecorations(parsed.merchantBrandDecorations),
       questionBounties: parsed.questionBounties ?? [],
       questionDisputes: parsed.questionDisputes ?? [],
       pointOrders: parsed.pointOrders ?? [],
@@ -4624,6 +4749,7 @@ const initialState = (): StoredState => {
       answers: seedAnswers,
       partnerApplications: [],
       merchantLeads: [],
+      merchantBrandDecorations: defaultMerchantBrandDecorations,
       questionBounties: [],
       questionDisputes: [],
       pointOrders: [],
@@ -4749,6 +4875,8 @@ function App() {
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | MerchantLead['status']>('all')
   const [leadAssigneeFilter, setLeadAssigneeFilter] = useState('全部')
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
+  const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
+  const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
@@ -4881,6 +5009,19 @@ function App() {
   }, [])
 
   useEffect(() => {
+    fetch('/api/merchant-brand-decorations')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { merchantBrandDecorations?: Partial<MerchantBrandDecoration>[] } | null) => {
+        if (!data?.merchantBrandDecorations) return
+        const nextDecorations = mergeMerchantBrandDecorations(data.merchantBrandDecorations)
+        setAppState((state) => ({ ...state, merchantBrandDecorations: nextDecorations }))
+      })
+      .catch(() => {
+        // Default brand decorations keep merchant pages usable when the API is unavailable.
+      })
+  }, [])
+
+  useEffect(() => {
     const syncPath = () => {
       setCurrentPath(window.location.pathname)
       if (window.location.pathname === '/posts') {
@@ -4951,6 +5092,7 @@ function App() {
   }, [])
 
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
+  const selectedAdminUserBioSettings = parseUserBioSettings(selectedAdminUser?.bio)
   const leadAssignees = ['全部', ...Array.from(new Set(appState.merchantLeads.map((lead) => lead.assignedTo).filter(Boolean)))]
   const filteredMerchantLeads = appState.merchantLeads.filter((lead) => {
     const normalizedLeadSearch = leadSearch.trim().toLowerCase()
@@ -5258,7 +5400,35 @@ function App() {
   }, [appState.posts, query])
   const siteContent = normalizeSiteContent(appState.siteContent)
   const activeSiteContent = inlineEditMode ? contentDraft : siteContent
-  const isWalaPartnerDetail = activePartnerDetail.slug === 'wala-study'
+  const activePartnerDetailSlug = activePartnerDetail.slug ?? encodeURIComponent(activePartnerDetail.merchant.name)
+  const isWalaPartnerDetail = activePartnerDetailSlug === 'wala-study'
+  const activeMerchantDecoration = appState.merchantBrandDecorations.find(
+    (decoration) => decoration.brandId === activePartnerDetailSlug,
+  )
+  const currentUserBioSettings = parseUserBioSettings(currentUser?.bio)
+  const canManageActivePartnerBrand =
+    Boolean(currentUser) &&
+    currentUser?.status === 'active' &&
+    currentUser?.verificationStatus === 'approved' &&
+    currentUserBioSettings.managedBrandId === activePartnerDetailSlug
+  const activeMerchantDecorationDraft =
+    merchantDecorationDrafts[activePartnerDetailSlug] ??
+    activeMerchantDecoration ??
+    normalizeMerchantBrandDecoration(
+      {
+        brandId: activePartnerDetailSlug,
+        badge: '认证商家展示页',
+        heroTitle: activePartnerDetail.merchant.summary,
+        intro: activePartnerDetail.merchant.description,
+        contactCopy: '联系前请先确认服务范围、价格区间、交付方式和售后规则。',
+        caseOne: activePartnerDetail.merchant.tags[0]
+          ? `${activePartnerDetail.merchant.tags[0]}：展示服务范围、交付方式和适合人群。`
+          : '服务范围：展示商家能提供的具体帮助和边界。',
+        caseTwo: activePartnerDetail.merchant.tags[1]
+          ? `${activePartnerDetail.merchant.tags[1]}：展示咨询前需要准备的信息。`
+          : '咨询准备：整理需求、预算、时间节点和联系方式。',
+      },
+    )
   const fallbackPartnerDetailSections = [
     {
       title: '服务说明',
@@ -5277,12 +5447,20 @@ function App() {
     'detailSections' in activePartnerDetail.merchant
       ? activePartnerDetail.merchant.detailSections ?? fallbackPartnerDetailSections
       : fallbackPartnerDetailSections
-  const partnerDetailHeroTitle = isWalaPartnerDetail ? activeSiteContent.merchantWalaHeroTitle : activePartnerDetail.merchant.summary
-  const partnerDetailIntro = isWalaPartnerDetail ? activeSiteContent.merchantWalaIntro : activePartnerDetail.merchant.description
-  const partnerDetailBadge = isWalaPartnerDetail ? activeSiteContent.merchantWalaBadge : '认证商家展示页'
+  const partnerDetailHeroTitle = isWalaPartnerDetail
+    ? activeSiteContent.merchantWalaHeroTitle
+    : activeMerchantDecoration?.heroTitle ?? activePartnerDetail.merchant.summary
+  const partnerDetailIntro = isWalaPartnerDetail
+    ? activeSiteContent.merchantWalaIntro
+    : activeMerchantDecoration?.intro ?? activePartnerDetail.merchant.description
+  const partnerDetailBadge = isWalaPartnerDetail
+    ? activeSiteContent.merchantWalaBadge
+    : activeMerchantDecoration?.badge ?? '认证商家展示页'
   const partnerDetailCases = isWalaPartnerDetail
     ? [activeSiteContent.merchantWalaCaseOne, activeSiteContent.merchantWalaCaseTwo]
-    : activePartnerDetail.merchant.tags.map((tag) => `${tag}：查看服务边界、价格区间、交付方式和售后规则。`)
+    : activeMerchantDecoration
+      ? [activeMerchantDecoration.caseOne, activeMerchantDecoration.caseTwo]
+      : activePartnerDetail.merchant.tags.map((tag) => `${tag}：查看服务边界、价格区间、交付方式和售后规则。`)
   const heroStyle = {
     '--mobile-logo-width': `${activeSiteContent.mobileLogoWidth}vw`,
     '--mobile-hero-title-size': `${activeSiteContent.mobileHeroTitleSize}px`,
@@ -5768,6 +5946,73 @@ function App() {
     setContentDraft((draft) => normalizeSiteContent({ ...draft, [key]: value }))
   }
 
+  const updateMerchantDecorationDraft = <Key extends keyof MerchantBrandDecoration>(
+    brandId: string,
+    key: Key,
+    value: MerchantBrandDecoration[Key],
+  ) => {
+    setMerchantDecorationDrafts((drafts) => {
+      const fallback =
+        drafts[brandId] ??
+        appState.merchantBrandDecorations.find((decoration) => decoration.brandId === brandId) ??
+        normalizeMerchantBrandDecoration({ brandId })
+      return {
+        ...drafts,
+        [brandId]: normalizeMerchantBrandDecoration({ ...fallback, [key]: value }),
+      }
+    })
+  }
+
+  const saveMerchantDecoration = async () => {
+    if (!currentUser) {
+      setAuthMode('login')
+      setMerchantDecorationNotice('请先登录商家账号。')
+      return
+    }
+    if (!canManageActivePartnerBrand) {
+      setMerchantDecorationNotice('当前账号还没有这个品牌详情页的装饰权限。')
+      return
+    }
+    const nextDecoration = normalizeMerchantBrandDecoration({
+      ...activeMerchantDecorationDraft,
+      brandId: activePartnerDetailSlug,
+      ownerUserId: currentUser.id,
+      updatedAt: new Date().toISOString(),
+    })
+    setAppState((state) => ({
+      ...state,
+      merchantBrandDecorations: mergeMerchantBrandDecorations([
+        ...state.merchantBrandDecorations.filter((decoration) => decoration.brandId !== nextDecoration.brandId),
+        nextDecoration,
+      ]),
+    }))
+
+    try {
+      const response = await fetch(`/api/merchant-brand-decorations/${encodeURIComponent(nextDecoration.brandId)}`, {
+        body: JSON.stringify({ userId: currentUser.id, decoration: nextDecoration }),
+        headers: { 'content-type': 'application/json' },
+        method: 'PUT',
+      })
+      const data = (await response.json()) as {
+        merchantBrandDecoration?: MerchantBrandDecoration
+        merchantBrandDecorations?: MerchantBrandDecoration[]
+        error?: string
+      }
+      if (!response.ok) throw new Error(data.error)
+      setAppState((state) => ({
+        ...state,
+        merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? [data.merchantBrandDecoration ?? nextDecoration]),
+      }))
+      setMerchantDecorationDrafts((drafts) => {
+        const { [nextDecoration.brandId]: _saved, ...rest } = drafts
+        return rest
+      })
+      setMerchantDecorationNotice('品牌详情页装饰已保存。')
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+    }
+  }
+
   const saveSiteContent = async () => {
     const nextContent = normalizeSiteContent(contentDraft)
     setAppState((state) => ({ ...state, siteContent: nextContent }))
@@ -5860,6 +6105,7 @@ function App() {
       reports?: ContentReport[]
       partnerApplications?: PartnerApplication[]
       merchantLeads?: MerchantLead[]
+      merchantBrandDecorations?: Partial<MerchantBrandDecoration>[]
       questionBounties?: QuestionBounty[]
       questionDisputes?: QuestionDispute[]
       pointOrders?: PointOrder[]
@@ -5875,6 +6121,7 @@ function App() {
       reports: data.reports ?? state.reports,
       partnerApplications: data.partnerApplications ?? state.partnerApplications,
       merchantLeads: data.merchantLeads ?? state.merchantLeads,
+      merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? state.merchantBrandDecorations),
       questionBounties: data.questionBounties ?? state.questionBounties,
       questionDisputes: data.questionDisputes ?? state.questionDisputes,
       pointOrders: data.pointOrders ?? state.pointOrders,
@@ -7774,7 +8021,11 @@ function App() {
             <div className="partner-detail-panel" aria-label={`${activePartnerDetail.merchant.name}服务标签`}>
               <span>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
               <strong>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
-              <p>{isWalaPartnerDetail ? activeSiteContent.merchantWalaContactCopy : '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}</p>
+              <p>
+                {isWalaPartnerDetail
+                  ? activeSiteContent.merchantWalaContactCopy
+                  : activeMerchantDecoration?.contactCopy ?? '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
+              </p>
             </div>
           </div>
 
@@ -7796,6 +8047,71 @@ function App() {
               <article key={item}>{item}</article>
             ))}
           </div>
+
+          {canManageActivePartnerBrand && (
+            <section className="partner-brand-manager-panel">
+              <div>
+                <p className="eyebrow dark">品牌装饰权限</p>
+                <h2>{activePartnerDetail.merchant.name}品牌的管理商家</h2>
+                <p>你可以编辑这个商家详情页的标题、介绍、咨询提示和两个服务展示块，保存后只影响当前品牌。</p>
+              </div>
+              <div className="admin-content-grid">
+                <label>
+                  页面标识
+                  <input
+                    value={activeMerchantDecorationDraft.badge}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'badge', event.target.value)}
+                  />
+                </label>
+                <label className="wide-field">
+                  详情页标题
+                  <textarea
+                    rows={2}
+                    value={activeMerchantDecorationDraft.heroTitle}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroTitle', event.target.value)}
+                  />
+                </label>
+                <label className="wide-field">
+                  品牌介绍
+                  <textarea
+                    rows={3}
+                    value={activeMerchantDecorationDraft.intro}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'intro', event.target.value)}
+                  />
+                </label>
+                <label className="wide-field">
+                  咨询前提示
+                  <textarea
+                    rows={2}
+                    value={activeMerchantDecorationDraft.contactCopy}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'contactCopy', event.target.value)}
+                  />
+                </label>
+                <label className="wide-field">
+                  服务展示 1
+                  <textarea
+                    rows={2}
+                    value={activeMerchantDecorationDraft.caseOne}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'caseOne', event.target.value)}
+                  />
+                </label>
+                <label className="wide-field">
+                  服务展示 2
+                  <textarea
+                    rows={2}
+                    value={activeMerchantDecorationDraft.caseTwo}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'caseTwo', event.target.value)}
+                  />
+                </label>
+              </div>
+              <div className="partner-brand-manager-actions">
+                <button type="button" onClick={saveMerchantDecoration}>
+                  保存品牌详情页装饰
+                </button>
+                {merchantDecorationNotice && <span>{merchantDecorationNotice}</span>}
+              </div>
+            </section>
+          )}
         </section>
       )}
 
@@ -9537,6 +9853,36 @@ function App() {
                             <option value="rejected">已驳回</option>
                           </select>
                         </label>
+                      </div>
+                      <div className="admin-control-row">
+                        <label>
+                          商家品牌装饰权限
+                          <select
+                            value={selectedAdminUserBioSettings.managedBrandId ?? ''}
+                            onChange={(event) => {
+                              const brand = manageablePartnerBrands.find((item) => item.id === event.target.value)
+                              updateUserAccount(selectedAdminUser.id, {
+                                bio: serializeUserBrandAccess(selectedAdminUser.bio, brand?.id ?? '', brand?.name ?? ''),
+                              })
+                            }}
+                          >
+                            <option value="">不分配品牌</option>
+                            {manageablePartnerBrands.map((brand) => (
+                              <option key={brand.id} value={brand.id}>
+                                {brand.name}品牌的管理商家 · {brand.type}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <div className="admin-brand-access-note">
+                          <span>当前权限</span>
+                          <strong>
+                            {selectedAdminUserBioSettings.managedBrandName
+                              ? `${selectedAdminUserBioSettings.managedBrandName}品牌的管理商家`
+                              : '未分配'}
+                          </strong>
+                          <small>账号认证状态为“已通过”后，商家才能在对应详情页装饰自己的品牌。</small>
+                        </div>
                       </div>
                       <div className="credential-panel">
                         <div className="credential-panel-head">
