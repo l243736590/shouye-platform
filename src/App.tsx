@@ -5107,6 +5107,7 @@ function App() {
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
+  const [partnerShowcaseEditMode, setPartnerShowcaseEditMode] = useState(false)
   const [merchantDesignEditMode, setMerchantDesignEditMode] = useState(false)
   const [activeMerchantTextEditor, setActiveMerchantTextEditor] = useState<MerchantEditableTextField | null>(null)
   const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
@@ -5423,10 +5424,43 @@ function App() {
     selectedPartnerShowcase.merchants[selectedPartnerMerchantIndex % selectedPartnerShowcase.merchants.length] ??
     selectedPartnerShowcase.merchants[0]
   const activePartnerMerchantSlug =
-    'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)
+    'id' in activePartnerMerchant && activePartnerMerchant.id
+      ? activePartnerMerchant.id
+      : encodeURIComponent(activePartnerMerchant.name)
   const activePartnerMerchantDecoration = appState.merchantBrandDecorations.find(
     (decoration) => decoration.brandId === activePartnerMerchantSlug,
   )
+  const activePartnerMerchantDecorationDraft =
+    merchantDecorationDrafts[activePartnerMerchantSlug] ??
+    activePartnerMerchantDecoration ??
+    normalizeMerchantBrandDecoration({
+      brandId: activePartnerMerchantSlug,
+      badge: '认证商家展示页',
+      heroTitle: activePartnerMerchant.summary,
+      intro: activePartnerMerchant.description,
+      contactCopy: '联系前请先确认服务范围、价格区间、交付方式和售后规则。',
+      caseOne: activePartnerMerchant.tags[0]
+        ? `${activePartnerMerchant.tags[0]}：展示服务范围、交付方式和适合人群。`
+        : '服务范围：展示商家能提供的具体帮助和边界。',
+      caseTwo: activePartnerMerchant.tags[1]
+        ? `${activePartnerMerchant.tags[1]}：展示咨询前需要准备的信息。`
+        : '咨询准备：整理需求、预算、时间节点和联系方式。',
+    })
+  const showcaseUserBioSettings = parseUserBioSettings(currentUser?.bio)
+  const canManageActivePartnerMerchant =
+    Boolean(currentUser) &&
+    currentUser?.status === 'active' &&
+    currentUser?.verificationStatus === 'approved' &&
+    showcaseUserBioSettings.managedBrandId === activePartnerMerchantSlug
+  const activePartnerMerchantPreviewDecoration =
+    canManageActivePartnerMerchant && partnerShowcaseEditMode
+      ? activePartnerMerchantDecorationDraft
+      : activePartnerMerchantDecoration
+  const activePartnerShowcaseBadge =
+    activePartnerMerchantPreviewDecoration?.badge ??
+    (activePartnerMerchant.name === '瓦剌留学' ? 'WALA STUDY · 留学生服务展示' : 'SHOUYE PARTNER · 商家广告展示')
+  const activePartnerShowcaseTitle = activePartnerMerchantPreviewDecoration?.heroTitle ?? activePartnerMerchant.summary
+  const activePartnerShowcaseDescription = activePartnerMerchantPreviewDecoration?.intro ?? activePartnerMerchant.description
   const activePartnerMerchantApprovedLogoImage =
     activePartnerMerchantDecoration?.logoReviewStatus === 'approved' ? activePartnerMerchantDecoration.logoImage : ''
   const decodedPartnerRouteSlug = partnerRouteSlug ? decodeURIComponent(partnerRouteSlug) : ''
@@ -7200,6 +7234,57 @@ function App() {
     }
   }
 
+  const savePartnerShowcaseDecoration = async () => {
+    if (!currentUser) {
+      setAuthMode('login')
+      setMerchantDecorationNotice('请先登录商家账号。')
+      return
+    }
+    if (!canManageActivePartnerMerchant) {
+      setMerchantDecorationNotice('当前账号还没有这个商家展示卡的编辑权限。')
+      return
+    }
+    const nextDecoration = normalizeMerchantBrandDecoration({
+      ...activePartnerMerchantDecorationDraft,
+      brandId: activePartnerMerchantSlug,
+      ownerUserId: currentUser.id,
+      updatedAt: new Date().toISOString(),
+    })
+    setAppState((state) => ({
+      ...state,
+      merchantBrandDecorations: mergeMerchantBrandDecorations([
+        ...state.merchantBrandDecorations.filter((decoration) => decoration.brandId !== nextDecoration.brandId),
+        nextDecoration,
+      ]),
+    }))
+
+    try {
+      const response = await fetch(`/api/merchant-brand-decorations/${encodeURIComponent(nextDecoration.brandId)}`, {
+        body: JSON.stringify({ userId: currentUser.id, decoration: nextDecoration }),
+        headers: { 'content-type': 'application/json' },
+        method: 'PUT',
+      })
+      const data = (await response.json()) as {
+        merchantBrandDecoration?: MerchantBrandDecoration
+        merchantBrandDecorations?: MerchantBrandDecoration[]
+        error?: string
+      }
+      if (!response.ok) throw new Error(data.error)
+      setAppState((state) => ({
+        ...state,
+        merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? [data.merchantBrandDecoration ?? nextDecoration]),
+      }))
+      setMerchantDecorationDrafts((drafts) => {
+        const { [nextDecoration.brandId]: _saved, ...rest } = drafts
+        return rest
+      })
+      setPartnerShowcaseEditMode(false)
+      setMerchantDecorationNotice('商家展示卡已保存。')
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+    }
+  }
+
   const updateMerchantBrandDecoration = (brandId: string, patch: Partial<MerchantBrandDecoration>) => {
     const previousDecoration =
       appState.merchantBrandDecorations.find((decoration) => decoration.brandId === brandId) ??
@@ -8052,10 +8137,12 @@ function App() {
   const selectPartnerType = (type: string) => {
     setSelectedPartnerType(type)
     setSelectedPartnerMerchantIndex(0)
+    setPartnerShowcaseEditMode(false)
   }
 
   const showNextPartnerCards = () => {
     setSelectedPartnerMerchantIndex((index) => (index + 1) % selectedPartnerShowcase.merchants.length)
+    setPartnerShowcaseEditMode(false)
   }
 
   const openAdminEntry = () => {
@@ -10784,14 +10871,55 @@ function App() {
                   <div>
                     <span>{selectedPartnerShowcase.type}</span>
                     <strong>{activePartnerMerchant.name}</strong>
-                    <small>
-                      {activePartnerMerchant.name === '瓦剌留学' ? 'WALA STUDY · 留学生服务展示' : 'SHOUYE PARTNER · 商家广告展示'}
-                    </small>
+                    <small>{activePartnerShowcaseBadge}</small>
                   </div>
                 </div>
                 <div className="partner-showcase-copy">
-                  <h3>{activePartnerMerchant.summary}</h3>
-                  <p>{activePartnerMerchant.description}</p>
+                  {canManageActivePartnerMerchant && (
+                    <div className="partner-showcase-edit-actions">
+                      <button type="button" onClick={() => setPartnerShowcaseEditMode((enabled) => !enabled)}>
+                        {partnerShowcaseEditMode ? '关闭展示编辑' : '编辑展示卡'}
+                      </button>
+                      {partnerShowcaseEditMode && (
+                        <button type="button" onClick={savePartnerShowcaseDecoration}>
+                          保存展示卡
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {canManageActivePartnerMerchant && partnerShowcaseEditMode ? (
+                    <div className="partner-showcase-edit-panel">
+                      <label>
+                        展示标识
+                        <input
+                          value={activePartnerMerchantDecorationDraft.badge}
+                          onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'badge', event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        展示标题
+                        <textarea
+                          rows={2}
+                          value={activePartnerMerchantDecorationDraft.heroTitle}
+                          onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'heroTitle', event.target.value)}
+                        />
+                      </label>
+                      <label>
+                        展示说明
+                        <textarea
+                          rows={3}
+                          value={activePartnerMerchantDecorationDraft.intro}
+                          onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'intro', event.target.value)}
+                        />
+                      </label>
+                      {merchantDecorationNotice && <span>{merchantDecorationNotice}</span>}
+                    </div>
+                  ) : (
+                    <>
+                      <h3>{activePartnerShowcaseTitle}</h3>
+                      <p>{activePartnerShowcaseDescription}</p>
+                    </>
+                  )}
                   <a
                     className="partner-detail-link"
                     href={`/partners/${'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)}`}
