@@ -2334,16 +2334,20 @@ h3 {
 }
 
 .partner-logo-mark.has-image {
-  background: #111817;
+  background: #fffdf7;
+  box-sizing: border-box;
   color: transparent;
-  overflow: hidden;
+  overflow: visible;
+  padding: 6px;
 }
 
 .partner-logo-mark.has-image img {
   display: block;
-  height: 100%;
-  object-fit: cover;
-  width: 100%;
+  height: auto;
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  width: auto;
 }
 
 .partner-logo-mark.has-image::before,
@@ -3305,7 +3309,7 @@ video.partner-detail-floating-image {
   border: 1px solid var(--line);
   border-radius: 8px;
   height: 72px;
-  object-fit: cover;
+  object-fit: contain;
   width: 72px;
 }
 
