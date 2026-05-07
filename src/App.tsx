@@ -5140,6 +5140,30 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!appState.currentUserId) return
+    let ignore = false
+    fetch(`/api/users/${encodeURIComponent(appState.currentUserId)}`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { user?: Partial<User> } | null) => {
+        if (ignore || !data?.user) return
+        const freshUser = normalizeUser(data.user)
+        setAppState((state) => ({
+          ...state,
+          users: state.users.some((user) => user.id === freshUser.id)
+            ? state.users.map((user) => (user.id === freshUser.id ? { ...user, ...freshUser } : user))
+            : [...state.users, freshUser],
+          currentUserId: state.currentUserId === freshUser.id ? state.currentUserId : state.currentUserId,
+        }))
+      })
+      .catch(() => {
+        // Keep the saved local user when the API is temporarily unavailable.
+      })
+    return () => {
+      ignore = true
+    }
+  }, [appState.currentUserId])
+
+  useEffect(() => {
     const syncPath = () => {
       setCurrentPath(window.location.pathname)
       if (window.location.pathname === '/posts') {

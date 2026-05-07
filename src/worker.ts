@@ -3484,6 +3484,16 @@ const updateProfile = async (request: Request, env: Env, userId: string) => {
   return json({ user: row ? rowToUser(row, (documents.results ?? []).map(rowToDocument)) : null })
 }
 
+const getPublicUserProfile = async (env: Env, userId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  const row = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!row) return json({ error: '用户不存在。' }, { status: 404 })
+  const documents = await env.DB.prepare('SELECT * FROM user_documents WHERE user_id = ? ORDER BY uploaded_at DESC')
+    .bind(userId)
+    .all<Record<string, unknown>>()
+  return json({ user: rowToUser(row, (documents.results ?? []).map(rowToDocument)) })
+}
+
 const updateUser = async (request: Request, env: Env, userId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   const body = await readBody<Partial<UserRecord>>(request)
@@ -3897,6 +3907,7 @@ export default {
     if (url.pathname === '/api/admin/login' && request.method === 'POST') return handleAdminLogin(request, env)
 
     const publicUserMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/)
+    if (publicUserMatch && request.method === 'GET') return getPublicUserProfile(env, publicUserMatch[1])
     if (publicUserMatch && request.method === 'PATCH') return updateProfile(request, env, publicUserMatch[1])
 
     if (url.pathname.startsWith('/api/admin/')) {
