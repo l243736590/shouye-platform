@@ -4879,6 +4879,7 @@ function App() {
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
+  const [openVerificationBubbleUserId, setOpenVerificationBubbleUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [reportTarget, setReportTarget] = useState<{ contentType: string; contentId: string; title: string } | null>(null)
   const [reportForm, setReportForm] = useState({ reason: '违法违规内容', description: '', contact: '' })
@@ -9734,9 +9735,41 @@ function App() {
                           <small>{user.identity} · {user.school}</small>
                         </div>
                         <span className={`account-badge ${user.status}`}>{userStatusLabel[user.status]}</span>
-                        <span className={`account-badge ${user.verificationStatus}`}>
-                          {verificationStatusLabel[user.verificationStatus]}
-                        </span>
+                        <div className="verification-bubble-wrap">
+                          <button
+                            className={`account-badge verification-badge ${user.verificationStatus}`}
+                            type="button"
+                            onClick={() =>
+                              setOpenVerificationBubbleUserId((openUserId) => (openUserId === user.id ? null : user.id))
+                            }
+                          >
+                            {verificationStatusLabel[user.verificationStatus]}
+                          </button>
+                          {openVerificationBubbleUserId === user.id && (
+                            <div className="verification-popover" role="dialog" aria-label={`${user.name}认证审核`}>
+                              <button
+                                className="approve"
+                                type="button"
+                                onClick={() => {
+                                  updateUserAccount(user.id, { verificationStatus: 'approved' })
+                                  setOpenVerificationBubbleUserId(null)
+                                }}
+                              >
+                                通过
+                              </button>
+                              <button
+                                className="reject"
+                                type="button"
+                                onClick={() => {
+                                  updateUserAccount(user.id, { verificationStatus: 'rejected' })
+                                  setOpenVerificationBubbleUserId(null)
+                                }}
+                              >
+                                不通过
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         <input
                           aria-label={`${user.name} 消费积分`}
                           min="0"

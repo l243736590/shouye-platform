@@ -4629,6 +4629,7 @@ h3 {
 }
 
 .account-badge {
+  border: 0;
   background: #eef5ee;
   border-radius: 999px;
   color: var(--forest);
@@ -4638,6 +4639,65 @@ h3 {
   justify-content: center;
   padding: 7px 10px;
   width: fit-content;
+}
+
+.verification-bubble-wrap {
+  align-items: center;
+  display: inline-flex;
+  position: relative;
+  width: fit-content;
+}
+
+.verification-badge {
+  cursor: pointer;
+  min-height: 0;
+}
+
+.verification-popover {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgba(23, 33, 29, 0.14);
+  display: flex;
+  gap: 8px;
+  left: 50%;
+  padding: 8px;
+  position: absolute;
+  top: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 30;
+}
+
+.verification-popover::before {
+  background: #ffffff;
+  border-left: 1px solid var(--line);
+  border-top: 1px solid var(--line);
+  content: '';
+  height: 8px;
+  left: 50%;
+  position: absolute;
+  top: -5px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 8px;
+}
+
+.verification-popover button {
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 950;
+  min-height: 34px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.verification-popover .approve {
+  background: var(--blue);
+}
+
+.verification-popover .reject {
+  background: var(--korea-red);
 }
 
 .account-badge.muted,
