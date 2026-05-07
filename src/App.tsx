@@ -104,7 +104,7 @@ type MerchantLead = {
   updatedAt: string
 }
 
-type MerchantDesignZone = 'hero' | 'service'
+type MerchantDesignZone = 'hero' | 'service' | 'showcase'
 type MerchantStageLayerId = `text:${MerchantEditableTextField}` | `media:${'hero' | 'service'}` | `design:${string}`
 type MerchantDesignItem = {
   id: string
@@ -877,7 +877,7 @@ const normalizeMerchantBrandDecoration = (
       .filter((item) => item && typeof item === 'object')
       .map((item, index): MerchantDesignItem => ({
         id: typeof item.id === 'string' && item.id ? item.id : createId('merchant-item'),
-        zone: item.zone === 'service' ? 'service' : 'hero',
+        zone: item.zone === 'service' ? 'service' : item.zone === 'showcase' ? 'showcase' : 'hero',
         kind: item.kind === 'media' ? 'media' : 'bubble',
         text: typeof item.text === 'string' ? item.text : '新内容',
         mediaUrl: typeof item.mediaUrl === 'string' ? item.mediaUrl : '',
@@ -5108,6 +5108,8 @@ function App() {
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [partnerShowcaseEditMode, setPartnerShowcaseEditMode] = useState(false)
+  const [activePartnerShowcaseTextEditor, setActivePartnerShowcaseTextEditor] = useState<MerchantEditableTextField | null>(null)
+  const [activePartnerShowcaseDesignItemId, setActivePartnerShowcaseDesignItemId] = useState<string | null>(null)
   const [merchantDesignEditMode, setMerchantDesignEditMode] = useState(false)
   const [activeMerchantTextEditor, setActiveMerchantTextEditor] = useState<MerchantEditableTextField | null>(null)
   const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
@@ -5129,6 +5131,18 @@ function App() {
     originY: number
     originWidth: number
     originHeight: number
+  } | null>(null)
+  const partnerShowcaseFileInputRef = useRef<HTMLInputElement | null>(null)
+  const partnerShowcaseItemDragRef = useRef<{
+    id: string
+    mode: 'move' | 'resize'
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+    originWidth: number
+    originHeight: number
+    aspectRatio: number
   } | null>(null)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
@@ -5461,6 +5475,21 @@ function App() {
     (activePartnerMerchant.name === '瓦剌留学' ? 'WALA STUDY · 留学生服务展示' : 'SHOUYE PARTNER · 商家广告展示')
   const activePartnerShowcaseTitle = activePartnerMerchantPreviewDecoration?.heroTitle ?? activePartnerMerchant.summary
   const activePartnerShowcaseDescription = activePartnerMerchantPreviewDecoration?.intro ?? activePartnerMerchant.description
+  const activePartnerShowcaseFontStyle: CSSProperties = activePartnerMerchantPreviewDecoration?.fontFamily
+    ? { fontFamily: activePartnerMerchantPreviewDecoration.fontFamily }
+    : {}
+  const activePartnerShowcaseTitleStyle: CSSProperties = {
+    ...activePartnerShowcaseFontStyle,
+    ...(activePartnerMerchantPreviewDecoration?.titleColor ? { color: activePartnerMerchantPreviewDecoration.titleColor } : {}),
+  }
+  const activePartnerShowcaseBodyStyle: CSSProperties = {
+    ...activePartnerShowcaseFontStyle,
+    ...(activePartnerMerchantPreviewDecoration?.bodyColor ? { color: activePartnerMerchantPreviewDecoration.bodyColor } : {}),
+  }
+  const activePartnerShowcaseAccentStyle: CSSProperties = {
+    ...activePartnerShowcaseFontStyle,
+    ...(activePartnerMerchantPreviewDecoration?.accentColor ? { color: activePartnerMerchantPreviewDecoration.accentColor } : {}),
+  }
   const activePartnerMerchantApprovedLogoImage =
     activePartnerMerchantDecoration?.logoReviewStatus === 'approved' ? activePartnerMerchantDecoration.logoImage : ''
   const decodedPartnerRouteSlug = partnerRouteSlug ? decodeURIComponent(partnerRouteSlug) : ''
@@ -6596,6 +6625,118 @@ function App() {
     }
   }
 
+  const updatePartnerShowcaseDesignItem = (itemId: string, patch: Partial<MerchantDesignItem>) => {
+    updateMerchantDecorationDraft(
+      activePartnerMerchantSlug,
+      'designItems',
+      activePartnerMerchantDecorationDraft.designItems.map((item) =>
+        item.id === itemId ? { ...item, ...patch } : item,
+      ),
+    )
+  }
+
+  const addPartnerShowcaseImage = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(event.target.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
+    event.target.value = ''
+    if (!file || !canManageActivePartnerMerchant) return
+    try {
+      const mediaUrl = file.type.startsWith('video/')
+        ? await readVideoFileToDataUrl(file)
+        : await resizeTransparentImageFileToDataUrl(file)
+      const maxZ = Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((item) => item.z))
+      const item: MerchantDesignItem = {
+        id: createId('showcase-image'),
+        zone: 'showcase',
+        kind: 'media',
+        text: '',
+        mediaUrl,
+        mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
+        x: 64,
+        y: 20,
+        width: 22,
+        height: 22,
+        z: maxZ + 1,
+        opacity: 1,
+        fontSize: 18,
+        color: '#10201d',
+        background: 'transparent',
+      }
+      updateMerchantDecorationDraft(activePartnerMerchantSlug, 'designItems', [
+        ...activePartnerMerchantDecorationDraft.designItems,
+        item,
+      ])
+      setActivePartnerShowcaseDesignItemId(item.id)
+      setMerchantDecorationNotice('图片已添加到展示卡，拖动调整位置，右下角可拉伸大小。')
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '图片添加失败，请换一张图片重试。')
+    }
+  }
+
+  const deletePartnerShowcaseDesignItem = (itemId: string) => {
+    updateMerchantDecorationDraft(
+      activePartnerMerchantSlug,
+      'designItems',
+      activePartnerMerchantDecorationDraft.designItems.filter((item) => item.id !== itemId),
+    )
+    setActivePartnerShowcaseDesignItemId((selectedId) => (selectedId === itemId ? null : selectedId))
+  }
+
+  const movePartnerShowcaseDesignItemLayer = (itemId: string, direction: 1 | -1) => {
+    const item = activePartnerMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
+    if (!item) return
+    updatePartnerShowcaseDesignItem(itemId, { z: Math.min(90, Math.max(1, item.z + direction)) })
+  }
+
+  const startPartnerShowcaseDesignItemDrag = (
+    item: MerchantDesignItem,
+    mode: 'move' | 'resize',
+    event: PointerEvent<HTMLElement>,
+  ) => {
+    if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setActivePartnerShowcaseDesignItemId(item.id)
+    partnerShowcaseItemDragRef.current = {
+      id: item.id,
+      mode,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: item.x,
+      originY: item.y,
+      originWidth: item.width,
+      originHeight: item.height,
+      aspectRatio: item.width / Math.max(1, item.height),
+    }
+  }
+
+  const movePartnerShowcaseDesignItemDrag = (event: PointerEvent<HTMLElement>) => {
+    const drag = partnerShowcaseItemDragRef.current
+    if (!drag) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const deltaX = ((event.clientX - drag.startX) / rect.width) * 100
+    const deltaY = ((event.clientY - drag.startY) / rect.height) * 100
+    if (drag.mode === 'resize') {
+      const nextWidth = Math.min(88, Math.max(8, drag.originWidth + deltaX))
+      const nextHeight = event.shiftKey
+        ? Math.min(88, Math.max(8, nextWidth / Math.max(0.1, drag.aspectRatio)))
+        : Math.min(88, Math.max(8, drag.originHeight + deltaY))
+      updatePartnerShowcaseDesignItem(drag.id, {
+        width: Number(nextWidth.toFixed(1)),
+        height: Number(nextHeight.toFixed(1)),
+      })
+      return
+    }
+    updatePartnerShowcaseDesignItem(drag.id, {
+      x: Number(Math.min(96, Math.max(0, drag.originX + deltaX)).toFixed(1)),
+      y: Number(Math.min(96, Math.max(0, drag.originY + deltaY)).toFixed(1)),
+    })
+  }
+
+  const endPartnerShowcaseDesignItemDrag = () => {
+    partnerShowcaseItemDragRef.current = null
+  }
+
   useEffect(() => {
     if (!merchantDesignEditMode || !activeMerchantDesignItemId) return
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -6877,6 +7018,151 @@ function App() {
           },
         }
       : {}
+
+  const getPartnerShowcaseEditableTextProps = (field: MerchantEditableTextField) =>
+    partnerShowcaseEditMode && canManageActivePartnerMerchant
+      ? {
+          'data-partner-showcase-editable': 'true',
+          onDoubleClick: (event: MouseEvent<HTMLElement>) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setActivePartnerShowcaseTextEditor(field)
+          },
+        }
+      : {}
+
+  const renderPartnerShowcaseTextEditor = (field: MerchantEditableTextField) => {
+    if (!partnerShowcaseEditMode || activePartnerShowcaseTextEditor !== field) return null
+    const fieldLabel =
+      field === 'badge' ? '展示标识' : field === 'heroTitle' ? '展示标题' : field === 'intro' ? '展示说明' : '展示文字'
+    return (
+      <div className="partner-showcase-text-popover" onDoubleClick={(event) => event.stopPropagation()}>
+        <label>
+          {fieldLabel}
+          <textarea
+            value={String(activePartnerMerchantDecorationDraft[field] ?? '')}
+            onChange={(event) =>
+              updateMerchantDecorationDraft(activePartnerMerchantSlug, field as keyof MerchantBrandDecoration, event.target.value)
+            }
+          />
+        </label>
+        <div className="partner-showcase-popover-controls">
+          <label>
+            字体
+            <select
+              value={activePartnerMerchantDecorationDraft.fontFamily}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'fontFamily', event.target.value)}
+            >
+              <option value="">默认</option>
+              <option value={'"Noto Sans SC", "Microsoft YaHei", sans-serif'}>现代黑体</option>
+              <option value={'"Songti SC", "SimSun", serif'}>宋体/衬线</option>
+              <option value={'Arial, sans-serif'}>Arial</option>
+            </select>
+          </label>
+          <label>
+            标题色
+            <input
+              type="color"
+              value={activePartnerMerchantDecorationDraft.titleColor || '#10201d'}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'titleColor', event.target.value)}
+            />
+          </label>
+          <label>
+            正文字色
+            <input
+              type="color"
+              value={activePartnerMerchantDecorationDraft.bodyColor || '#4d5d58'}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'bodyColor', event.target.value)}
+            />
+          </label>
+          <label>
+            重点色
+            <input
+              type="color"
+              value={activePartnerMerchantDecorationDraft.accentColor || '#ef5a3c'}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'accentColor', event.target.value)}
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => {
+              setActivePartnerShowcaseTextEditor(null)
+              savePartnerShowcaseDecoration(false)
+            }}
+          >
+            完成
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const renderPartnerShowcaseDesignItems = () => {
+    const editable = canManageActivePartnerMerchant && partnerShowcaseEditMode
+    const items = (activePartnerMerchantPreviewDecoration?.designItems ?? []).filter((item) => item.zone === 'showcase')
+    if (!items.length && !editable) return null
+    return (
+      <div className="partner-showcase-design-layer" aria-hidden={!editable}>
+        {items.map((item) => {
+          const selected = editable && activePartnerShowcaseDesignItemId === item.id
+          const itemStyle: CSSProperties = {
+            left: `${item.x}%`,
+            top: `${item.y}%`,
+            width: `${item.width}%`,
+            minHeight: `${item.height}%`,
+            zIndex: item.z,
+            opacity: item.opacity,
+          }
+          return (
+            <div
+              className={`partner-showcase-design-item ${selected ? 'is-selected' : ''}`}
+              key={item.id}
+              style={itemStyle}
+              onClick={(event) => {
+                if (!editable) return
+                event.preventDefault()
+                event.stopPropagation()
+                setActivePartnerShowcaseDesignItemId(item.id)
+              }}
+              onPointerDown={(event) => startPartnerShowcaseDesignItemDrag(item, 'move', event)}
+            >
+              {item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
+                <video draggable={false} muted playsInline src={item.mediaUrl} />
+              ) : (
+                <img alt="" draggable={false} src={item.mediaUrl} />
+              )}
+              {selected && (
+                <>
+                  <div className="partner-showcase-layer-controls">
+                    <button type="button" onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      movePartnerShowcaseDesignItemLayer(item.id, 1)
+                    }}>↑</button>
+                    <button type="button" onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      movePartnerShowcaseDesignItemLayer(item.id, -1)
+                    }}>↓</button>
+                    <button type="button" onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      deletePartnerShowcaseDesignItem(item.id)
+                    }}>×</button>
+                  </div>
+                  <span
+                    className="partner-showcase-design-resize"
+                    title="拖动缩放，按住 Shift 保持比例"
+                    onPointerDown={(event) => startPartnerShowcaseDesignItemDrag(item, 'resize', event)}
+                  />
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
 
   const renderMerchantMediaControls = (zone: 'hero' | 'service') => {
     if (!merchantDesignEditMode || activeMerchantMediaZone !== zone) return null
@@ -7234,7 +7520,7 @@ function App() {
     }
   }
 
-  const savePartnerShowcaseDecoration = async () => {
+  const savePartnerShowcaseDecoration = async (closeEditor = true) => {
     if (!currentUser) {
       setAuthMode('login')
       setMerchantDecorationNotice('请先登录商家账号。')
@@ -7278,7 +7564,7 @@ function App() {
         const { [nextDecoration.brandId]: _saved, ...rest } = drafts
         return rest
       })
-      setPartnerShowcaseEditMode(false)
+      if (closeEditor) setPartnerShowcaseEditMode(false)
       setMerchantDecorationNotice('商家展示卡已保存。')
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
@@ -10848,12 +11134,50 @@ function App() {
             <span />
           </div>
           <motion.article
-            className={`partner-showcase-card partner-looseleaf-card partner-tone-${selectedPartnerShowcase.tone}`}
+            className={`partner-showcase-card partner-looseleaf-card partner-tone-${selectedPartnerShowcase.tone} ${
+              partnerShowcaseEditMode && canManageActivePartnerMerchant ? 'is-showcase-editing' : ''
+            }`}
             key={`${selectedPartnerShowcase.type}-${activePartnerMerchant.name}`}
             initial={{ opacity: 0, rotateX: -7, y: 18 }}
             animate={{ opacity: 1, rotateX: 0, y: 0 }}
             transition={{ duration: 0.42, ease: 'easeOut' }}
+            onPointerMove={movePartnerShowcaseDesignItemDrag}
+            onPointerUp={endPartnerShowcaseDesignItemDrag}
+            onPointerCancel={endPartnerShowcaseDesignItemDrag}
+            onPointerLeave={endPartnerShowcaseDesignItemDrag}
           >
+            {canManageActivePartnerMerchant && (
+              <div className="partner-showcase-edit-toolbar">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (partnerShowcaseEditMode) {
+                      savePartnerShowcaseDecoration(true)
+                      setActivePartnerShowcaseTextEditor(null)
+                      setActivePartnerShowcaseDesignItemId(null)
+                      return
+                    }
+                    setPartnerShowcaseEditMode(true)
+                  }}
+                >
+                  {partnerShowcaseEditMode ? '完成编辑' : '编辑'}
+                </button>
+                {partnerShowcaseEditMode && (
+                  <>
+                    <button type="button" onClick={() => partnerShowcaseFileInputRef.current?.click()}>
+                      添加图片
+                    </button>
+                    <input
+                      accept="image/*,video/*"
+                      ref={partnerShowcaseFileInputRef}
+                      type="file"
+                      onChange={addPartnerShowcaseImage}
+                    />
+                  </>
+                )}
+              </div>
+            )}
+            {renderPartnerShowcaseDesignItems()}
             <div className="partner-looseleaf-main">
               <div className="partner-looseleaf-copy">
                 <div className="partner-brand-lockup">
@@ -10871,63 +11195,33 @@ function App() {
                   <div>
                     <span>{selectedPartnerShowcase.type}</span>
                     <strong>{activePartnerMerchant.name}</strong>
-                    <small>{activePartnerShowcaseBadge}</small>
+                    <span className="partner-showcase-text-wrap">
+                      <small style={activePartnerShowcaseAccentStyle} {...getPartnerShowcaseEditableTextProps('badge')}>
+                        {activePartnerShowcaseBadge}
+                      </small>
+                      {renderPartnerShowcaseTextEditor('badge')}
+                    </span>
                   </div>
                 </div>
                 <div className="partner-showcase-copy">
-                  {canManageActivePartnerMerchant && (
-                    <div className="partner-showcase-edit-actions">
-                      <button type="button" onClick={() => setPartnerShowcaseEditMode((enabled) => !enabled)}>
-                        {partnerShowcaseEditMode ? '关闭展示编辑' : '编辑展示卡'}
-                      </button>
-                      {partnerShowcaseEditMode && (
-                        <button type="button" onClick={savePartnerShowcaseDecoration}>
-                          保存展示卡
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {canManageActivePartnerMerchant && partnerShowcaseEditMode ? (
-                    <div className="partner-showcase-edit-panel">
-                      <label>
-                        展示标识
-                        <input
-                          value={activePartnerMerchantDecorationDraft.badge}
-                          onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'badge', event.target.value)}
-                        />
-                      </label>
-                      <label>
-                        展示标题
-                        <textarea
-                          rows={2}
-                          value={activePartnerMerchantDecorationDraft.heroTitle}
-                          onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'heroTitle', event.target.value)}
-                        />
-                      </label>
-                      <label>
-                        展示说明
-                        <textarea
-                          rows={3}
-                          value={activePartnerMerchantDecorationDraft.intro}
-                          onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'intro', event.target.value)}
-                        />
-                      </label>
-                      {merchantDecorationNotice && <span>{merchantDecorationNotice}</span>}
-                    </div>
-                  ) : (
-                    <>
-                      <h3>{activePartnerShowcaseTitle}</h3>
-                      <p>{activePartnerShowcaseDescription}</p>
-                    </>
-                  )}
+                  <div className="partner-showcase-text-wrap">
+                    <h3 style={activePartnerShowcaseTitleStyle} {...getPartnerShowcaseEditableTextProps('heroTitle')}>
+                      {activePartnerShowcaseTitle}
+                    </h3>
+                    {renderPartnerShowcaseTextEditor('heroTitle')}
+                  </div>
+                  <div className="partner-showcase-text-wrap">
+                    <p style={activePartnerShowcaseBodyStyle} {...getPartnerShowcaseEditableTextProps('intro')}>
+                      {activePartnerShowcaseDescription}
+                    </p>
+                    {renderPartnerShowcaseTextEditor('intro')}
+                  </div>
                   <a
                     className="partner-detail-link"
-                    href={`/partners/${'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)}`}
+                    href={`/partners/${activePartnerMerchantSlug}`}
                     onClick={(event) => {
                       event.preventDefault()
-                      navigateToPath(
-                        `/partners/${'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)}`,
-                      )
+                      navigateToPath(`/partners/${activePartnerMerchantSlug}`)
                     }}
                   >
                     进入商家详情页
