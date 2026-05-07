@@ -2518,6 +2518,24 @@ const resizeImageFileToDataUrl = (file: File, maxSize = 420, quality = 0.82) =>
     reader.readAsDataURL(file)
   })
 
+const readVideoFileToDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    if (!file.type.startsWith('video/')) {
+      reject(new Error('请上传视频文件。'))
+      return
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      reject(new Error('视频不能超过 8MB，请先压缩后再拖入。'))
+      return
+    }
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('视频读取失败。'))
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.readAsDataURL(file)
+  })
+
+const isVideoDataUrl = (value?: string) => Boolean(value?.startsWith('data:video/'))
+
 const seedQuestions: CommunityQuestion[] = [
   {
     id: 'q-d2-extension',
@@ -4879,6 +4897,17 @@ type EditableTextProps = {
   onChange: (value: string) => void
 }
 
+type MerchantEditableTextField =
+  | 'badge'
+  | 'heroTitle'
+  | 'intro'
+  | 'contactCopy'
+  | 'caseOne'
+  | 'caseTwo'
+  | 'titleColor'
+  | 'bodyColor'
+  | 'accentColor'
+
 const EditableText = ({ as = 'span', className, value, onChange }: EditableTextProps) => {
   const Tag = as
 
@@ -4987,6 +5016,8 @@ function App() {
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [merchantDesignEditMode, setMerchantDesignEditMode] = useState(false)
+  const [activeMerchantTextEditor, setActiveMerchantTextEditor] = useState<MerchantEditableTextField | null>(null)
+  const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
   const merchantImageDragRef = useRef<{
     zone: 'hero' | 'service'
     startX: number
@@ -5575,6 +5606,8 @@ function App() {
           : '咨询准备：整理需求、预算、时间节点和联系方式。',
       },
     )
+  const activeMerchantPreviewDecoration =
+    canManageActivePartnerBrand && merchantDesignEditMode ? activeMerchantDecorationDraft : activeMerchantDecoration
   const fallbackPartnerDetailSections = [
     {
       title: '服务说明',
@@ -5595,32 +5628,32 @@ function App() {
       : fallbackPartnerDetailSections
   const partnerDetailHeroTitle = isWalaPartnerDetail
     ? activeSiteContent.merchantWalaHeroTitle
-    : activeMerchantDecoration?.heroTitle ?? activePartnerDetail.merchant.summary
+    : activeMerchantPreviewDecoration?.heroTitle ?? activePartnerDetail.merchant.summary
   const partnerDetailIntro = isWalaPartnerDetail
     ? activeSiteContent.merchantWalaIntro
-    : activeMerchantDecoration?.intro ?? activePartnerDetail.merchant.description
+    : activeMerchantPreviewDecoration?.intro ?? activePartnerDetail.merchant.description
   const partnerDetailBadge = isWalaPartnerDetail
     ? activeSiteContent.merchantWalaBadge
-    : activeMerchantDecoration?.badge ?? '认证商家展示页'
+    : activeMerchantPreviewDecoration?.badge ?? '认证商家展示页'
   const partnerDetailCases = isWalaPartnerDetail
     ? [activeSiteContent.merchantWalaCaseOne, activeSiteContent.merchantWalaCaseTwo]
-    : activeMerchantDecoration
-      ? [activeMerchantDecoration.caseOne, activeMerchantDecoration.caseTwo]
+    : activeMerchantPreviewDecoration
+      ? [activeMerchantPreviewDecoration.caseOne, activeMerchantPreviewDecoration.caseTwo]
       : activePartnerDetail.merchant.tags.map((tag) => `${tag}：查看服务边界、价格区间、交付方式和售后规则。`)
-  const activeMerchantFontStyle: CSSProperties = activeMerchantDecoration?.fontFamily
-    ? { fontFamily: activeMerchantDecoration.fontFamily }
+  const activeMerchantFontStyle: CSSProperties = activeMerchantPreviewDecoration?.fontFamily
+    ? { fontFamily: activeMerchantPreviewDecoration.fontFamily }
     : {}
   const activeMerchantTitleStyle: CSSProperties = {
     ...activeMerchantFontStyle,
-    ...(activeMerchantDecoration?.titleColor ? { color: activeMerchantDecoration.titleColor } : {}),
+    ...(activeMerchantPreviewDecoration?.titleColor ? { color: activeMerchantPreviewDecoration.titleColor } : {}),
   }
   const activeMerchantBodyStyle: CSSProperties = {
     ...activeMerchantFontStyle,
-    ...(activeMerchantDecoration?.bodyColor ? { color: activeMerchantDecoration.bodyColor } : {}),
+    ...(activeMerchantPreviewDecoration?.bodyColor ? { color: activeMerchantPreviewDecoration.bodyColor } : {}),
   }
   const activeMerchantAccentStyle: CSSProperties = {
     ...activeMerchantFontStyle,
-    ...(activeMerchantDecoration?.accentColor ? { color: activeMerchantDecoration.accentColor } : {}),
+    ...(activeMerchantPreviewDecoration?.accentColor ? { color: activeMerchantPreviewDecoration.accentColor } : {}),
   }
   const getMerchantDecorationImageStyle = (
     decoration: MerchantBrandDecoration | undefined,
@@ -6174,27 +6207,31 @@ function App() {
       setMerchantDecorationNotice('当前账号还没有这个品牌详情页的装饰权限。')
       return
     }
-    if (!file.type.startsWith('image/')) {
-      setMerchantDecorationNotice('请上传图片文件。')
+    const isSupportedMedia = file.type.startsWith('image/') || file.type.startsWith('video/')
+    if (!isSupportedMedia) {
+      setMerchantDecorationNotice('请上传图片或视频文件。')
       return
     }
 
     try {
-      const image = await resizeImageFileToDataUrl(file, 1280, 0.86)
+      const media = file.type.startsWith('video/')
+        ? await readVideoFileToDataUrl(file)
+        : await resizeImageFileToDataUrl(file, 1280, 0.86)
       if (zone === 'hero') {
-        updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImage', image)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImage', media)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageX', 72)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageY', 48)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageScale', 1)
       } else {
-        updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImage', image)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImage', media)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageX', 50)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageY', 50)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageScale', 1)
       }
-      setMerchantDecorationNotice('图片已加入草稿，可拖动调整位置，保存后展示。')
+      setActiveMerchantMediaZone(zone)
+      setMerchantDecorationNotice('素材已加入草稿，可在展示区拖动位置、调整大小，保存后展示。')
     } catch (error) {
-      setMerchantDecorationNotice(error instanceof Error ? error.message : '图片上传失败，请换一张图片重试。')
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
     }
   }
 
@@ -6209,11 +6246,11 @@ function App() {
 
   const handleMerchantDecorationImageDrop = async (zone: 'hero' | 'service', event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
-    const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/'))
+    const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
     if (file) await updateMerchantDecorationImage(zone, file)
   }
 
-  const startMerchantDecorationImageDrag = (zone: 'hero' | 'service', event: PointerEvent<HTMLImageElement>) => {
+  const startMerchantDecorationImageDrag = (zone: 'hero' | 'service', event: PointerEvent<HTMLElement>) => {
     event.preventDefault()
     event.currentTarget.setPointerCapture(event.pointerId)
     merchantImageDragRef.current = {
@@ -6263,25 +6300,40 @@ function App() {
           onPointerLeave={endMerchantDecorationImageDrag}
         >
           {image ? (
-            <img
-              alt=""
-              draggable={false}
-              src={image}
-              style={
-                zone === 'hero'
-                  ? getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'hero')
-                  : getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'service')
-              }
-              onPointerDown={(event) => startMerchantDecorationImageDrag(zone, event)}
-            />
+            isVideoDataUrl(image) ? (
+              <video
+                controls
+                draggable={false}
+                muted
+                src={image}
+                style={
+                  zone === 'hero'
+                    ? getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'hero')
+                    : getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'service')
+                }
+                onPointerDown={(event) => startMerchantDecorationImageDrag(zone, event)}
+              />
+            ) : (
+              <img
+                alt=""
+                draggable={false}
+                src={image}
+                style={
+                  zone === 'hero'
+                    ? getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'hero')
+                    : getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'service')
+                }
+                onPointerDown={(event) => startMerchantDecorationImageDrag(zone, event)}
+              />
+            )
           ) : (
-            <span>拖入图片或点击上传</span>
+            <span>拖入图片/视频或点击上传</span>
           )}
         </div>
         <div className="merchant-image-editor-controls">
           <label className="merchant-logo-upload-button">
             上传图片
-            <input accept="image/*" type="file" onChange={(event) => handleMerchantDecorationImageInput(zone, event)} />
+            <input accept="image/*,video/*" type="file" onChange={(event) => handleMerchantDecorationImageInput(zone, event)} />
           </label>
           <label>
             缩放
@@ -6311,6 +6363,137 @@ function App() {
             </button>
           )}
         </div>
+      </div>
+    )
+  }
+
+  const renderMerchantDecorationMedia = (zone: 'hero' | 'service', decoration?: MerchantBrandDecoration) => {
+    const media = zone === 'hero' ? decoration?.heroImage : decoration?.serviceImage
+    if (!media) return null
+    const className =
+      zone === 'hero'
+        ? 'partner-detail-floating-image partner-detail-floating-image-hero'
+        : 'partner-detail-floating-image partner-detail-floating-image-service'
+    const style = getMerchantDecorationImageStyle(decoration, zone)
+    const editable = canManageActivePartnerBrand && merchantDesignEditMode
+    const sharedProps = {
+      className: editable && activeMerchantMediaZone === zone ? `${className} is-selected` : className,
+      draggable: false,
+      style,
+      onClick: () => {
+        if (editable) setActiveMerchantMediaZone(zone)
+      },
+      onPointerDown: (event: PointerEvent<HTMLElement>) => {
+        if (editable) startMerchantDecorationImageDrag(zone, event)
+      },
+    }
+
+    return isVideoDataUrl(media) ? (
+      <video {...sharedProps} controls muted src={media} />
+    ) : (
+      <img {...sharedProps} alt="" src={media} />
+    )
+  }
+
+  const renderMerchantTextEditor = (field: MerchantEditableTextField) => {
+    if (!merchantDesignEditMode || activeMerchantTextEditor !== field) return null
+    const isTextField = ['badge', 'heroTitle', 'intro', 'contactCopy', 'caseOne', 'caseTwo'].includes(field)
+    return (
+      <div className="merchant-inline-edit-popover" onDoubleClick={(event) => event.stopPropagation()}>
+        {isTextField && (
+          <textarea
+            value={String(activeMerchantDecorationDraft[field] ?? '')}
+            onChange={(event) =>
+              updateMerchantDecorationDraft(activePartnerDetailSlug, field as keyof MerchantBrandDecoration, event.target.value)
+            }
+          />
+        )}
+        <div className="merchant-inline-edit-controls">
+          <label>
+            字体
+            <select
+              value={activeMerchantDecorationDraft.fontFamily}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'fontFamily', event.target.value)}
+            >
+              <option value="">默认</option>
+              <option value={'"Noto Sans SC", "Microsoft YaHei", sans-serif'}>现代黑体</option>
+              <option value={'"Songti SC", "SimSun", serif'}>宋体/衬线</option>
+              <option value={'Arial, sans-serif'}>Arial</option>
+            </select>
+          </label>
+          <label>
+            标题色
+            <input
+              type="color"
+              value={activeMerchantDecorationDraft.titleColor || '#10201d'}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'titleColor', event.target.value)}
+            />
+          </label>
+          <label>
+            正文字色
+            <input
+              type="color"
+              value={activeMerchantDecorationDraft.bodyColor || '#4d5d58'}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'bodyColor', event.target.value)}
+            />
+          </label>
+          <label>
+            重点色
+            <input
+              type="color"
+              value={activeMerchantDecorationDraft.accentColor || '#ef5a3c'}
+              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'accentColor', event.target.value)}
+            />
+          </label>
+          <button type="button" onClick={() => setActiveMerchantTextEditor(null)}>
+            完成
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const getMerchantEditableTextProps = (field: MerchantEditableTextField) =>
+    merchantDesignEditMode && canManageActivePartnerBrand
+      ? {
+          'data-merchant-inline-edit': 'true',
+          onDoubleClick: (event: MouseEvent<HTMLElement>) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setActiveMerchantTextEditor(field)
+          },
+        }
+      : {}
+
+  const renderMerchantMediaControls = (zone: 'hero' | 'service') => {
+    if (!merchantDesignEditMode || activeMerchantMediaZone !== zone) return null
+    const scale = zone === 'hero' ? activeMerchantDecorationDraft.heroImageScale : activeMerchantDecorationDraft.serviceImageScale
+    return (
+      <div className="merchant-media-inline-controls">
+        <span>{zone === 'hero' ? '主视觉素材' : '服务展示素材'}</span>
+        <label>
+          大小
+          <input
+            max="2.4"
+            min="0.35"
+            step="0.05"
+            type="range"
+            value={scale}
+            onChange={(event) =>
+              updateMerchantDecorationDraft(
+                activePartnerDetailSlug,
+                zone === 'hero' ? 'heroImageScale' : 'serviceImageScale',
+                Number(event.target.value),
+              )
+            }
+          />
+        </label>
+        <button
+          type="button"
+          onClick={() => updateMerchantDecorationDraft(activePartnerDetailSlug, zone === 'hero' ? 'heroImage' : 'serviceImage', '')}
+        >
+          删除
+        </button>
       </div>
     )
   }
@@ -8376,17 +8559,37 @@ function App() {
 
       {isPartnerDetailRoute && (
         <section className="info-page partner-detail-page">
-          <div className="partner-detail-hero">
-            <div className="partner-detail-copy">
-              {activeMerchantDecoration?.heroImage && (
-                <img
-                  alt=""
-                  className="partner-detail-floating-image partner-detail-floating-image-hero"
-                  src={activeMerchantDecoration.heroImage}
-                  style={getMerchantDecorationImageStyle(activeMerchantDecoration, 'hero')}
-                />
+          {canManageActivePartnerBrand && merchantDesignEditMode && (
+            <div className="merchant-direct-edit-toolbar">
+              <span>编辑模式：双击文字修改，拖入图片/视频到展示区。</span>
+              <button type="button" onClick={saveMerchantDecoration}>
+                保存修改
+              </button>
+              <button type="button" onClick={() => setMerchantDesignEditMode(false)}>
+                退出编辑
+              </button>
+            </div>
+          )}
+          <div className={`partner-detail-hero ${merchantDesignEditMode && canManageActivePartnerBrand ? 'is-direct-editing' : ''}`}>
+            <div
+              className="partner-detail-copy"
+              onDragOver={(event) => merchantDesignEditMode && event.preventDefault()}
+              onDrop={(event) => merchantDesignEditMode && handleMerchantDecorationImageDrop('hero', event)}
+              onPointerMove={moveMerchantDecorationImageDrag}
+              onPointerUp={endMerchantDecorationImageDrag}
+              onPointerCancel={endMerchantDecorationImageDrag}
+            >
+              {renderMerchantDecorationMedia('hero', activeMerchantPreviewDecoration)}
+              {renderMerchantMediaControls('hero')}
+              {merchantDesignEditMode && canManageActivePartnerBrand && !activeMerchantPreviewDecoration?.heroImage && (
+                <span className="merchant-direct-drop-hint">拖入图片/视频到主视觉区</span>
               )}
-              <p className="eyebrow dark" style={activeMerchantAccentStyle}>{partnerDetailBadge}</p>
+              <div className="merchant-inline-edit-wrap">
+                <p className="eyebrow dark" style={activeMerchantAccentStyle} {...getMerchantEditableTextProps('badge')}>
+                  {partnerDetailBadge}
+                </p>
+                {renderMerchantTextEditor('badge')}
+              </div>
               <div className="partner-brand-lockup partner-detail-lockup">
                 <div
                   className={`partner-logo-mark ${activePartnerDetail.showcase.tone} ${
@@ -8407,8 +8610,18 @@ function App() {
                   </small>
                 </div>
               </div>
-              <h1 style={activeMerchantTitleStyle}>{partnerDetailHeroTitle}</h1>
-              <p style={activeMerchantBodyStyle}>{partnerDetailIntro}</p>
+              <div className="merchant-inline-edit-wrap">
+                <h1 style={activeMerchantTitleStyle} {...getMerchantEditableTextProps('heroTitle')}>
+                  {partnerDetailHeroTitle}
+                </h1>
+                {renderMerchantTextEditor('heroTitle')}
+              </div>
+              <div className="merchant-inline-edit-wrap">
+                <p style={activeMerchantBodyStyle} {...getMerchantEditableTextProps('intro')}>
+                  {partnerDetailIntro}
+                </p>
+                {renderMerchantTextEditor('intro')}
+              </div>
               <a
                 className="partner-detail-link partner-detail-back"
                 href="/#partners"
@@ -8427,11 +8640,14 @@ function App() {
             <div className="partner-detail-panel" aria-label={`${activePartnerDetail.merchant.name}服务标签`}>
               <span style={activeMerchantAccentStyle}>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
               <strong style={activeMerchantTitleStyle}>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
-              <p style={activeMerchantBodyStyle}>
+              <div className="merchant-inline-edit-wrap">
+              <p style={activeMerchantBodyStyle} {...getMerchantEditableTextProps('contactCopy')}>
                 {isWalaPartnerDetail
                   ? activeSiteContent.merchantWalaContactCopy
-                  : activeMerchantDecoration?.contactCopy ?? '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
+                  : activeMerchantPreviewDecoration?.contactCopy ?? '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
               </p>
+              {renderMerchantTextEditor('contactCopy')}
+              </div>
             </div>
           </div>
 
@@ -8444,21 +8660,30 @@ function App() {
             ))}
           </div>
 
-          <div className="partner-detail-cases">
-            {activeMerchantDecoration?.serviceImage && (
-              <img
-                alt=""
-                className="partner-detail-floating-image partner-detail-floating-image-service"
-                src={activeMerchantDecoration.serviceImage}
-                style={getMerchantDecorationImageStyle(activeMerchantDecoration, 'service')}
-              />
+          <div
+            className={`partner-detail-cases ${merchantDesignEditMode && canManageActivePartnerBrand ? 'is-direct-editing' : ''}`}
+            onDragOver={(event) => merchantDesignEditMode && event.preventDefault()}
+            onDrop={(event) => merchantDesignEditMode && handleMerchantDecorationImageDrop('service', event)}
+            onPointerMove={moveMerchantDecorationImageDrag}
+            onPointerUp={endMerchantDecorationImageDrag}
+            onPointerCancel={endMerchantDecorationImageDrag}
+          >
+            {renderMerchantDecorationMedia('service', activeMerchantPreviewDecoration)}
+            {renderMerchantMediaControls('service')}
+            {merchantDesignEditMode && canManageActivePartnerBrand && !activeMerchantPreviewDecoration?.serviceImage && (
+              <span className="merchant-direct-drop-hint">拖入图片/视频到服务展示区</span>
             )}
             <div>
               <p className="eyebrow dark" style={activeMerchantAccentStyle}>服务展示</p>
               <h2 style={activeMerchantTitleStyle}>先看服务边界，再决定是否咨询。</h2>
             </div>
-            {partnerDetailCases.map((item) => (
-              <article key={item} style={activeMerchantBodyStyle}>{item}</article>
+            {partnerDetailCases.map((item, index) => (
+              <article key={`${index}-${item}`} style={activeMerchantBodyStyle}>
+                <div className="merchant-inline-edit-wrap">
+                  <span {...getMerchantEditableTextProps(index === 0 ? 'caseOne' : 'caseTwo')}>{item}</span>
+                  {renderMerchantTextEditor(index === 0 ? 'caseOne' : 'caseTwo')}
+                </div>
+              </article>
             ))}
           </div>
 
