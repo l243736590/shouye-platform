@@ -5382,6 +5382,13 @@ function App() {
   const activePartnerMerchant =
     selectedPartnerShowcase.merchants[selectedPartnerMerchantIndex % selectedPartnerShowcase.merchants.length] ??
     selectedPartnerShowcase.merchants[0]
+  const activePartnerMerchantSlug =
+    'id' in activePartnerMerchant ? activePartnerMerchant.id : encodeURIComponent(activePartnerMerchant.name)
+  const activePartnerMerchantDecoration = appState.merchantBrandDecorations.find(
+    (decoration) => decoration.brandId === activePartnerMerchantSlug,
+  )
+  const activePartnerMerchantApprovedLogoImage =
+    activePartnerMerchantDecoration?.logoReviewStatus === 'approved' ? activePartnerMerchantDecoration.logoImage : ''
   const decodedPartnerRouteSlug = partnerRouteSlug ? decodeURIComponent(partnerRouteSlug) : ''
   const activePartnerDetail =
     partnerMerchantEntries.find(
@@ -5390,7 +5397,7 @@ function App() {
         entry.merchant.name === decodedPartnerRouteSlug ||
         encodeURIComponent(entry.merchant.name) === partnerRouteSlug,
     ) ?? partnerMerchantEntries[0]
-  const activePartnerMerchantLogoImage = getPartnerLogoImage(activePartnerMerchant)
+  const activePartnerMerchantLogoImage = activePartnerMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerMerchant)
   const selectedSchoolGallery = schoolCampusImages(selectedSchool.id)
   const selectedSchoolGalleryKey = selectedSchoolGallery.join('|')
   const selectedSchoolBaseHeroImage = selectedSchoolGallery[0] ?? selectedSchool.image
