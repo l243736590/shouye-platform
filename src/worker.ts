@@ -88,6 +88,21 @@ type MerchantBrandDecorationRecord = {
   contactCopy: string
   caseOne: string
   caseTwo: string
+  logoImage: string
+  pendingLogoImage: string
+  logoReviewStatus: VerificationStatus
+  fontFamily: string
+  titleColor: string
+  bodyColor: string
+  accentColor: string
+  heroImage: string
+  heroImageX: number
+  heroImageY: number
+  heroImageScale: number
+  serviceImage: string
+  serviceImageX: number
+  serviceImageY: number
+  serviceImageScale: number
   updatedAt: string
 }
 
@@ -286,6 +301,21 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    logoImage: '',
+    pendingLogoImage: '',
+    logoReviewStatus: 'approved',
+    fontFamily: '',
+    titleColor: '',
+    bodyColor: '',
+    accentColor: '',
+    heroImage: '',
+    heroImageX: 50,
+    heroImageY: 50,
+    heroImageScale: 1,
+    serviceImage: '',
+    serviceImageX: 50,
+    serviceImageY: 50,
+    serviceImageScale: 1,
     updatedAt: '2026-05-07',
   },
 ]
@@ -330,6 +360,11 @@ const normalizeSiteContent = (content?: Partial<SiteContentSettings>): SiteConte
   }
 }
 
+const clampNumber = (value: unknown, fallback: number, min: number, max: number) => {
+  const numericValue = Number(value)
+  return Number.isFinite(numericValue) ? Math.min(max, Math.max(min, numericValue)) : fallback
+}
+
 const normalizeMerchantBrandDecoration = (
   decoration: Partial<MerchantBrandDecorationRecord>,
   fallback?: MerchantBrandDecorationRecord,
@@ -342,6 +377,21 @@ const normalizeMerchantBrandDecoration = (
   contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
   caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
   caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+  logoImage: decoration.logoImage ?? fallback?.logoImage ?? '',
+  pendingLogoImage: decoration.pendingLogoImage ?? fallback?.pendingLogoImage ?? '',
+  logoReviewStatus: decoration.logoReviewStatus ?? fallback?.logoReviewStatus ?? 'approved',
+  fontFamily: decoration.fontFamily ?? fallback?.fontFamily ?? '',
+  titleColor: decoration.titleColor ?? fallback?.titleColor ?? '',
+  bodyColor: decoration.bodyColor ?? fallback?.bodyColor ?? '',
+  accentColor: decoration.accentColor ?? fallback?.accentColor ?? '',
+  heroImage: decoration.heroImage ?? fallback?.heroImage ?? '',
+  heroImageX: clampNumber(decoration.heroImageX ?? fallback?.heroImageX, 50, 0, 100),
+  heroImageY: clampNumber(decoration.heroImageY ?? fallback?.heroImageY, 50, 0, 100),
+  heroImageScale: clampNumber(decoration.heroImageScale ?? fallback?.heroImageScale, 1, 0.35, 2.4),
+  serviceImage: decoration.serviceImage ?? fallback?.serviceImage ?? '',
+  serviceImageX: clampNumber(decoration.serviceImageX ?? fallback?.serviceImageX, 50, 0, 100),
+  serviceImageY: clampNumber(decoration.serviceImageY ?? fallback?.serviceImageY, 50, 0, 100),
+  serviceImageScale: clampNumber(decoration.serviceImageScale ?? fallback?.serviceImageScale, 1, 0.35, 2.4),
   updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? new Date().toISOString(),
 })
 
@@ -1022,6 +1072,21 @@ const rowToMerchantBrandDecoration = (row: Record<string, unknown>): MerchantBra
   contactCopy: String(row.contact_copy ?? ''),
   caseOne: String(row.case_one ?? ''),
   caseTwo: String(row.case_two ?? ''),
+  logoImage: String(row.logo_image ?? ''),
+  pendingLogoImage: String(row.pending_logo_image ?? ''),
+  logoReviewStatus: String(row.logo_review_status ?? 'approved') as VerificationStatus,
+  fontFamily: String(row.font_family ?? ''),
+  titleColor: String(row.title_color ?? ''),
+  bodyColor: String(row.body_color ?? ''),
+  accentColor: String(row.accent_color ?? ''),
+  heroImage: String(row.hero_image ?? ''),
+  heroImageX: clampNumber(row.hero_image_x, 50, 0, 100),
+  heroImageY: clampNumber(row.hero_image_y, 50, 0, 100),
+  heroImageScale: clampNumber(row.hero_image_scale, 1, 0.35, 2.4),
+  serviceImage: String(row.service_image ?? ''),
+  serviceImageX: clampNumber(row.service_image_x, 50, 0, 100),
+  serviceImageY: clampNumber(row.service_image_y, 50, 0, 100),
+  serviceImageScale: clampNumber(row.service_image_scale, 1, 0.35, 2.4),
   updatedAt: String(row.updated_at ?? ''),
 })
 
@@ -1559,9 +1624,39 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
       contact_copy TEXT NOT NULL DEFAULT '',
       case_one TEXT NOT NULL DEFAULT '',
       case_two TEXT NOT NULL DEFAULT '',
+      logo_image TEXT NOT NULL DEFAULT '',
+      pending_logo_image TEXT NOT NULL DEFAULT '',
+      logo_review_status TEXT NOT NULL DEFAULT 'approved',
+      font_family TEXT NOT NULL DEFAULT '',
+      title_color TEXT NOT NULL DEFAULT '',
+      body_color TEXT NOT NULL DEFAULT '',
+      accent_color TEXT NOT NULL DEFAULT '',
+      hero_image TEXT NOT NULL DEFAULT '',
+      hero_image_x REAL NOT NULL DEFAULT 50,
+      hero_image_y REAL NOT NULL DEFAULT 50,
+      hero_image_scale REAL NOT NULL DEFAULT 1,
+      service_image TEXT NOT NULL DEFAULT '',
+      service_image_x REAL NOT NULL DEFAULT 50,
+      service_image_y REAL NOT NULL DEFAULT 50,
+      service_image_scale REAL NOT NULL DEFAULT 1,
       updated_at TEXT NOT NULL
     )`,
   ).run()
+  await ensureColumn(env, 'merchant_brand_decorations', 'logo_image', "logo_image TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'pending_logo_image', "pending_logo_image TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'logo_review_status', "logo_review_status TEXT NOT NULL DEFAULT 'approved'")
+  await ensureColumn(env, 'merchant_brand_decorations', 'font_family', "font_family TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'title_color', "title_color TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'body_color', "body_color TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'accent_color', "accent_color TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'hero_image', "hero_image TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'hero_image_x', 'hero_image_x REAL NOT NULL DEFAULT 50')
+  await ensureColumn(env, 'merchant_brand_decorations', 'hero_image_y', 'hero_image_y REAL NOT NULL DEFAULT 50')
+  await ensureColumn(env, 'merchant_brand_decorations', 'hero_image_scale', 'hero_image_scale REAL NOT NULL DEFAULT 1')
+  await ensureColumn(env, 'merchant_brand_decorations', 'service_image', "service_image TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'service_image_x', 'service_image_x REAL NOT NULL DEFAULT 50')
+  await ensureColumn(env, 'merchant_brand_decorations', 'service_image_y', 'service_image_y REAL NOT NULL DEFAULT 50')
+  await ensureColumn(env, 'merchant_brand_decorations', 'service_image_scale', 'service_image_scale REAL NOT NULL DEFAULT 1')
 }
 
 const getMerchantBrandDecorations = async (env: Env) => {
@@ -2919,12 +3014,26 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
 
   const now = new Date().toISOString()
   const incoming = body.decoration ?? {}
-  const fallback = mergeMerchantBrandDecorations([]).find((decoration) => decoration.brandId === brandId)
+  const existingRow = await env.DB.prepare('SELECT * FROM merchant_brand_decorations WHERE brand_id = ?')
+    .bind(brandId)
+    .first<Record<string, unknown>>()
+  const fallback =
+    (existingRow ? rowToMerchantBrandDecoration(existingRow) : undefined) ??
+    mergeMerchantBrandDecorations([]).find((decoration) => decoration.brandId === brandId)
+  const nextPendingLogoImage =
+    typeof incoming.pendingLogoImage === 'string' ? incoming.pendingLogoImage : fallback?.pendingLogoImage ?? ''
+  const logoReviewStatus =
+    nextPendingLogoImage && nextPendingLogoImage !== (fallback?.pendingLogoImage ?? '')
+      ? 'pending'
+      : fallback?.logoReviewStatus ?? 'approved'
   const decoration = normalizeMerchantBrandDecoration(
     {
       ...incoming,
       brandId,
       ownerUserId: userId,
+      logoImage: fallback?.logoImage ?? '',
+      pendingLogoImage: nextPendingLogoImage,
+      logoReviewStatus,
       updatedAt: now,
     },
     fallback,
@@ -2951,8 +3060,8 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -2961,6 +3070,21 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
         contact_copy = excluded.contact_copy,
         case_one = excluded.case_one,
         case_two = excluded.case_two,
+        logo_image = excluded.logo_image,
+        pending_logo_image = excluded.pending_logo_image,
+        logo_review_status = excluded.logo_review_status,
+        font_family = excluded.font_family,
+        title_color = excluded.title_color,
+        body_color = excluded.body_color,
+        accent_color = excluded.accent_color,
+        hero_image = excluded.hero_image,
+        hero_image_x = excluded.hero_image_x,
+        hero_image_y = excluded.hero_image_y,
+        hero_image_scale = excluded.hero_image_scale,
+        service_image = excluded.service_image,
+        service_image_x = excluded.service_image_x,
+        service_image_y = excluded.service_image_y,
+        service_image_scale = excluded.service_image_scale,
         updated_at = excluded.updated_at`,
   )
     .bind(
@@ -2972,6 +3096,103 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
       decoration.contactCopy,
       decoration.caseOne,
       decoration.caseTwo,
+      decoration.logoImage,
+      decoration.pendingLogoImage,
+      decoration.logoReviewStatus,
+      decoration.fontFamily,
+      decoration.titleColor,
+      decoration.bodyColor,
+      decoration.accentColor,
+      decoration.heroImage,
+      decoration.heroImageX,
+      decoration.heroImageY,
+      decoration.heroImageScale,
+      decoration.serviceImage,
+      decoration.serviceImageX,
+      decoration.serviceImageY,
+      decoration.serviceImageScale,
+      decoration.updatedAt,
+    )
+    .run()
+
+  return json({
+    merchantBrandDecoration: decoration,
+    merchantBrandDecorations: await getMerchantBrandDecorations(env),
+  })
+}
+
+const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, brandId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureMerchantBrandDecorationTables(env)
+  const body = await readBody<Partial<MerchantBrandDecorationRecord>>(request)
+  const existingRow = await env.DB.prepare('SELECT * FROM merchant_brand_decorations WHERE brand_id = ?')
+    .bind(brandId)
+    .first<Record<string, unknown>>()
+  const fallback =
+    (existingRow ? rowToMerchantBrandDecoration(existingRow) : undefined) ??
+    mergeMerchantBrandDecorations([]).find((decoration) => decoration.brandId === brandId) ??
+    normalizeMerchantBrandDecoration({ brandId })
+  const now = new Date().toISOString()
+  const decoration = normalizeMerchantBrandDecoration({
+    ...fallback,
+    ...body,
+    brandId,
+    updatedAt: now,
+  })
+
+  await env.DB.prepare(
+    `INSERT INTO merchant_brand_decorations
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(brand_id) DO UPDATE SET
+        owner_user_id = excluded.owner_user_id,
+        badge = excluded.badge,
+        hero_title = excluded.hero_title,
+        intro = excluded.intro,
+        contact_copy = excluded.contact_copy,
+        case_one = excluded.case_one,
+        case_two = excluded.case_two,
+        logo_image = excluded.logo_image,
+        pending_logo_image = excluded.pending_logo_image,
+        logo_review_status = excluded.logo_review_status,
+        font_family = excluded.font_family,
+        title_color = excluded.title_color,
+        body_color = excluded.body_color,
+        accent_color = excluded.accent_color,
+        hero_image = excluded.hero_image,
+        hero_image_x = excluded.hero_image_x,
+        hero_image_y = excluded.hero_image_y,
+        hero_image_scale = excluded.hero_image_scale,
+        service_image = excluded.service_image,
+        service_image_x = excluded.service_image_x,
+        service_image_y = excluded.service_image_y,
+        service_image_scale = excluded.service_image_scale,
+        updated_at = excluded.updated_at`,
+  )
+    .bind(
+      decoration.brandId,
+      decoration.ownerUserId ?? '',
+      decoration.badge,
+      decoration.heroTitle,
+      decoration.intro,
+      decoration.contactCopy,
+      decoration.caseOne,
+      decoration.caseTwo,
+      decoration.logoImage,
+      decoration.pendingLogoImage,
+      decoration.logoReviewStatus,
+      decoration.fontFamily,
+      decoration.titleColor,
+      decoration.bodyColor,
+      decoration.accentColor,
+      decoration.heroImage,
+      decoration.heroImageX,
+      decoration.heroImageY,
+      decoration.heroImageScale,
+      decoration.serviceImage,
+      decoration.serviceImageX,
+      decoration.serviceImageY,
+      decoration.serviceImageScale,
       decoration.updatedAt,
     )
     .run()
@@ -3701,6 +3922,11 @@ export default {
       if (url.pathname === '/api/admin/site-content' && request.method === 'PUT') {
         const body = await readBody<{ siteContent: Partial<SiteContentSettings> }>(request)
         return json({ siteContent: await saveSiteContent(env, body.siteContent ?? {}) })
+      }
+
+      const adminMerchantBrandDecorationMatch = url.pathname.match(/^\/api\/admin\/merchant-brand-decorations\/([^/]+)$/)
+      if (adminMerchantBrandDecorationMatch && request.method === 'PATCH') {
+        return updateMerchantBrandDecorationByAdmin(request, env, decodeURIComponent(adminMerchantBrandDecorationMatch[1]))
       }
 
       const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/)

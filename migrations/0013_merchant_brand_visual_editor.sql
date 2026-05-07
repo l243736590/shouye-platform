@@ -1,0 +1,12 @@
+ALTER TABLE merchant_brand_decorations ADD COLUMN font_family TEXT NOT NULL DEFAULT '';
+ALTER TABLE merchant_brand_decorations ADD COLUMN title_color TEXT NOT NULL DEFAULT '';
+ALTER TABLE merchant_brand_decorations ADD COLUMN body_color TEXT NOT NULL DEFAULT '';
+ALTER TABLE merchant_brand_decorations ADD COLUMN accent_color TEXT NOT NULL DEFAULT '';
+ALTER TABLE merchant_brand_decorations ADD COLUMN hero_image TEXT NOT NULL DEFAULT '';
+ALTER TABLE merchant_brand_decorations ADD COLUMN hero_image_x REAL NOT NULL DEFAULT 50;
+ALTER TABLE merchant_brand_decorations ADD COLUMN hero_image_y REAL NOT NULL DEFAULT 50;
+ALTER TABLE merchant_brand_decorations ADD COLUMN hero_image_scale REAL NOT NULL DEFAULT 1;
+ALTER TABLE merchant_brand_decorations ADD COLUMN service_image TEXT NOT NULL DEFAULT '';
+ALTER TABLE merchant_brand_decorations ADD COLUMN service_image_x REAL NOT NULL DEFAULT 50;
+ALTER TABLE merchant_brand_decorations ADD COLUMN service_image_y REAL NOT NULL DEFAULT 50;
+ALTER TABLE merchant_brand_decorations ADD COLUMN service_image_scale REAL NOT NULL DEFAULT 1;

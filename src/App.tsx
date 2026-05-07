@@ -1,4 +1,4 @@
-import type { CSSProperties, FormEvent, MouseEvent } from 'react'
+import type { ChangeEvent, CSSProperties, DragEvent, FormEvent, MouseEvent, PointerEvent } from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { motion } from 'framer-motion'
@@ -107,6 +107,21 @@ type MerchantBrandDecoration = {
   contactCopy: string
   caseOne: string
   caseTwo: string
+  logoImage: string
+  pendingLogoImage: string
+  logoReviewStatus: VerificationStatus
+  fontFamily: string
+  titleColor: string
+  bodyColor: string
+  accentColor: string
+  heroImage: string
+  heroImageX: number
+  heroImageY: number
+  heroImageScale: number
+  serviceImage: string
+  serviceImageX: number
+  serviceImageY: number
+  serviceImageScale: number
   updatedAt: string
 }
 
@@ -761,6 +776,21 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    logoImage: '',
+    pendingLogoImage: '',
+    logoReviewStatus: 'approved',
+    fontFamily: '',
+    titleColor: '',
+    bodyColor: '',
+    accentColor: '',
+    heroImage: '',
+    heroImageX: 50,
+    heroImageY: 50,
+    heroImageScale: 1,
+    serviceImage: '',
+    serviceImageX: 50,
+    serviceImageY: 50,
+    serviceImageScale: 1,
     updatedAt: '2026-05-07',
   },
 ]
@@ -819,6 +849,40 @@ const normalizeMerchantBrandDecoration = (
     contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
     caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
     caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+    logoImage: decoration.logoImage ?? fallback?.logoImage ?? '',
+    pendingLogoImage: decoration.pendingLogoImage ?? fallback?.pendingLogoImage ?? '',
+    logoReviewStatus: decoration.logoReviewStatus ?? fallback?.logoReviewStatus ?? 'approved',
+    fontFamily: decoration.fontFamily ?? fallback?.fontFamily ?? '',
+    titleColor: decoration.titleColor ?? fallback?.titleColor ?? '',
+    bodyColor: decoration.bodyColor ?? fallback?.bodyColor ?? '',
+    accentColor: decoration.accentColor ?? fallback?.accentColor ?? '',
+    heroImage: decoration.heroImage ?? fallback?.heroImage ?? '',
+    heroImageX: Number.isFinite(Number(decoration.heroImageX ?? fallback?.heroImageX))
+      ? Number(decoration.heroImageX ?? fallback?.heroImageX)
+      : 50,
+    heroImageY: Number.isFinite(Number(decoration.heroImageY ?? fallback?.heroImageY))
+      ? Number(decoration.heroImageY ?? fallback?.heroImageY)
+      : 50,
+    heroImageScale: Math.min(
+      2.4,
+      Math.max(0.35, Number.isFinite(Number(decoration.heroImageScale ?? fallback?.heroImageScale)) ? Number(decoration.heroImageScale ?? fallback?.heroImageScale) : 1),
+    ),
+    serviceImage: decoration.serviceImage ?? fallback?.serviceImage ?? '',
+    serviceImageX: Number.isFinite(Number(decoration.serviceImageX ?? fallback?.serviceImageX))
+      ? Number(decoration.serviceImageX ?? fallback?.serviceImageX)
+      : 50,
+    serviceImageY: Number.isFinite(Number(decoration.serviceImageY ?? fallback?.serviceImageY))
+      ? Number(decoration.serviceImageY ?? fallback?.serviceImageY)
+      : 50,
+    serviceImageScale: Math.min(
+      2.4,
+      Math.max(
+        0.35,
+        Number.isFinite(Number(decoration.serviceImageScale ?? fallback?.serviceImageScale))
+          ? Number(decoration.serviceImageScale ?? fallback?.serviceImageScale)
+          : 1,
+      ),
+    ),
     updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? now,
   }
 }
@@ -2415,6 +2479,44 @@ const getPartnerLogoImage = (merchant: unknown) => {
   const logoImage = (merchant as { logoImage?: unknown }).logoImage
   return typeof logoImage === 'string' ? logoImage : ''
 }
+
+const resizeImageFileToDataUrl = (file: File, maxSize = 420, quality = 0.82) =>
+  new Promise<string>((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('请上传图片文件。'))
+      return
+    }
+    if (file.size > 6 * 1024 * 1024) {
+      reject(new Error('图片不能超过 6MB。'))
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('图片读取失败。'))
+    reader.onload = () => {
+      const image = new Image()
+      image.onerror = () => reject(new Error('图片解析失败。'))
+      image.onload = () => {
+        const ratio = Math.min(1, maxSize / Math.max(image.width, image.height))
+        const width = Math.max(1, Math.round(image.width * ratio))
+        const height = Math.max(1, Math.round(image.height * ratio))
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const context = canvas.getContext('2d')
+        if (!context) {
+          reject(new Error('图片处理失败。'))
+          return
+        }
+        context.fillStyle = '#ffffff'
+        context.fillRect(0, 0, width, height)
+        context.drawImage(image, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      image.src = String(reader.result ?? '')
+    }
+    reader.readAsDataURL(file)
+  })
 
 const seedQuestions: CommunityQuestion[] = [
   {
@@ -4884,6 +4986,14 @@ function App() {
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
+  const [merchantDesignEditMode, setMerchantDesignEditMode] = useState(false)
+  const merchantImageDragRef = useRef<{
+    zone: 'hero' | 'service'
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [openVerificationBubbleUserId, setOpenVerificationBubbleUserId] = useState<string | null>(null)
@@ -5141,7 +5251,6 @@ function App() {
         encodeURIComponent(entry.merchant.name) === partnerRouteSlug,
     ) ?? partnerMerchantEntries[0]
   const activePartnerMerchantLogoImage = getPartnerLogoImage(activePartnerMerchant)
-  const activePartnerDetailLogoImage = getPartnerLogoImage(activePartnerDetail.merchant)
   const selectedSchoolGallery = schoolCampusImages(selectedSchool.id)
   const selectedSchoolGalleryKey = selectedSchoolGallery.join('|')
   const selectedSchoolBaseHeroImage = selectedSchoolGallery[0] ?? selectedSchool.image
@@ -5415,6 +5524,9 @@ function App() {
   const activeMerchantDecoration = appState.merchantBrandDecorations.find(
     (decoration) => decoration.brandId === activePartnerDetailSlug,
   )
+  const activeMerchantApprovedLogoImage =
+    activeMerchantDecoration?.logoReviewStatus === 'approved' ? activeMerchantDecoration.logoImage : ''
+  const activePartnerDetailLogoImage = activeMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerDetail.merchant)
   const currentUserBioSettings = parseUserBioSettings(currentUser?.bio)
   const canManageActivePartnerBrand =
     Boolean(currentUser) &&
@@ -5471,6 +5583,35 @@ function App() {
     : activeMerchantDecoration
       ? [activeMerchantDecoration.caseOne, activeMerchantDecoration.caseTwo]
       : activePartnerDetail.merchant.tags.map((tag) => `${tag}：查看服务边界、价格区间、交付方式和售后规则。`)
+  const activeMerchantFontStyle: CSSProperties = activeMerchantDecoration?.fontFamily
+    ? { fontFamily: activeMerchantDecoration.fontFamily }
+    : {}
+  const activeMerchantTitleStyle: CSSProperties = {
+    ...activeMerchantFontStyle,
+    ...(activeMerchantDecoration?.titleColor ? { color: activeMerchantDecoration.titleColor } : {}),
+  }
+  const activeMerchantBodyStyle: CSSProperties = {
+    ...activeMerchantFontStyle,
+    ...(activeMerchantDecoration?.bodyColor ? { color: activeMerchantDecoration.bodyColor } : {}),
+  }
+  const activeMerchantAccentStyle: CSSProperties = {
+    ...activeMerchantFontStyle,
+    ...(activeMerchantDecoration?.accentColor ? { color: activeMerchantDecoration.accentColor } : {}),
+  }
+  const getMerchantDecorationImageStyle = (
+    decoration: MerchantBrandDecoration | undefined,
+    zone: 'hero' | 'service',
+  ): CSSProperties => {
+    if (!decoration) return {}
+    const x = zone === 'hero' ? decoration.heroImageX : decoration.serviceImageX
+    const y = zone === 'hero' ? decoration.heroImageY : decoration.serviceImageY
+    const scale = zone === 'hero' ? decoration.heroImageScale : decoration.serviceImageScale
+    return {
+      left: `${x}%`,
+      top: `${y}%`,
+      transform: `translate(-50%, -50%) scale(${scale})`,
+    }
+  }
   const heroStyle = {
     '--mobile-logo-width': `${activeSiteContent.mobileLogoWidth}vw`,
     '--mobile-hero-title-size': `${activeSiteContent.mobileHeroTitleSize}px`,
@@ -5973,6 +6114,183 @@ function App() {
     })
   }
 
+  const handleMerchantLogoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    if (!canManageActivePartnerBrand) {
+      setMerchantDecorationNotice('当前账号还没有这个品牌详情页的装饰权限。')
+      return
+    }
+
+    try {
+      const pendingLogoImage = await resizeImageFileToDataUrl(file)
+      setMerchantDecorationDrafts((drafts) => {
+        const fallback =
+          drafts[activePartnerDetailSlug] ??
+          appState.merchantBrandDecorations.find((decoration) => decoration.brandId === activePartnerDetailSlug) ??
+          normalizeMerchantBrandDecoration({ brandId: activePartnerDetailSlug })
+        return {
+          ...drafts,
+          [activePartnerDetailSlug]: normalizeMerchantBrandDecoration({
+            ...fallback,
+            pendingLogoImage,
+            logoReviewStatus: 'pending',
+          }),
+        }
+      })
+      setMerchantDecorationNotice('头像已上传到草稿，点保存后进入后台审核；审核通过前不会对外展示。')
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '头像上传失败，请换一张图片重试。')
+    }
+  }
+
+  const updateMerchantDecorationImage = async (zone: 'hero' | 'service', file: File) => {
+    if (!canManageActivePartnerBrand) {
+      setMerchantDecorationNotice('当前账号还没有这个品牌详情页的装饰权限。')
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setMerchantDecorationNotice('请上传图片文件。')
+      return
+    }
+
+    try {
+      const image = await resizeImageFileToDataUrl(file, 1280, 0.86)
+      if (zone === 'hero') {
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImage', image)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageX', 72)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageY', 48)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageScale', 1)
+      } else {
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImage', image)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageX', 50)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageY', 50)
+        updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageScale', 1)
+      }
+      setMerchantDecorationNotice('图片已加入草稿，可拖动调整位置，保存后展示。')
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '图片上传失败，请换一张图片重试。')
+    }
+  }
+
+  const handleMerchantDecorationImageInput = async (
+    zone: 'hero' | 'service',
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (file) await updateMerchantDecorationImage(zone, file)
+  }
+
+  const handleMerchantDecorationImageDrop = async (zone: 'hero' | 'service', event: DragEvent<HTMLDivElement>) => {
+    event.preventDefault()
+    const file = Array.from(event.dataTransfer.files).find((item) => item.type.startsWith('image/'))
+    if (file) await updateMerchantDecorationImage(zone, file)
+  }
+
+  const startMerchantDecorationImageDrag = (zone: 'hero' | 'service', event: PointerEvent<HTMLImageElement>) => {
+    event.preventDefault()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    merchantImageDragRef.current = {
+      zone,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: zone === 'hero' ? activeMerchantDecorationDraft.heroImageX : activeMerchantDecorationDraft.serviceImageX,
+      originY: zone === 'hero' ? activeMerchantDecorationDraft.heroImageY : activeMerchantDecorationDraft.serviceImageY,
+    }
+  }
+
+  const moveMerchantDecorationImageDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = merchantImageDragRef.current
+    if (!drag) return
+    const rect = event.currentTarget.getBoundingClientRect()
+    const nextX = Math.min(100, Math.max(0, drag.originX + ((event.clientX - drag.startX) / rect.width) * 100))
+    const nextY = Math.min(100, Math.max(0, drag.originY + ((event.clientY - drag.startY) / rect.height) * 100))
+    if (drag.zone === 'hero') {
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageX', Number(nextX.toFixed(1)))
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageY', Number(nextY.toFixed(1)))
+    } else {
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageX', Number(nextX.toFixed(1)))
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageY', Number(nextY.toFixed(1)))
+    }
+  }
+
+  const endMerchantDecorationImageDrag = () => {
+    merchantImageDragRef.current = null
+  }
+
+  const renderMerchantDecorationImageEditor = (zone: 'hero' | 'service', title: string, description: string) => {
+    const image = zone === 'hero' ? activeMerchantDecorationDraft.heroImage : activeMerchantDecorationDraft.serviceImage
+    const scale = zone === 'hero' ? activeMerchantDecorationDraft.heroImageScale : activeMerchantDecorationDraft.serviceImageScale
+    return (
+      <div className="merchant-image-editor">
+        <div>
+          <strong>{title}</strong>
+          <p>{description}</p>
+        </div>
+        <div
+          className={`merchant-image-dropzone ${image ? 'has-image' : ''}`}
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={(event) => handleMerchantDecorationImageDrop(zone, event)}
+          onPointerMove={moveMerchantDecorationImageDrag}
+          onPointerUp={endMerchantDecorationImageDrag}
+          onPointerCancel={endMerchantDecorationImageDrag}
+          onPointerLeave={endMerchantDecorationImageDrag}
+        >
+          {image ? (
+            <img
+              alt=""
+              draggable={false}
+              src={image}
+              style={
+                zone === 'hero'
+                  ? getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'hero')
+                  : getMerchantDecorationImageStyle(activeMerchantDecorationDraft, 'service')
+              }
+              onPointerDown={(event) => startMerchantDecorationImageDrag(zone, event)}
+            />
+          ) : (
+            <span>拖入图片或点击上传</span>
+          )}
+        </div>
+        <div className="merchant-image-editor-controls">
+          <label className="merchant-logo-upload-button">
+            上传图片
+            <input accept="image/*" type="file" onChange={(event) => handleMerchantDecorationImageInput(zone, event)} />
+          </label>
+          <label>
+            缩放
+            <input
+              max="2.4"
+              min="0.35"
+              step="0.05"
+              type="range"
+              value={scale}
+              onChange={(event) =>
+                updateMerchantDecorationDraft(
+                  activePartnerDetailSlug,
+                  zone === 'hero' ? 'heroImageScale' : 'serviceImageScale',
+                  Number(event.target.value),
+                )
+              }
+            />
+          </label>
+          {image && (
+            <button
+              type="button"
+              onClick={() =>
+                updateMerchantDecorationDraft(activePartnerDetailSlug, zone === 'hero' ? 'heroImage' : 'serviceImage', '')
+              }
+            >
+              移除图片
+            </button>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   const saveMerchantDecoration = async () => {
     if (!currentUser) {
       setAuthMode('login')
@@ -6020,6 +6338,44 @@ function App() {
       setMerchantDecorationNotice('品牌详情页装饰已保存。')
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+    }
+  }
+
+  const updateMerchantBrandDecoration = (brandId: string, patch: Partial<MerchantBrandDecoration>) => {
+    const previousDecoration =
+      appState.merchantBrandDecorations.find((decoration) => decoration.brandId === brandId) ??
+      normalizeMerchantBrandDecoration({ brandId })
+    const nextDecoration = normalizeMerchantBrandDecoration({
+      ...previousDecoration,
+      ...patch,
+      brandId,
+      updatedAt: new Date().toISOString(),
+    })
+    setAppState((state) => ({
+      ...state,
+      merchantBrandDecorations: mergeMerchantBrandDecorations([
+        ...state.merchantBrandDecorations.filter((decoration) => decoration.brandId !== brandId),
+        nextDecoration,
+      ]),
+    }))
+    if (adminToken) {
+      fetch(`/api/admin/merchant-brand-decorations/${encodeURIComponent(brandId)}`, {
+        body: JSON.stringify(patch),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      })
+        .then((response) => (response.ok ? response.json() : null))
+        .then((data: { merchantBrandDecorations?: Partial<MerchantBrandDecoration>[] } | null) => {
+          if (!data?.merchantBrandDecorations) return
+          setAppState((state) => ({
+            ...state,
+            merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations),
+          }))
+        })
+        .catch(() => setMessage('商家头像审核状态保存失败，请稍后重试。'))
     }
   }
 
@@ -7998,7 +8354,15 @@ function App() {
         <section className="info-page partner-detail-page">
           <div className="partner-detail-hero">
             <div className="partner-detail-copy">
-              <p className="eyebrow dark">{partnerDetailBadge}</p>
+              {activeMerchantDecoration?.heroImage && (
+                <img
+                  alt=""
+                  className="partner-detail-floating-image partner-detail-floating-image-hero"
+                  src={activeMerchantDecoration.heroImage}
+                  style={getMerchantDecorationImageStyle(activeMerchantDecoration, 'hero')}
+                />
+              )}
+              <p className="eyebrow dark" style={activeMerchantAccentStyle}>{partnerDetailBadge}</p>
               <div className="partner-brand-lockup partner-detail-lockup">
                 <div
                   className={`partner-logo-mark ${activePartnerDetail.showcase.tone} ${
@@ -8019,8 +8383,8 @@ function App() {
                   </small>
                 </div>
               </div>
-              <h1>{partnerDetailHeroTitle}</h1>
-              <p>{partnerDetailIntro}</p>
+              <h1 style={activeMerchantTitleStyle}>{partnerDetailHeroTitle}</h1>
+              <p style={activeMerchantBodyStyle}>{partnerDetailIntro}</p>
               <a
                 className="partner-detail-link partner-detail-back"
                 href="/#partners"
@@ -8037,9 +8401,9 @@ function App() {
               </a>
             </div>
             <div className="partner-detail-panel" aria-label={`${activePartnerDetail.merchant.name}服务标签`}>
-              <span>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
-              <strong>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
-              <p>
+              <span style={activeMerchantAccentStyle}>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
+              <strong style={activeMerchantTitleStyle}>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
+              <p style={activeMerchantBodyStyle}>
                 {isWalaPartnerDetail
                   ? activeSiteContent.merchantWalaContactCopy
                   : activeMerchantDecoration?.contactCopy ?? '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
@@ -8050,19 +8414,27 @@ function App() {
           <div className="partner-detail-grid">
             {partnerDetailSections.map((section) => (
               <article key={section.title}>
-                <span>{section.title}</span>
-                <p>{section.text}</p>
+                <span style={activeMerchantAccentStyle}>{section.title}</span>
+                <p style={activeMerchantBodyStyle}>{section.text}</p>
               </article>
             ))}
           </div>
 
           <div className="partner-detail-cases">
+            {activeMerchantDecoration?.serviceImage && (
+              <img
+                alt=""
+                className="partner-detail-floating-image partner-detail-floating-image-service"
+                src={activeMerchantDecoration.serviceImage}
+                style={getMerchantDecorationImageStyle(activeMerchantDecoration, 'service')}
+              />
+            )}
             <div>
-              <p className="eyebrow dark">服务展示</p>
-              <h2>先看服务边界，再决定是否咨询。</h2>
+              <p className="eyebrow dark" style={activeMerchantAccentStyle}>服务展示</p>
+              <h2 style={activeMerchantTitleStyle}>先看服务边界，再决定是否咨询。</h2>
             </div>
             {partnerDetailCases.map((item) => (
-              <article key={item}>{item}</article>
+              <article key={item} style={activeMerchantBodyStyle}>{item}</article>
             ))}
           </div>
 
@@ -8071,8 +8443,91 @@ function App() {
               <div>
                 <p className="eyebrow dark">品牌装饰权限</p>
                 <h2>{activePartnerDetail.merchant.name}品牌的管理商家</h2>
-                <p>你可以编辑这个商家详情页的标题、介绍、咨询提示和两个服务展示块，保存后只影响当前品牌。</p>
+                <p>你可以编辑这个商家详情页的标题、介绍、咨询提示、字体颜色和图片展示，保存后只影响当前品牌。</p>
               </div>
+              <div className="partner-brand-avatar-row">
+                <div
+                  className={`partner-logo-mark ${activePartnerDetail.showcase.tone} ${
+                    activeMerchantDecorationDraft.pendingLogoImage || activePartnerDetailLogoImage ? 'has-image' : ''
+                  }`}
+                >
+                  {activeMerchantDecorationDraft.pendingLogoImage ? (
+                    <img src={activeMerchantDecorationDraft.pendingLogoImage} alt="待审核品牌头像预览" />
+                  ) : activePartnerDetailLogoImage ? (
+                    <img src={activePartnerDetailLogoImage} alt={`${activePartnerDetail.merchant.name} Logo`} />
+                  ) : (
+                    <span>{activePartnerDetail.merchant.logo}</span>
+                  )}
+                </div>
+                <div>
+                  <strong>品牌头像</strong>
+                  <p>
+                    点击上传头像，保存后进入后台审核；审核通过后才会展示在商家详情页。建议使用正方形头像或品牌 LOGO。
+                  </p>
+                  <label className="merchant-logo-upload-button">
+                    上传头像
+                    <input accept="image/*" type="file" onChange={handleMerchantLogoUpload} />
+                  </label>
+                  {activeMerchantDecorationDraft.logoReviewStatus === 'pending' && (
+                    <small>当前有头像正在等待平台审核。</small>
+                  )}
+                  {activeMerchantDecorationDraft.logoReviewStatus === 'rejected' && (
+                    <small>上次头像未通过审核，可以重新上传。</small>
+                  )}
+                </div>
+              </div>
+              <div className="partner-brand-manager-actions">
+                <button type="button" onClick={() => setMerchantDesignEditMode((enabled) => !enabled)}>
+                  {merchantDesignEditMode ? '关闭编辑模式' : '开启编辑模式'}
+                </button>
+                <span>编辑模式只对当前品牌管理账号显示。</span>
+              </div>
+              {merchantDesignEditMode && (
+                <div className="partner-brand-design-editor">
+                  <div className="admin-content-grid">
+                    <label>
+                      字体
+                      <select
+                        value={activeMerchantDecorationDraft.fontFamily}
+                        onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'fontFamily', event.target.value)}
+                      >
+                        <option value="">跟随平台默认</option>
+                        <option value={'"Noto Sans SC", "Microsoft YaHei", sans-serif'}>现代黑体</option>
+                        <option value={'"Songti SC", "SimSun", serif'}>宋体/衬线</option>
+                        <option value={'Arial, sans-serif'}>Arial</option>
+                      </select>
+                    </label>
+                    <label>
+                      标题字颜色
+                      <input
+                        type="color"
+                        value={activeMerchantDecorationDraft.titleColor || '#10201d'}
+                        onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'titleColor', event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      正文字颜色
+                      <input
+                        type="color"
+                        value={activeMerchantDecorationDraft.bodyColor || '#4d5d58'}
+                        onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'bodyColor', event.target.value)}
+                      />
+                    </label>
+                    <label>
+                      重点字颜色
+                      <input
+                        type="color"
+                        value={activeMerchantDecorationDraft.accentColor || '#ef5a3c'}
+                        onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'accentColor', event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="merchant-image-editor-grid">
+                    {renderMerchantDecorationImageEditor('hero', '主视觉图片区', '拖入图片或点击上传，按住图片可自由拉动位置。')}
+                    {renderMerchantDecorationImageEditor('service', '服务展示图片区', '用于下方服务展示区域，保存后对外展示。')}
+                  </div>
+                </div>
+              )}
               <div className="admin-content-grid">
                 <label>
                   页面标识
@@ -10395,6 +10850,67 @@ function App() {
                       </div>
                     </div>
                   ))
+                )}
+                <div className="admin-content-head merchant-logo-review-head">
+                  <div>
+                    <p className="eyebrow dark">商家头像审核</p>
+                    <h3>审核品牌头像后才对外展示。</h3>
+                  </div>
+                </div>
+                <div className="admin-row admin-row-head">
+                  <span>品牌</span>
+                  <span>待审核头像</span>
+                  <span>状态</span>
+                  <span>操作</span>
+                  <span>说明</span>
+                </div>
+                {appState.merchantBrandDecorations.filter(
+                  (decoration) => decoration.pendingLogoImage && decoration.logoReviewStatus === 'pending',
+                ).length === 0 ? (
+                  <p className="admin-empty">暂无待审核商家头像。</p>
+                ) : (
+                  appState.merchantBrandDecorations
+                    .filter((decoration) => decoration.pendingLogoImage && decoration.logoReviewStatus === 'pending')
+                    .map((decoration) => {
+                      const brand = manageablePartnerBrands.find((item) => item.id === decoration.brandId)
+                      return (
+                        <div className="admin-row" key={`${decoration.brandId}-logo-review`}>
+                          <div>
+                            <strong>{brand?.name ?? decoration.brandId}</strong>
+                            <small>{decoration.brandId}</small>
+                          </div>
+                          <img className="admin-merchant-logo-preview" src={decoration.pendingLogoImage} alt="待审核商家头像" />
+                          <span className="account-badge pending">待审核</span>
+                          <div className="admin-actions">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateMerchantBrandDecoration(decoration.brandId, {
+                                  logoImage: decoration.pendingLogoImage,
+                                  pendingLogoImage: '',
+                                  logoReviewStatus: 'approved',
+                                })
+                              }
+                            >
+                              通过
+                            </button>
+                            <button
+                              className="danger-button"
+                              type="button"
+                              onClick={() =>
+                                updateMerchantBrandDecoration(decoration.brandId, {
+                                  pendingLogoImage: '',
+                                  logoReviewStatus: 'rejected',
+                                })
+                              }
+                            >
+                              不通过
+                            </button>
+                          </div>
+                          <p className="admin-partner-detail">通过后会替换该商家详情页头像；不通过则要求商家重新上传。</p>
+                        </div>
+                      )
+                    })
                 )}
               </div>
             ) : (

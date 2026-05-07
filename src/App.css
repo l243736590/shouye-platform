@@ -2486,7 +2486,15 @@ h3 {
 .partner-detail-copy {
   display: grid;
   gap: 22px;
+  overflow: hidden;
   padding: clamp(28px, 4vw, 52px);
+  position: relative;
+}
+
+.partner-detail-copy > *:not(.partner-detail-floating-image),
+.partner-detail-cases > *:not(.partner-detail-floating-image) {
+  position: relative;
+  z-index: 1;
 }
 
 .partner-detail-lockup strong {
@@ -2553,7 +2561,25 @@ h3 {
   display: grid;
   gap: 14px;
   grid-template-columns: minmax(260px, 0.65fr) repeat(2, minmax(0, 1fr));
+  overflow: hidden;
   padding: 22px;
+  position: relative;
+}
+
+.partner-detail-floating-image {
+  border-radius: 16px;
+  max-height: 260px;
+  max-width: min(38vw, 520px);
+  opacity: 0.18;
+  pointer-events: none;
+  position: absolute;
+  width: 36%;
+  z-index: 0;
+}
+
+.partner-detail-floating-image-service {
+  max-height: 220px;
+  width: 26%;
 }
 
 .partner-detail-cases h2 {
@@ -2594,6 +2620,50 @@ h3 {
   margin-top: 8px;
 }
 
+.partner-brand-avatar-row {
+  align-items: center;
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  gap: 18px;
+  padding: 18px;
+}
+
+.partner-brand-avatar-row > div:last-child {
+  display: grid;
+  gap: 8px;
+}
+
+.partner-brand-avatar-row strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.partner-brand-avatar-row small {
+  color: var(--coral);
+  font-weight: 900;
+}
+
+.merchant-logo-upload-button {
+  align-items: center;
+  background: var(--ink);
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 14px;
+  font-weight: 950;
+  justify-content: center;
+  padding: 10px 14px;
+  width: fit-content;
+}
+
+.merchant-logo-upload-button input {
+  display: none;
+}
+
 .partner-brand-manager-actions {
   align-items: center;
   display: flex;
@@ -2610,6 +2680,107 @@ h3 {
   color: var(--forest);
   font-size: 13px;
   font-weight: 900;
+}
+
+.partner-brand-design-editor {
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+}
+
+.merchant-image-editor-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.merchant-image-editor {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+}
+
+.merchant-image-editor strong {
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.merchant-image-editor p {
+  margin: 4px 0 0;
+}
+
+.merchant-image-dropzone {
+  align-items: center;
+  background: #eef3ee;
+  border: 1px dashed rgba(16, 32, 29, 0.35);
+  border-radius: 8px;
+  color: var(--muted);
+  display: flex;
+  font-weight: 900;
+  height: 220px;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  touch-action: none;
+  user-select: none;
+}
+
+.merchant-image-dropzone.has-image {
+  background: #182321;
+}
+
+.merchant-image-dropzone img {
+  cursor: grab;
+  max-width: 82%;
+  position: absolute;
+  touch-action: none;
+  user-select: none;
+}
+
+.merchant-image-dropzone img:active {
+  cursor: grabbing;
+}
+
+.merchant-image-editor-controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.merchant-image-editor-controls label:not(.merchant-logo-upload-button) {
+  color: var(--muted);
+  display: grid;
+  flex: 1 1 180px;
+  font-size: 13px;
+  font-weight: 900;
+  gap: 6px;
+}
+
+.merchant-image-editor-controls button {
+  background: #fff3ee;
+  color: var(--coral);
+}
+
+.merchant-logo-review-head {
+  border-top: 1px solid var(--line);
+  margin-top: 18px;
+  padding-top: 20px;
+}
+
+.admin-merchant-logo-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  height: 72px;
+  object-fit: cover;
+  width: 72px;
 }
 
 .partner-looseleaf-art {
@@ -6106,6 +6277,15 @@ h3 {
 
   .partner-detail-copy > p:not(.eyebrow) {
     font-size: 15px;
+  }
+
+  .merchant-image-editor-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .partner-detail-floating-image {
+    max-width: 72vw;
+    width: 58%;
   }
 
   .partner-looseleaf-art {
