@@ -2521,9 +2521,8 @@ const partnerMerchantEntries = partnerShowcases.flatMap((showcase) =>
 )
 
 const manageablePartnerBrands = partnerMerchantEntries
-  .filter((entry) => 'id' in entry.merchant)
   .map((entry) => ({
-    id: 'id' in entry.merchant ? entry.merchant.id : entry.slug,
+    id: entry.slug,
     name: entry.merchant.name,
     type: entry.showcase.type,
   }))
