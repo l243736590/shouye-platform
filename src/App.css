@@ -2404,7 +2404,9 @@ h3 {
   max-width: 100%;
   object-fit: contain;
   width: auto;
-  filter: drop-shadow(0 14px 22px rgba(16, 32, 29, 0.16));
+  filter:
+    drop-shadow(0 5px 8px rgba(16, 32, 29, 0.18))
+    drop-shadow(0 18px 28px rgba(16, 32, 29, 0.22));
 }
 
 .partner-logo-mark.has-image::before,
