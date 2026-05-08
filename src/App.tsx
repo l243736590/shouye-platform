@@ -2410,6 +2410,34 @@ const partnerShowcases = [
     ],
   },
   {
+    type: '作品集辅导',
+    audience: '艺术、设计、传媒、建筑和影像方向作品集规划与修改',
+    tone: 'academic',
+    merchants: [
+      {
+        name: '作品集规划与排版辅导',
+        logo: '作品集',
+        summary: '项目梳理、作品集结构、视觉排版和提交前检查',
+        description: '展示可辅导方向、老师背景、修改轮次、交付边界和作品集原创要求，适合准备艺术、设计、传媒和建筑类申请的学生对比。',
+        tags: ['作品集', '排版', '项目梳理'],
+      },
+      {
+        name: '设计类作品集项目辅导',
+        logo: '设计',
+        summary: '平面、视觉传达、产品、空间和交互方向项目表达',
+        description: '适合展示项目拆解方式、调研呈现、过程页整理、成品图表达和面试阐述准备，帮助学生先判断服务是否匹配专业方向。',
+        tags: ['设计', '视觉传达', '交互'],
+      },
+      {
+        name: '传媒影像作品集辅导',
+        logo: '影像',
+        summary: '视频、摄影、导演、动画和媒体艺术作品集整理',
+        description: '展示可服务方向、作品筛选方式、链接提交规范、韩语/英语阐述准备和面试前检查清单，适合传媒与影像方向学生。',
+        tags: ['传媒', '影像', '面试阐述'],
+      },
+    ],
+  },
+  {
     type: '餐饮相关',
     audience: '中餐、外卖、夜宵、聚餐和校区团购',
     tone: 'food',
@@ -5271,7 +5299,7 @@ function App() {
   const [answerForm, setAnswerForm] = useState({ content: '' })
   const [partnerForm, setPartnerForm] = useState({
     company: '',
-    type: '留学机构',
+    type: '留学咨询',
     contact: '',
     phone: '',
     direction: '内容入驻',
@@ -13515,9 +13543,16 @@ function App() {
                     value={partnerForm.type}
                     onChange={(event) => setPartnerForm({ ...partnerForm, type: event.target.value })}
                   >
-                    <option>留学机构</option>
-                    <option>论文辅导机构</option>
-                    <option>语学院 / 教育机构</option>
+                    <option>留学咨询</option>
+                    <option>论文与毕业</option>
+                    <option>韩语培训</option>
+                    <option>艺术类培训</option>
+                    <option>作品集辅导</option>
+                    <option>餐饮相关</option>
+                    <option>物流快递</option>
+                    <option>通信</option>
+                    <option>家政搬家</option>
+                    <option>不动产</option>
                     <option>招聘企业</option>
                     <option>政府部门</option>
                     <option>品牌 / 广告合作</option>

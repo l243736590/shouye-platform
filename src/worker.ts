@@ -2971,7 +2971,7 @@ const handlePartnerCreate = async (request: Request, env: Env) => {
   const application: PartnerApplicationRecord = {
     id: createId('partner'),
     company: body.company.trim(),
-    type: body.type || '留学机构',
+    type: body.type || '留学咨询',
     contact: body.contact.trim(),
     phone: body.phone.trim(),
     direction: body.direction || '内容入驻',
