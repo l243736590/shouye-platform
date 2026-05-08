@@ -1,6 +1,6 @@
 import type { ChangeEvent, CSSProperties, DragEvent, FormEvent, MouseEvent, PointerEvent } from 'react'
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { motion } from 'framer-motion'
 import {
   ArrowRight,
@@ -5958,10 +5958,11 @@ function App() {
   }
   const getTextPopoverAnchor = (element: HTMLElement): TextPopoverAnchor => {
     const rect = element.getBoundingClientRect()
+    const nextWidth = Math.max(360, Math.min(680, rect.width + 96, window.innerWidth - 32))
     return {
-      left: rect.left + rect.width / 2,
-      top: rect.top,
-      width: rect.width,
+      left: Math.min(window.innerWidth - nextWidth / 2 - 16, Math.max(nextWidth / 2 + 16, rect.left + rect.width / 2)),
+      top: rect.top - 10,
+      width: nextWidth,
     }
   }
   const getMerchantDecorationImageStyle = (
@@ -7225,11 +7226,18 @@ function App() {
           position: 'fixed',
           top: merchantTextPopoverAnchor.top,
           transform: 'translate(-50%, calc(-100% - 12px))',
-          width: Math.max(360, Math.min(720, merchantTextPopoverAnchor.width + 120)),
+          width: merchantTextPopoverAnchor.width,
+          zIndex: 2147483000,
         }
       : undefined
-    return (
-      <div className="merchant-inline-edit-popover" style={popoverStyle} onDoubleClick={(event) => event.stopPropagation()}>
+    const editor = (
+      <div
+        className="merchant-inline-edit-popover"
+        style={popoverStyle}
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         {isTextField && (
           <textarea
             value={String(activeMerchantDecorationDraft[field] ?? '')}
@@ -7290,6 +7298,7 @@ function App() {
         </div>
       </div>
     )
+    return createPortal(editor, document.body)
   }
 
   const getMerchantEditableTextProps = (field: MerchantEditableTextField) =>
@@ -7355,11 +7364,18 @@ function App() {
           position: 'fixed',
           top: partnerShowcaseTextPopoverAnchor.top,
           transform: 'translate(-50%, calc(-100% - 12px))',
-          width: Math.max(360, Math.min(720, partnerShowcaseTextPopoverAnchor.width + 120)),
+          width: partnerShowcaseTextPopoverAnchor.width,
+          zIndex: 2147483000,
         }
       : undefined
-    return (
-      <div className="partner-showcase-text-popover" style={popoverStyle} onDoubleClick={(event) => event.stopPropagation()}>
+    const editor = (
+      <div
+        className="partner-showcase-text-popover"
+        style={popoverStyle}
+        onClick={(event) => event.stopPropagation()}
+        onDoubleClick={(event) => event.stopPropagation()}
+        onPointerDown={(event) => event.stopPropagation()}
+      >
         <label>
           {fieldLabel}
           <textarea
@@ -7431,6 +7447,7 @@ function App() {
         </div>
       </div>
     )
+    return createPortal(editor, document.body)
   }
 
   const renderPartnerShowcaseDesignItems = () => {
