@@ -2544,6 +2544,7 @@ h3 {
   display: grid;
   gap: 10px;
   left: 0;
+  max-width: calc(100vw - 32px);
   min-width: min(520px, 82vw);
   padding: 12px;
   position: absolute;
@@ -2618,9 +2619,29 @@ h3 {
   user-select: none;
 }
 
+.partner-showcase-design-hitbox {
+  cursor: grab;
+  min-width: 52px;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.partner-showcase-design-hitbox:hover {
+  outline-color: rgba(239, 90, 60, 0.38);
+}
+
 .partner-showcase-design-item.is-selected {
   outline: 2px solid rgba(239, 90, 60, 0.86);
   outline-offset: 4px;
+}
+
+.partner-showcase-design-hitbox.is-selected {
+  outline-color: rgba(239, 90, 60, 0.86);
 }
 
 .partner-showcase-design-item img,
@@ -3410,6 +3431,7 @@ small[data-merchant-inline-edit='true'] {
   display: grid;
   gap: 10px;
   left: 0;
+  max-width: calc(100vw - 32px);
   min-width: min(520px, 86vw);
   padding: 12px;
   position: absolute;
@@ -3521,6 +3543,22 @@ small[data-merchant-inline-edit='true'] {
   user-select: none;
 }
 
+.merchant-design-hitbox {
+  cursor: grab;
+  min-width: 80px;
+  outline: 2px solid transparent;
+  outline-offset: 4px;
+  position: absolute;
+  pointer-events: auto;
+  touch-action: none;
+  transform: translate(-50%, -50%);
+  user-select: none;
+}
+
+.merchant-design-hitbox:hover {
+  outline-color: rgba(239, 90, 60, 0.38);
+}
+
 .merchant-design-item:hover {
   border-color: rgba(239, 90, 60, 0.46);
   box-shadow: 0 18px 40px rgba(16, 32, 29, 0.2);
@@ -3542,6 +3580,11 @@ small[data-merchant-inline-edit='true'] {
   box-shadow:
     0 0 0 2px rgba(239, 90, 60, 0.88),
     0 18px 38px rgba(16, 32, 29, 0.18);
+}
+
+.merchant-design-hitbox.is-selected {
+  animation: merchantSelectPulse 280ms ease;
+  outline-color: rgba(239, 90, 60, 0.88);
 }
 
 @keyframes merchantSelectPulse {

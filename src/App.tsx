@@ -1,5 +1,5 @@
 import type { ChangeEvent, CSSProperties, DragEvent, FormEvent, MouseEvent, PointerEvent } from 'react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { motion } from 'framer-motion'
 import {
@@ -128,6 +128,12 @@ type MerchantTextLayerStyle = {
   x: number
   y: number
   z: number
+}
+
+type TextPopoverAnchor = {
+  left: number
+  top: number
+  width: number
 }
 
 type MerchantBrandDecoration = {
@@ -5142,9 +5148,11 @@ function App() {
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [partnerShowcaseEditMode, setPartnerShowcaseEditMode] = useState(false)
   const [activePartnerShowcaseTextEditor, setActivePartnerShowcaseTextEditor] = useState<MerchantEditableTextField | null>(null)
+  const [partnerShowcaseTextPopoverAnchor, setPartnerShowcaseTextPopoverAnchor] = useState<TextPopoverAnchor | null>(null)
   const [activePartnerShowcaseDesignItemId, setActivePartnerShowcaseDesignItemId] = useState<string | null>(null)
   const [merchantDesignEditMode, setMerchantDesignEditMode] = useState(false)
   const [activeMerchantTextEditor, setActiveMerchantTextEditor] = useState<MerchantEditableTextField | null>(null)
+  const [merchantTextPopoverAnchor, setMerchantTextPopoverAnchor] = useState<TextPopoverAnchor | null>(null)
   const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
   const [activeMerchantDesignItemId, setActiveMerchantDesignItemId] = useState<string | null>(null)
   const [activeMerchantStageLayerId, setActiveMerchantStageLayerId] = useState<MerchantStageLayerId | null>(null)
@@ -5948,6 +5956,14 @@ function App() {
       zIndex: layer.z,
     }
   }
+  const getTextPopoverAnchor = (element: HTMLElement): TextPopoverAnchor => {
+    const rect = element.getBoundingClientRect()
+    return {
+      left: rect.left + rect.width / 2,
+      top: rect.top,
+      width: rect.width,
+    }
+  }
   const getMerchantDecorationImageStyle = (
     decoration: MerchantBrandDecoration | undefined,
     zone: 'hero' | 'service',
@@ -6654,13 +6670,20 @@ function App() {
     field: MerchantEditableTextField,
     direction: 1 | -1,
   ) => {
-    const currentLayer = getTextLayerState(decoration, field)
-    updateTextLayerStyle(brandId, decoration, field, { z: Math.min(120, Math.max(1, currentLayer.z + direction)) })
+    const textLayers = Object.values(decoration.textLayerStyles ?? {}).map((layer) => layer.z)
+    const designLayers = (decoration.designItems ?? []).map((item) => item.z)
+    const maxLayer = Math.max(20, ...textLayers, ...designLayers)
+    updateTextLayerStyle(brandId, decoration, field, { z: direction > 0 ? Math.min(160, maxLayer + 10) : 0 })
   }
 
   const startMerchantTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
     if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
-    if (event.detail > 1) return
+    if (event.detail > 1) {
+      event.preventDefault()
+      event.stopPropagation()
+      openMerchantTextEditor(field, event.currentTarget)
+      return
+    }
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     selectMerchantTextLayer(field)
@@ -6682,10 +6705,16 @@ function App() {
       x: Math.min(800, Math.max(-800, Math.round(drag.originX + event.clientX - drag.startX))),
       y: Math.min(800, Math.max(-800, Math.round(drag.originY + event.clientY - drag.startY))),
     })
+    setMerchantTextPopoverAnchor(null)
   }
 
   const endMerchantTextLayerDrag = () => {
     merchantTextLayerDragRef.current = null
+  }
+
+  const openMerchantTextEditor = (field: MerchantEditableTextField, element: HTMLElement) => {
+    selectMerchantTextLayer(field, true)
+    setMerchantTextPopoverAnchor(getTextPopoverAnchor(element))
   }
 
   const startMerchantDesignItemDrag = (
@@ -6820,7 +6849,12 @@ function App() {
 
   const startPartnerShowcaseTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
     if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
-    if (event.detail > 1) return
+    if (event.detail > 1) {
+      event.preventDefault()
+      event.stopPropagation()
+      openPartnerShowcaseTextEditor(field, event.currentTarget)
+      return
+    }
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     setActivePartnerShowcaseTextEditor(null)
@@ -6842,10 +6876,34 @@ function App() {
       x: Math.min(800, Math.max(-800, Math.round(drag.originX + event.clientX - drag.startX))),
       y: Math.min(800, Math.max(-800, Math.round(drag.originY + event.clientY - drag.startY))),
     })
+    setPartnerShowcaseTextPopoverAnchor(null)
   }
 
   const endPartnerShowcaseTextLayerDrag = () => {
     partnerShowcaseTextLayerDragRef.current = null
+  }
+
+  const openPartnerShowcaseTextEditor = (field: MerchantEditableTextField, element: HTMLElement) => {
+    setActivePartnerShowcaseTextEditor(field)
+    setPartnerShowcaseTextPopoverAnchor(getTextPopoverAnchor(element))
+  }
+
+  const findMerchantTextLayerAtPoint = (clientX: number, clientY: number) => {
+    const element = document
+      .elementsFromPoint(clientX, clientY)
+      .map((entry) => entry.closest<HTMLElement>('[data-merchant-text-field]'))
+      .find((entry): entry is HTMLElement => Boolean(entry))
+    const field = element?.dataset.merchantTextField as MerchantEditableTextField | undefined
+    return element && field ? { element, field } : null
+  }
+
+  const findPartnerShowcaseTextLayerAtPoint = (clientX: number, clientY: number) => {
+    const element = document
+      .elementsFromPoint(clientX, clientY)
+      .map((entry) => entry.closest<HTMLElement>('[data-partner-showcase-text-field]'))
+      .find((entry): entry is HTMLElement => Boolean(entry))
+    const field = element?.dataset.partnerShowcaseTextField as MerchantEditableTextField | undefined
+    return element && field ? { element, field } : null
   }
 
   const startPartnerShowcaseDesignItemDrag = (
@@ -7038,61 +7096,79 @@ function App() {
             fontSize: item.fontSize,
           }
           return (
-            <div
-              className={`merchant-design-item ${item.kind === 'media' ? 'is-media' : 'is-bubble'} ${selected ? 'is-selected' : ''}`}
-              key={item.id}
-              style={itemStyle}
-              onClick={(event) => {
-                if (!editable) return
-                event.preventDefault()
-                event.stopPropagation()
-                selectMerchantDesignLayer(item.id)
-              }}
-              onDoubleClick={(event) => {
-                if (!editable || item.kind === 'media') return
-                event.preventDefault()
-                event.stopPropagation()
-                const nextText = window.prompt('修改泡泡框文字', item.text)
-                if (nextText !== null) updateMerchantDesignItem(item.id, { text: nextText })
-              }}
-              onDragOver={(event) => editable && event.preventDefault()}
-              onDrop={(event) => editable && handleMerchantDesignItemDrop(item.id, event)}
-              onPointerDown={(event) => startMerchantDesignItemDrag(item, 'move', event)}
-            >
-              {item.kind === 'media' && item.mediaUrl ? (
-                item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
-                  <video draggable={false} muted playsInline src={item.mediaUrl} />
+            <Fragment key={item.id}>
+              <div
+                className={`merchant-design-item ${item.kind === 'media' ? 'is-media' : 'is-bubble'} ${selected ? 'is-selected' : ''}`}
+                style={itemStyle}
+              >
+                {item.kind === 'media' && item.mediaUrl ? (
+                  item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
+                    <video draggable={false} muted playsInline src={item.mediaUrl} />
+                  ) : (
+                    <img alt="" draggable={false} src={item.mediaUrl} />
+                  )
                 ) : (
-                  <img alt="" draggable={false} src={item.mediaUrl} />
-                )
-              ) : (
-                <span>{item.text}</span>
+                  <span>{item.text}</span>
+                )}
+              </div>
+              {editable && (
+                <div
+                  className={`merchant-design-hitbox ${selected ? 'is-selected' : ''}`}
+                  style={{ ...itemStyle, background: 'transparent', color: undefined, fontSize: undefined, opacity: 1, zIndex: 190 }}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    selectMerchantDesignLayer(item.id)
+                  }}
+                  onDoubleClick={(event) => {
+                    if (item.kind === 'media') return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const nextText = window.prompt('修改泡泡框文字', item.text)
+                    if (nextText !== null) updateMerchantDesignItem(item.id, { text: nextText })
+                  }}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={(event) => handleMerchantDesignItemDrop(item.id, event)}
+                  onPointerDown={(event) => {
+                    if (event.detail > 1) {
+                      const textLayer = findMerchantTextLayerAtPoint(event.clientX, event.clientY)
+                      if (textLayer) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        openMerchantTextEditor(textLayer.field, textLayer.element)
+                        return
+                      }
+                    }
+                    startMerchantDesignItemDrag(item, 'move', event)
+                  }}
+                >
+                  {selected && (
+                    <>
+                      <button
+                        className="merchant-design-delete"
+                        type="button"
+                        onPointerDown={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                        }}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          deleteMerchantDesignItem(item.id)
+                        }}
+                      >
+                        ×
+                      </button>
+                      <span
+                        className="merchant-design-resize"
+                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => startMerchantDesignItemDrag(item, 'resize', event)}
+                      />
+                    </>
+                  )}
+                </div>
               )}
-              {selected && (
-                <>
-                  <button
-                    className="merchant-design-delete"
-                    type="button"
-                    onPointerDown={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                    }}
-                    onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      deleteMerchantDesignItem(item.id)
-                    }}
-                  >
-                    ×
-                  </button>
-                  <span
-                    className="merchant-design-resize"
-                    onClick={(event) => event.stopPropagation()}
-                    onPointerDown={(event) => startMerchantDesignItemDrag(item, 'resize', event)}
-                  />
-                </>
-              )}
-            </div>
+            </Fragment>
           )
         })}
       </div>
@@ -7142,8 +7218,18 @@ function App() {
       'showcaseArtTitle',
       'showcaseArtSubtitle',
     ].includes(field)
+    const popoverStyle: CSSProperties | undefined = merchantTextPopoverAnchor
+      ? {
+          bottom: 'auto',
+          left: merchantTextPopoverAnchor.left,
+          position: 'fixed',
+          top: merchantTextPopoverAnchor.top,
+          transform: 'translate(-50%, calc(-100% - 12px))',
+          width: Math.max(360, Math.min(720, merchantTextPopoverAnchor.width + 120)),
+        }
+      : undefined
     return (
-      <div className="merchant-inline-edit-popover" onDoubleClick={(event) => event.stopPropagation()}>
+      <div className="merchant-inline-edit-popover" style={popoverStyle} onDoubleClick={(event) => event.stopPropagation()}>
         {isTextField && (
           <textarea
             value={String(activeMerchantDecorationDraft[field] ?? '')}
@@ -7189,7 +7275,10 @@ function App() {
               onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'accentColor', event.target.value)}
             />
           </label>
-          <button type="button" onClick={() => setActiveMerchantTextEditor(null)}>
+          <button type="button" onClick={() => {
+            setActiveMerchantTextEditor(null)
+            setMerchantTextPopoverAnchor(null)
+          }}>
             完成
           </button>
           <button type="button" onClick={() => moveTextLayer(activePartnerDetailSlug, activeMerchantDecorationDraft, field, 1)}>
@@ -7208,6 +7297,7 @@ function App() {
       ? {
           'data-merchant-inline-edit': 'true',
           'data-merchant-layer-active': activeMerchantStageLayerId === `text:${field}` ? 'true' : undefined,
+          'data-merchant-text-field': field,
           onClick: (event: MouseEvent<HTMLElement>) => {
             event.preventDefault()
             event.stopPropagation()
@@ -7216,7 +7306,7 @@ function App() {
           onDoubleClick: (event: MouseEvent<HTMLElement>) => {
             event.preventDefault()
             event.stopPropagation()
-            selectMerchantTextLayer(field, true)
+            openMerchantTextEditor(field, event.currentTarget)
           },
           onPointerDown: (event: PointerEvent<HTMLElement>) => {
             startMerchantTextLayerDrag(field, event)
@@ -7229,13 +7319,14 @@ function App() {
       ? {
           'data-partner-showcase-editable': 'true',
           'data-partner-showcase-active': activePartnerShowcaseTextEditor === field ? 'true' : undefined,
+          'data-partner-showcase-text-field': field,
           onClick: (event: MouseEvent<HTMLElement>) => {
             event.stopPropagation()
           },
           onDoubleClick: (event: MouseEvent<HTMLElement>) => {
             event.preventDefault()
             event.stopPropagation()
-            setActivePartnerShowcaseTextEditor(field)
+            openPartnerShowcaseTextEditor(field, event.currentTarget)
           },
           onPointerDown: (event: PointerEvent<HTMLElement>) => {
             startPartnerShowcaseTextLayerDrag(field, event)
@@ -7257,8 +7348,18 @@ function App() {
               : field === 'showcaseArtSubtitle'
                 ? '右侧副标题'
                 : '展示文字'
+    const popoverStyle: CSSProperties | undefined = partnerShowcaseTextPopoverAnchor
+      ? {
+          bottom: 'auto',
+          left: partnerShowcaseTextPopoverAnchor.left,
+          position: 'fixed',
+          top: partnerShowcaseTextPopoverAnchor.top,
+          transform: 'translate(-50%, calc(-100% - 12px))',
+          width: Math.max(360, Math.min(720, partnerShowcaseTextPopoverAnchor.width + 120)),
+        }
+      : undefined
     return (
-      <div className="partner-showcase-text-popover" onDoubleClick={(event) => event.stopPropagation()}>
+      <div className="partner-showcase-text-popover" style={popoverStyle} onDoubleClick={(event) => event.stopPropagation()}>
         <label>
           {fieldLabel}
           <textarea
@@ -7309,6 +7410,7 @@ function App() {
             type="button"
             onClick={() => {
               setActivePartnerShowcaseTextEditor(null)
+              setPartnerShowcaseTextPopoverAnchor(null)
               savePartnerShowcaseDecoration(false)
             }}
           >
@@ -7348,60 +7450,78 @@ function App() {
             opacity: item.opacity,
           }
           return (
-            <div
-              className={`partner-showcase-design-item ${selected ? 'is-selected' : ''}`}
-              key={item.id}
-              style={itemStyle}
-              onClick={(event) => {
-                if (!editable) return
-                event.preventDefault()
-                event.stopPropagation()
-                setActivePartnerShowcaseDesignItemId(item.id)
-              }}
-              onPointerDown={(event) => startPartnerShowcaseDesignItemDrag(item, 'move', event)}
-            >
-              {item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
-                <video draggable={false} muted playsInline src={item.mediaUrl} />
-              ) : (
-                <img alt="" draggable={false} src={item.mediaUrl} />
+            <Fragment key={item.id}>
+              <div
+                className={`partner-showcase-design-item ${selected ? 'is-selected' : ''}`}
+                style={itemStyle}
+              >
+                {item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
+                  <video draggable={false} muted playsInline src={item.mediaUrl} />
+                ) : (
+                  <img alt="" draggable={false} src={item.mediaUrl} />
+                )}
+              </div>
+              {editable && (
+                <div
+                  className={`partner-showcase-design-hitbox ${selected ? 'is-selected' : ''}`}
+                  style={{ ...itemStyle, opacity: 1, zIndex: 190 }}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    event.stopPropagation()
+                    setActivePartnerShowcaseDesignItemId(item.id)
+                  }}
+                  onPointerDown={(event) => {
+                    if (event.detail > 1) {
+                      const textLayer = findPartnerShowcaseTextLayerAtPoint(event.clientX, event.clientY)
+                      if (textLayer) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                        openPartnerShowcaseTextEditor(textLayer.field, textLayer.element)
+                        return
+                      }
+                    }
+                    startPartnerShowcaseDesignItemDrag(item, 'move', event)
+                  }}
+                >
+                  {selected && (
+                    <>
+                      <div className="partner-showcase-layer-controls">
+                        <button type="button" onPointerDown={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                        }} onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          movePartnerShowcaseDesignItemLayer(item.id, 1)
+                        }}>↑</button>
+                        <button type="button" onPointerDown={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                        }} onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          movePartnerShowcaseDesignItemLayer(item.id, -1)
+                        }}>↓</button>
+                        <button type="button" onPointerDown={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                        }} onClick={(event) => {
+                          event.preventDefault()
+                          event.stopPropagation()
+                          deletePartnerShowcaseDesignItem(item.id)
+                        }}>×</button>
+                      </div>
+                      <span
+                        className="partner-showcase-design-resize"
+                        title="拖动缩放，按住 Shift 保持比例"
+                        onClick={(event) => event.stopPropagation()}
+                        onPointerDown={(event) => startPartnerShowcaseDesignItemDrag(item, 'resize', event)}
+                      />
+                    </>
+                  )}
+                </div>
               )}
-              {selected && (
-                <>
-                  <div className="partner-showcase-layer-controls">
-                    <button type="button" onPointerDown={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                    }} onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      movePartnerShowcaseDesignItemLayer(item.id, 1)
-                    }}>↑</button>
-                    <button type="button" onPointerDown={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                    }} onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      movePartnerShowcaseDesignItemLayer(item.id, -1)
-                    }}>↓</button>
-                    <button type="button" onPointerDown={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                    }} onClick={(event) => {
-                      event.preventDefault()
-                      event.stopPropagation()
-                      deletePartnerShowcaseDesignItem(item.id)
-                    }}>×</button>
-                  </div>
-                  <span
-                    className="partner-showcase-design-resize"
-                    title="拖动缩放，按住 Shift 保持比例"
-                    onClick={(event) => event.stopPropagation()}
-                    onPointerDown={(event) => startPartnerShowcaseDesignItemDrag(item, 'resize', event)}
-                  />
-                </>
-              )}
-            </div>
+            </Fragment>
           )
         })}
       </div>
@@ -9876,10 +9996,10 @@ function App() {
               {merchantDesignEditMode && canManageActivePartnerBrand && !activeMerchantPreviewDecoration?.heroImage && (
                 <span className="merchant-direct-drop-hint">拖入图片/视频到主视觉区</span>
               )}
-              <div className="merchant-inline-edit-wrap">
+              <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'badge')}>
                 <p
                   className="eyebrow dark"
-                  style={{ ...activeMerchantAccentStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'badge') }}
+                  style={activeMerchantAccentStyle}
                   {...getMerchantEditableTextProps('badge')}
                 >
                   {partnerDetailBadge}
@@ -9900,9 +10020,12 @@ function App() {
                 </div>
                 <div>
                   <span>{activePartnerDetail.showcase.type}</span>
-                  <div className="merchant-inline-edit-wrap partner-detail-name-edit-wrap">
+                  <div
+                    className="merchant-inline-edit-wrap partner-detail-name-edit-wrap"
+                    style={getTextLayerStyle(activeMerchantPreviewDecoration, 'showcaseArtTitle')}
+                  >
                     <strong
-                      style={{ ...activeMerchantTitleStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'showcaseArtTitle') }}
+                      style={activeMerchantTitleStyle}
                       {...getMerchantEditableTextProps('showcaseArtTitle')}
                     >
                       {activeMerchantDisplayName}
@@ -9914,18 +10037,18 @@ function App() {
                   </small>
                 </div>
               </div>
-              <div className="merchant-inline-edit-wrap">
+              <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'heroTitle')}>
                 <h1
-                  style={{ ...activeMerchantTitleStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'heroTitle') }}
+                  style={activeMerchantTitleStyle}
                   {...getMerchantEditableTextProps('heroTitle')}
                 >
                   {partnerDetailHeroTitle}
                 </h1>
                 {renderMerchantTextEditor('heroTitle')}
               </div>
-              <div className="merchant-inline-edit-wrap">
+              <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'intro')}>
                 <p
-                  style={{ ...activeMerchantBodyStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'intro') }}
+                  style={activeMerchantBodyStyle}
                   {...getMerchantEditableTextProps('intro')}
                 >
                   {partnerDetailIntro}
@@ -9950,9 +10073,9 @@ function App() {
             <div className="partner-detail-panel" aria-label={`${activePartnerDetail.merchant.name}服务标签`}>
               <span style={activeMerchantAccentStyle}>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
               <strong style={activeMerchantTitleStyle}>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
-              <div className="merchant-inline-edit-wrap">
+              <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'contactCopy')}>
               <p
-                style={{ ...activeMerchantBodyStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'contactCopy') }}
+                style={activeMerchantBodyStyle}
                 {...getMerchantEditableTextProps('contactCopy')}
               >
                 {isWalaPartnerDetail
@@ -10005,9 +10128,11 @@ function App() {
             </div>
             {partnerDetailCases.map((item, index) => (
               <article key={`${index}-${item}`} style={activeMerchantBodyStyle}>
-                <div className="merchant-inline-edit-wrap">
+                <div
+                  className="merchant-inline-edit-wrap"
+                  style={getTextLayerStyle(activeMerchantPreviewDecoration, index === 0 ? 'caseOne' : 'caseTwo')}
+                >
                   <span
-                    style={getTextLayerStyle(activeMerchantPreviewDecoration, index === 0 ? 'caseOne' : 'caseTwo')}
                     {...getMerchantEditableTextProps(index === 0 ? 'caseOne' : 'caseTwo')}
                   >
                     {item}
@@ -11484,9 +11609,12 @@ function App() {
                   <div>
                     <span>{selectedPartnerShowcase.type}</span>
                     <strong>{activePartnerMerchant.name}</strong>
-                    <span className="partner-showcase-text-wrap">
+                    <span
+                      className="partner-showcase-text-wrap"
+                      style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'badge')}
+                    >
                       <small
-                        style={{ ...activePartnerShowcaseAccentStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'badge') }}
+                        style={activePartnerShowcaseAccentStyle}
                         {...getPartnerShowcaseEditableTextProps('badge')}
                       >
                         {activePartnerShowcaseBadge}
@@ -11496,18 +11624,24 @@ function App() {
                   </div>
                 </div>
                 <div className="partner-showcase-copy">
-                  <div className="partner-showcase-text-wrap">
+                  <div
+                    className="partner-showcase-text-wrap"
+                    style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'heroTitle')}
+                  >
                     <h3
-                      style={{ ...activePartnerShowcaseTitleStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'heroTitle') }}
+                      style={activePartnerShowcaseTitleStyle}
                       {...getPartnerShowcaseEditableTextProps('heroTitle')}
                     >
                       {activePartnerShowcaseTitle}
                     </h3>
                     {renderPartnerShowcaseTextEditor('heroTitle')}
                   </div>
-                  <div className="partner-showcase-text-wrap">
+                  <div
+                    className="partner-showcase-text-wrap"
+                    style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'intro')}
+                  >
                     <p
-                      style={{ ...activePartnerShowcaseBodyStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'intro') }}
+                      style={activePartnerShowcaseBodyStyle}
                       {...getPartnerShowcaseEditableTextProps('intro')}
                     >
                       {activePartnerShowcaseDescription}
@@ -11530,18 +11664,24 @@ function App() {
               <div className="partner-looseleaf-art">
                 <span className="partner-art-map" />
                 <span className="partner-art-plane" />
-                <span className="partner-showcase-text-wrap partner-showcase-art-text">
+                <span
+                  className="partner-showcase-text-wrap partner-showcase-art-text"
+                  style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtTitle')}
+                >
                   <strong
-                    style={{ ...activePartnerShowcaseTitleStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtTitle') }}
+                    style={activePartnerShowcaseTitleStyle}
                     {...getPartnerShowcaseEditableTextProps('showcaseArtTitle')}
                   >
                     {activePartnerShowcaseArtTitle}
                   </strong>
                   {renderPartnerShowcaseTextEditor('showcaseArtTitle')}
                 </span>
-                <span className="partner-showcase-text-wrap partner-showcase-art-text">
+                <span
+                  className="partner-showcase-text-wrap partner-showcase-art-text"
+                  style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtSubtitle')}
+                >
                   <small
-                    style={{ ...activePartnerShowcaseTitleStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtSubtitle') }}
+                    style={activePartnerShowcaseTitleStyle}
                     {...getPartnerShowcaseEditableTextProps('showcaseArtSubtitle')}
                   >
                     {activePartnerShowcaseArtSubtitle}
