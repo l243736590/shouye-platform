@@ -5740,16 +5740,26 @@ function App() {
       entry.slug === 'tuzhuren-thesis'
         ? getPartnerLogoImage(entry.merchant) || approvedLogoImage
         : approvedLogoImage || getPartnerLogoImage(entry.merchant)
-    const orbitX = 8 + ((index * 17) % 74)
-    const orbitY = 14 + ((index * 23) % 58)
+    const orbitX = 10 + ((index * 19) % 76)
+    const orbitY = 16 + ((index * 29) % 62)
+    const direction = index % 2 === 0 ? 1 : -1
+    const driftA = 14 + ((index * 7) % 26)
+    const driftB = 10 + ((index * 11) % 24)
     return {
       ...entry,
       logoImage,
       style: {
         '--bubble-x': `${orbitX}%`,
         '--bubble-y': `${orbitY}%`,
-        '--bubble-delay': `${(index % 7) * -1.2}s`,
-        '--bubble-duration': `${8 + (index % 5) * 1.4}s`,
+        '--bubble-delay': `${(index % 9) * -1.6}s`,
+        '--bubble-duration': `${12 + (index % 7) * 1.7}s`,
+        '--bubble-dx-a': `${driftA * direction}px`,
+        '--bubble-dy-a': `${driftB * -direction}px`,
+        '--bubble-dx-b': `${Math.round(driftB * 1.25) * -direction}px`,
+        '--bubble-dy-b': `${Math.round(driftA * 0.9) * direction}px`,
+        '--bubble-dx-c': `${Math.round(driftA * 0.6) * direction}px`,
+        '--bubble-dy-c': `${Math.round(driftB * 1.35) * direction}px`,
+        '--bubble-rotate': `${(index % 5) - 2}deg`,
       } as CSSProperties,
     }
   })
