@@ -1103,7 +1103,18 @@ const studentStageLabels: Record<StudentStage, string> = {
   graduated: '已毕业',
 }
 
-const businessCategoryOptions = ['租房', '搬家', '手机卡', '银行/金融', '保险', '翻译', '升学服务', '生活服务', '其他']
+const businessCategoryOptions = [
+  '留学咨询',
+  '论文与毕业',
+  '韩语培训',
+  '艺术类培训',
+  '作品集辅导',
+  '餐饮相关',
+  '物流快递',
+  '通信',
+  '家政搬家',
+  '不动产',
+]
 const skillServiceCategories = [
   '宠物照看/遛狗喂猫',
   '跑腿/排队/代办',
@@ -5239,7 +5250,6 @@ function App() {
   const [selectedPartnerType, setSelectedPartnerType] = useState(partnerShowcases[0].type)
   const [selectedPartnerMerchantIndex, setSelectedPartnerMerchantIndex] = useState(0)
   const [partnerAutoFlip, setPartnerAutoFlip] = useState(true)
-  const [partnerAutoFlipDelay, setPartnerAutoFlipDelay] = useState(10000)
   const [questionCategoryFilter, setQuestionCategoryFilter] = useState(allCategoryLabel)
   const [questionStatusFilter, setQuestionStatusFilter] = useState<'all' | QuestionStatus>('all')
   const [questionSort, setQuestionSort] = useState<'reward' | 'views' | 'latest'>('reward')
@@ -5357,7 +5367,7 @@ function App() {
     emailCode: '',
     school: '',
     businessName: '',
-    businessCategory: '租房',
+    businessCategory: businessCategoryOptions[0],
     country: '韩国',
     city: '',
     avatarUrl: '',
@@ -5722,17 +5732,17 @@ function App() {
     'id' in activePartnerMerchant && activePartnerMerchant.id
       ? activePartnerMerchant.id
       : encodeURIComponent(activePartnerMerchant.name)
+  const activePartnerAutoFlipDelay = activePartnerMerchant?.level === 'pinned' ? 10000 : 5000
 
   useEffect(() => {
     if (!partnerAutoFlip || partnerShowcaseEditMode || selectedPartnerMerchantCount < 2) return
     const timer = window.setTimeout(() => {
       setSelectedPartnerMerchantIndex((index) => (index + 1) % selectedPartnerMerchantCount)
-      setPartnerAutoFlipDelay(5000)
-    }, partnerAutoFlipDelay)
+    }, activePartnerAutoFlipDelay)
     return () => window.clearTimeout(timer)
   }, [
+    activePartnerAutoFlipDelay,
     partnerAutoFlip,
-    partnerAutoFlipDelay,
     partnerShowcaseEditMode,
     selectedPartnerMerchantCount,
     selectedPartnerMerchantIndex,
@@ -8848,7 +8858,7 @@ function App() {
       studentStage: 'preparing',
       school: '',
       businessName: '',
-      businessCategory: '租房',
+      businessCategory: businessCategoryOptions[0],
       country: '韩国',
       city: '',
       avatarUrl: '',
@@ -9287,7 +9297,6 @@ function App() {
     setSelectedPartnerType(type)
     setSelectedPartnerMerchantIndex(0)
     setPartnerAutoFlip(true)
-    setPartnerAutoFlipDelay(10000)
     setPartnerShowcaseEditMode(false)
   }
 
@@ -14097,19 +14106,9 @@ function App() {
                     value={partnerForm.type}
                     onChange={(event) => setPartnerForm({ ...partnerForm, type: event.target.value })}
                   >
-                    <option>留学咨询</option>
-                    <option>论文与毕业</option>
-                    <option>韩语培训</option>
-                    <option>艺术类培训</option>
-                    <option>作品集辅导</option>
-                    <option>餐饮相关</option>
-                    <option>物流快递</option>
-                    <option>通信</option>
-                    <option>家政搬家</option>
-                    <option>不动产</option>
-                    <option>招聘企业</option>
-                    <option>政府部门</option>
-                    <option>品牌 / 广告合作</option>
+                    {businessCategoryOptions.map((category) => (
+                      <option key={category}>{category}</option>
+                    ))}
                   </select>
                 </label>
               </div>
