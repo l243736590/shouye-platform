@@ -89,6 +89,27 @@ type PartnerApplication = {
   createdAt: string
 }
 
+type PartnerMerchant = {
+  id?: string
+  name: string
+  logo: string
+  logoImage?: string
+  summary: string
+  description: string
+  tags: string[]
+  verified?: boolean
+  location?: string
+  detailTone?: string
+  detailSections?: { title: string; text: string }[]
+}
+
+type PartnerShowcase = {
+  type: string
+  audience: string
+  tone: string
+  merchants: PartnerMerchant[]
+}
+
 type MerchantLead = {
   id: string
   merchantId: string
@@ -2272,7 +2293,7 @@ const getInitialSchoolId = () => {
     : allSchoolProfiles[0].id
 }
 
-const partnerShowcases = [
+const partnerShowcases: PartnerShowcase[] = [
   {
     type: '留学咨询',
     audience: '择校、材料、签证、语学院和大学院申请',
@@ -2607,21 +2628,6 @@ const partnerShowcases = [
     ],
   },
 ]
-
-const partnerMerchantEntries = partnerShowcases.flatMap((showcase) =>
-  showcase.merchants.map((merchant) => ({
-    showcase,
-    merchant,
-    slug: 'id' in merchant ? merchant.id : encodeURIComponent(merchant.name),
-  })),
-)
-
-const manageablePartnerBrands = partnerMerchantEntries
-  .map((entry) => ({
-    id: entry.slug,
-    name: entry.merchant.name,
-    type: entry.showcase.type,
-  }))
 
 const getPartnerLogoImage = (merchant: unknown) => {
   if (!merchant || typeof merchant !== 'object' || !('logoImage' in merchant)) return ''
@@ -5568,8 +5574,60 @@ function App() {
     : null
   const selectedSchool =
     routeSchool ?? allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
+  const approvedPartnerApplications = appState.partnerApplications.filter(
+    (application) => application.status === 'approved' && application.company.trim(),
+  )
+  const partnerShowcasesWithApproved = approvedPartnerApplications.reduce<PartnerShowcase[]>(
+    (showcases, application) => {
+      const brandId = `partner-${application.id.replace(/[^a-zA-Z0-9_-]/g, '') || encodeURIComponent(application.company)}`
+      const merchant: PartnerMerchant = {
+        id: brandId,
+        name: application.company.trim(),
+        logo: application.company.trim().slice(0, 3) || '商家',
+        summary: application.direction || `${application.type}服务展示`,
+        description:
+          application.detail ||
+          `${application.company.trim()}已通过售业合作审核，可展示服务范围、联系方式、优惠和咨询边界。`,
+        tags: [application.type, application.direction || '合作商家', application.budget || '已审核'].filter(Boolean),
+        verified: true,
+        location: '认证商家',
+        detailTone: `${application.type}服务展示`,
+      }
+      const index = showcases.findIndex((showcase) => showcase.type === application.type)
+      if (index >= 0) {
+        if (showcases[index].merchants.some((entry) => ('id' in entry ? entry.id : encodeURIComponent(entry.name)) === brandId)) {
+          return showcases
+        }
+        return showcases.map((showcase, showcaseIndex) =>
+          showcaseIndex === index ? { ...showcase, merchants: [...showcase.merchants, merchant] } : showcase,
+        )
+      }
+      return [
+        ...showcases,
+        {
+          type: application.type,
+          audience: application.direction || '已审核合作商家',
+          tone: 'consulting',
+          merchants: [merchant],
+        },
+      ]
+    },
+    partnerShowcases.map((showcase) => ({ ...showcase, merchants: [...showcase.merchants] })),
+  )
+  const partnerMerchantEntries = partnerShowcasesWithApproved.flatMap((showcase) =>
+    showcase.merchants.map((merchant) => ({
+      showcase,
+      merchant,
+      slug: 'id' in merchant ? merchant.id : encodeURIComponent(merchant.name),
+    })),
+  )
+  const manageablePartnerBrands = partnerMerchantEntries.map((entry) => ({
+    id: entry.slug,
+    name: entry.merchant.name,
+    type: entry.showcase.type,
+  }))
   const selectedPartnerShowcase =
-    partnerShowcases.find((partner) => partner.type === selectedPartnerType) ?? partnerShowcases[0]
+    partnerShowcasesWithApproved.find((partner) => partner.type === selectedPartnerType) ?? partnerShowcasesWithApproved[0]
   const selectedPartnerMerchantCount = selectedPartnerShowcase.merchants.length
   const activePartnerMerchantIndex = selectedPartnerMerchantCount
     ? ((selectedPartnerMerchantIndex % selectedPartnerMerchantCount) + selectedPartnerMerchantCount) % selectedPartnerMerchantCount
@@ -11878,7 +11936,7 @@ function App() {
           </button>
         </div>
         <div className="partner-category-rail" aria-label="入驻商家分类横向导航">
-          {partnerShowcases.map((partner) => (
+          {partnerShowcasesWithApproved.map((partner) => (
             <button
               className={selectedPartnerType === partner.type ? 'partner-category-tab active' : 'partner-category-tab'}
               key={partner.type}
