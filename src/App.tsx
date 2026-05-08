@@ -5259,6 +5259,7 @@ function App() {
   const [selectedPartnerType, setSelectedPartnerType] = useState(partnerShowcases[0].type)
   const [selectedPartnerMerchantIndex, setSelectedPartnerMerchantIndex] = useState(0)
   const [partnerAutoFlip, setPartnerAutoFlip] = useState(true)
+  const [showPartnerCollectiveBoard, setShowPartnerCollectiveBoard] = useState(true)
   const [questionCategoryFilter, setQuestionCategoryFilter] = useState(allCategoryLabel)
   const [questionStatusFilter, setQuestionStatusFilter] = useState<'all' | QuestionStatus>('all')
   const [questionSort, setQuestionSort] = useState<'reward' | 'views' | 'latest'>('reward')
@@ -5732,6 +5733,26 @@ function App() {
       slug: getPartnerMerchantSlug(merchant),
     })),
   )
+  const partnerCollectiveBubbles = partnerMerchantEntries.map((entry, index) => {
+    const decoration = appState.merchantBrandDecorations.find((item) => item.brandId === entry.slug)
+    const approvedLogoImage = decoration?.logoReviewStatus === 'approved' ? decoration.logoImage : ''
+    const logoImage =
+      entry.slug === 'tuzhuren-thesis'
+        ? getPartnerLogoImage(entry.merchant) || approvedLogoImage
+        : approvedLogoImage || getPartnerLogoImage(entry.merchant)
+    const orbitX = 8 + ((index * 17) % 74)
+    const orbitY = 14 + ((index * 23) % 58)
+    return {
+      ...entry,
+      logoImage,
+      style: {
+        '--bubble-x': `${orbitX}%`,
+        '--bubble-y': `${orbitY}%`,
+        '--bubble-delay': `${(index % 7) * -1.2}s`,
+        '--bubble-duration': `${8 + (index % 5) * 1.4}s`,
+      } as CSSProperties,
+    }
+  })
   const manageablePartnerBrands = partnerMerchantEntries.map((entry) => ({
     id: entry.slug,
     name: entry.merchant.name,
@@ -9305,11 +9326,18 @@ function App() {
     navigateToPath(`/posts/${post.id}`)
   }
 
+  const openMerchantBenefitBoard = () => {
+    setShowPartnerCollectiveBoard(true)
+    setPartnerShowcaseEditMode(false)
+    document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const scrollToPartnerSection = () => {
     document.getElementById('partner-apply')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   const selectPartnerType = (type: string) => {
+    setShowPartnerCollectiveBoard(false)
     setSelectedPartnerType(type)
     setSelectedPartnerMerchantIndex(0)
     setPartnerAutoFlip(true)
@@ -9826,7 +9854,7 @@ function App() {
               className="merchant-benefit-link"
               type="button"
               onClick={() => {
-                if (!inlineEditMode) document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                if (!inlineEditMode) openMerchantBenefitBoard()
               }}
             >
               <span className="desktop-action-label">我要找商家要福利</span>
@@ -12187,6 +12215,58 @@ function App() {
             <span />
             <span />
           </div>
+          {showPartnerCollectiveBoard ? (
+            <motion.article
+              className="partner-showcase-card partner-looseleaf-card partner-collective-card"
+              key="partner-collective-board"
+              initial={{ opacity: 0, rotateX: -7, y: 18 }}
+              animate={{ opacity: 1, rotateX: 0, y: 0 }}
+              transition={{ duration: 0.42, ease: 'easeOut' }}
+            >
+              <div className="partner-collective-intro">
+                <p className="eyebrow dark">商家福利总览</p>
+                <h3>先看已入驻商家，再按服务分类细看。</h3>
+                <p>点击漂浮气泡可以直接进入商家详情页；点击下方分类标签，会切到对应类别的商家展示日历。</p>
+                <div className="partner-collective-type-links" aria-label="商家分类入口">
+                  {partnerShowcasesWithApproved.map((partner) => (
+                    <button key={partner.type} type="button" onClick={() => selectPartnerType(partner.type)}>
+                      {partner.type}
+                      <ArrowRight size={15} aria-hidden="true" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="partner-collective-bubble-field" aria-label="已入驻商家浮动入口">
+                {partnerCollectiveBubbles.map((entry) => (
+                  <button
+                    className={`partner-merchant-bubble partner-tone-${entry.showcase.tone}`}
+                    key={`${entry.showcase.type}-${entry.slug}`}
+                    style={entry.style}
+                    type="button"
+                    onClick={() => navigateToPath(`/partners/${entry.slug}`)}
+                  >
+                    <span className={`partner-logo-mark ${entry.showcase.tone} ${entry.logoImage ? 'has-image' : ''}`}>
+                      {entry.logoImage ? <img src={entry.logoImage} alt="" /> : <i>{entry.merchant.logo}</i>}
+                    </span>
+                    <strong>{entry.merchant.name}</strong>
+                    <small>{entry.showcase.type}</small>
+                  </button>
+                ))}
+              </div>
+              <div className="partner-service-strip partner-collective-strip">
+                <div className="partner-service-title">
+                  <span>当前入驻商家</span>
+                  <strong>{partnerCollectiveBubbles.length} 家</strong>
+                </div>
+                <div className="partner-service-items">
+                  {partnerShowcasesWithApproved.map((partner) => (
+                    <span key={partner.type}>{partner.type}</span>
+                  ))}
+                </div>
+              </div>
+            </motion.article>
+          ) : (
+            <>
           <motion.article
             className={`partner-showcase-card partner-looseleaf-card partner-tone-${selectedPartnerShowcase.tone} ${
               partnerShowcaseEditMode && canManageActivePartnerMerchant ? 'is-showcase-editing' : ''
@@ -12374,8 +12454,10 @@ function App() {
           >
             <ChevronDown size={24} aria-hidden="true" />
           </button>
+            </>
+          )}
         </div>
-        {selectedPartnerShowcase.merchants.length > 1 && (
+        {!showPartnerCollectiveBoard && selectedPartnerShowcase.merchants.length > 1 && (
           <div className="partner-page-dots" aria-label={`${selectedPartnerShowcase.type}商家页码`}>
             {selectedPartnerShowcase.merchants.map((merchant, index) => (
               <button

@@ -2336,6 +2336,178 @@ h3 {
   z-index: 1;
 }
 
+.partner-showcase-card.partner-collective-card {
+  min-height: clamp(460px, 42vw, 640px);
+  overflow: hidden;
+}
+
+.partner-collective-intro {
+  display: grid;
+  gap: 16px;
+  left: clamp(34px, 5vw, 84px);
+  max-width: min(520px, 42vw);
+  position: absolute;
+  top: clamp(70px, 7vw, 104px);
+  z-index: 4;
+}
+
+.partner-collective-intro h3 {
+  color: #12345a;
+  font-size: clamp(36px, 4.6vw, 72px);
+  line-height: 1.05;
+  margin: 0;
+}
+
+.partner-collective-intro p:not(.eyebrow) {
+  color: #53635f;
+  font-size: 17px;
+  font-weight: 850;
+  line-height: 1.75;
+  margin: 0;
+}
+
+.partner-collective-type-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.partner-collective-type-links button {
+  align-items: center;
+  background: rgba(255, 253, 247, 0.88);
+  border: 1px solid rgba(18, 52, 90, 0.18);
+  border-radius: 999px;
+  color: #12345a;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 950;
+  gap: 6px;
+  padding: 9px 12px;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.partner-collective-type-links button:hover {
+  background: #fffdf7;
+  box-shadow: 0 10px 24px rgba(18, 52, 90, 0.14);
+  transform: translateY(-1px);
+}
+
+.partner-collective-type-links button:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+.partner-collective-bubble-field {
+  background:
+    radial-gradient(circle at 72% 18%, rgba(18, 52, 90, 0.11), transparent 18%),
+    radial-gradient(circle at 48% 72%, rgba(239, 90, 60, 0.08), transparent 22%),
+    radial-gradient(circle at 90% 70%, rgba(200, 150, 42, 0.1), transparent 20%);
+  inset: 0;
+  overflow: hidden;
+  position: absolute;
+  z-index: 3;
+}
+
+.partner-merchant-bubble {
+  align-items: center;
+  animation: partnerBubbleFloat var(--bubble-duration, 10s) ease-in-out infinite alternate;
+  animation-delay: var(--bubble-delay, 0s);
+  background: rgba(255, 253, 247, 0.86);
+  border: 1px solid rgba(18, 52, 90, 0.12);
+  border-radius: 999px;
+  box-shadow: 0 18px 36px rgba(16, 32, 29, 0.12);
+  color: #12345a;
+  display: inline-flex;
+  gap: 10px;
+  left: var(--bubble-x);
+  min-width: 176px;
+  padding: 10px 14px 10px 10px;
+  position: absolute;
+  top: var(--bubble-y);
+  transform: translate(-50%, -50%);
+  transition:
+    box-shadow 180ms ease,
+    transform 180ms ease;
+  z-index: 5;
+}
+
+.partner-merchant-bubble:nth-child(2n) {
+  animation-direction: alternate-reverse;
+}
+
+.partner-merchant-bubble:hover {
+  box-shadow: 0 24px 48px rgba(16, 32, 29, 0.18);
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.partner-merchant-bubble:active {
+  transform: translate(-50%, -50%) scale(0.98);
+}
+
+.partner-merchant-bubble .partner-logo-mark {
+  border-radius: 999px;
+  height: 52px;
+  width: 52px;
+}
+
+.partner-logo-mark i,
+.partner-merchant-bubble .partner-logo-mark i {
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 950;
+  position: relative;
+  z-index: 1;
+}
+
+.partner-merchant-bubble .partner-logo-mark::before {
+  height: 32px;
+  width: 32px;
+}
+
+.partner-merchant-bubble .partner-logo-mark::after {
+  height: 20px;
+  width: 44px;
+}
+
+.partner-merchant-bubble strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 950;
+  line-height: 1.2;
+  max-width: 126px;
+  overflow: hidden;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.partner-merchant-bubble small {
+  color: var(--coral);
+  display: block;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: left;
+}
+
+.partner-collective-strip {
+  position: relative;
+  z-index: 6;
+}
+
+@keyframes partnerBubbleFloat {
+  from {
+    margin-left: -16px;
+    margin-top: -12px;
+  }
+  to {
+    margin-left: 18px;
+    margin-top: 16px;
+  }
+}
+
 .partner-looseleaf-main {
   align-items: center;
   display: grid;
@@ -7412,6 +7584,58 @@ small[data-merchant-inline-edit='true'] {
     min-height: 0;
     overflow: hidden;
     width: 100%;
+  }
+
+  .partner-showcase-card.partner-collective-card {
+    min-height: 620px;
+  }
+
+  .partner-collective-intro {
+    left: 22px;
+    max-width: calc(100% - 44px);
+    top: 64px;
+  }
+
+  .partner-collective-intro h3 {
+    font-size: clamp(30px, 9vw, 42px);
+  }
+
+  .partner-collective-intro p:not(.eyebrow) {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .partner-collective-type-links {
+    gap: 8px;
+  }
+
+  .partner-collective-type-links button {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .partner-collective-bubble-field {
+    inset: 0;
+    top: 180px;
+  }
+
+  .partner-merchant-bubble {
+    min-width: 138px;
+    padding: 8px 10px 8px 8px;
+  }
+
+  .partner-merchant-bubble .partner-logo-mark {
+    height: 42px;
+    width: 42px;
+  }
+
+  .partner-merchant-bubble strong {
+    font-size: 13px;
+    max-width: 88px;
+  }
+
+  .partner-merchant-bubble small {
+    font-size: 10px;
   }
 
   .partner-looseleaf-main {
