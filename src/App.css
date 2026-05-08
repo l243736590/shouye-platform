@@ -3349,12 +3349,23 @@ video.partner-detail-floating-image {
   cursor: text;
   outline: 1px dashed rgba(239, 90, 60, 0.5);
   outline-offset: 4px;
+  touch-action: none;
   transition:
     background 160ms ease,
     box-shadow 160ms ease,
     color 160ms ease,
     outline-color 160ms ease,
     transform 160ms ease;
+}
+
+strong[data-merchant-inline-edit='true'],
+span[data-merchant-inline-edit='true'],
+small[data-merchant-inline-edit='true'] {
+  display: inline-block;
+}
+
+.partner-detail-name-edit-wrap {
+  display: inline-block;
 }
 
 [data-merchant-inline-edit='true']:hover {
@@ -3798,6 +3809,7 @@ video.partner-detail-floating-image {
 
 .partner-looseleaf-art [data-partner-showcase-editable='true'] {
   display: inline-block;
+  touch-action: none;
 }
 
 .partner-looseleaf-art .partner-showcase-text-popover {

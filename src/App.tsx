@@ -124,6 +124,12 @@ type MerchantDesignItem = {
   background: string
 }
 
+type MerchantTextLayerStyle = {
+  x: number
+  y: number
+  z: number
+}
+
 type MerchantBrandDecoration = {
   brandId: string
   ownerUserId?: string
@@ -150,6 +156,7 @@ type MerchantBrandDecoration = {
   serviceImageX: number
   serviceImageY: number
   serviceImageScale: number
+  textLayerStyles: Record<string, MerchantTextLayerStyle>
   designItems: MerchantDesignItem[]
   updatedAt: string
 }
@@ -822,6 +829,7 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     serviceImageX: 50,
     serviceImageY: 50,
     serviceImageScale: 1,
+    textLayerStyles: {},
     designItems: [],
     updatedAt: '2026-05-07',
   },
@@ -898,6 +906,22 @@ const normalizeMerchantBrandDecoration = (
       }))
       .slice(0, 30)
   }
+  const normalizeTextLayerStyles = (
+    styles?: Record<string, Partial<MerchantTextLayerStyle>>,
+    fallbackStyles?: Record<string, MerchantTextLayerStyle>,
+  ): Record<string, MerchantTextLayerStyle> => {
+    const source = styles && typeof styles === 'object' ? styles : fallbackStyles ?? {}
+    return Object.fromEntries(
+      Object.entries(source).map(([field, style]) => [
+        field,
+        {
+          x: Math.min(800, Math.max(-800, Number.isFinite(Number(style?.x)) ? Number(style?.x) : 0)),
+          y: Math.min(800, Math.max(-800, Number.isFinite(Number(style?.y)) ? Number(style?.y) : 0)),
+          z: Math.min(120, Math.max(1, Number.isFinite(Number(style?.z)) ? Number(style?.z) : 20)),
+        },
+      ]),
+    )
+  }
   return {
     brandId: decoration.brandId ?? fallback?.brandId ?? '',
     ownerUserId: decoration.ownerUserId ?? fallback?.ownerUserId,
@@ -943,6 +967,7 @@ const normalizeMerchantBrandDecoration = (
           : 1,
       ),
     ),
+    textLayerStyles: normalizeTextLayerStyles(decoration.textLayerStyles, fallback?.textLayerStyles),
     designItems: normalizeDesignItems(decoration.designItems, fallback?.designItems),
     updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? now,
   }
@@ -5140,6 +5165,14 @@ function App() {
     originWidth: number
     originHeight: number
   } | null>(null)
+  const merchantTextLayerDragRef = useRef<{
+    brandId: string
+    field: MerchantEditableTextField
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
   const partnerShowcaseFileInputRef = useRef<HTMLInputElement | null>(null)
   const partnerShowcaseItemDragRef = useRef<{
     id: string
@@ -5151,6 +5184,14 @@ function App() {
     originWidth: number
     originHeight: number
     aspectRatio: number
+  } | null>(null)
+  const partnerShowcaseTextLayerDragRef = useRef<{
+    brandId: string
+    field: MerchantEditableTextField
+    startX: number
+    startY: number
+    originX: number
+    originY: number
   } | null>(null)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
@@ -5890,6 +5931,23 @@ function App() {
     ...activeMerchantFontStyle,
     ...(activeMerchantPreviewDecoration?.accentColor ? { color: activeMerchantPreviewDecoration.accentColor } : {}),
   }
+  const activeMerchantDisplayName =
+    activeMerchantPreviewDecoration?.showcaseArtTitle || activePartnerDetail.merchant.name
+  const getTextLayerState = (
+    decoration: MerchantBrandDecoration | undefined,
+    field: MerchantEditableTextField,
+  ): MerchantTextLayerStyle => decoration?.textLayerStyles?.[field] ?? { x: 0, y: 0, z: 20 }
+  const getTextLayerStyle = (
+    decoration: MerchantBrandDecoration | undefined,
+    field: MerchantEditableTextField,
+  ): CSSProperties => {
+    const layer = getTextLayerState(decoration, field)
+    return {
+      position: 'relative',
+      transform: `translate(${layer.x}px, ${layer.y}px)`,
+      zIndex: layer.z,
+    }
+  }
   const getMerchantDecorationImageStyle = (
     decoration: MerchantBrandDecoration | undefined,
     zone: 'hero' | 'service',
@@ -6573,6 +6631,62 @@ function App() {
     updateMerchantDesignItem(itemId, { z: Math.min(80, Math.max(1, item.z + direction)) })
   }
 
+  const updateTextLayerStyle = (
+    brandId: string,
+    decoration: MerchantBrandDecoration,
+    field: MerchantEditableTextField,
+    patch: Partial<MerchantTextLayerStyle>,
+  ) => {
+    const currentLayer = getTextLayerState(decoration, field)
+    updateMerchantDecorationDraft(brandId, 'textLayerStyles', {
+      ...decoration.textLayerStyles,
+      [field]: {
+        ...currentLayer,
+        ...patch,
+      },
+    })
+  }
+
+  const moveTextLayer = (
+    brandId: string,
+    decoration: MerchantBrandDecoration,
+    field: MerchantEditableTextField,
+    direction: 1 | -1,
+  ) => {
+    const currentLayer = getTextLayerState(decoration, field)
+    updateTextLayerStyle(brandId, decoration, field, { z: Math.min(120, Math.max(1, currentLayer.z + direction)) })
+  }
+
+  const startMerchantTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
+    if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    selectMerchantTextLayer(field)
+    const layer = getTextLayerState(activeMerchantDecorationDraft, field)
+    merchantTextLayerDragRef.current = {
+      brandId: activePartnerDetailSlug,
+      field,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: layer.x,
+      originY: layer.y,
+    }
+  }
+
+  const moveMerchantTextLayerDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = merchantTextLayerDragRef.current
+    if (!drag) return
+    updateTextLayerStyle(drag.brandId, activeMerchantDecorationDraft, drag.field, {
+      x: Math.min(800, Math.max(-800, Math.round(drag.originX + event.clientX - drag.startX))),
+      y: Math.min(800, Math.max(-800, Math.round(drag.originY + event.clientY - drag.startY))),
+    })
+  }
+
+  const endMerchantTextLayerDrag = () => {
+    merchantTextLayerDragRef.current = null
+  }
+
   const startMerchantDesignItemDrag = (
     item: MerchantDesignItem,
     mode: 'move' | 'resize',
@@ -6700,6 +6814,36 @@ function App() {
     const item = activePartnerMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
     if (!item) return
     updatePartnerShowcaseDesignItem(itemId, { z: Math.min(90, Math.max(1, item.z + direction)) })
+  }
+
+  const startPartnerShowcaseTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
+    if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setActivePartnerShowcaseTextEditor(null)
+    const layer = getTextLayerState(activePartnerMerchantDecorationDraft, field)
+    partnerShowcaseTextLayerDragRef.current = {
+      brandId: activePartnerMerchantSlug,
+      field,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: layer.x,
+      originY: layer.y,
+    }
+  }
+
+  const movePartnerShowcaseTextLayerDrag = (event: PointerEvent<HTMLElement>) => {
+    const drag = partnerShowcaseTextLayerDragRef.current
+    if (!drag) return
+    updateTextLayerStyle(drag.brandId, activePartnerMerchantDecorationDraft, drag.field, {
+      x: Math.min(800, Math.max(-800, Math.round(drag.originX + event.clientX - drag.startX))),
+      y: Math.min(800, Math.max(-800, Math.round(drag.originY + event.clientY - drag.startY))),
+    })
+  }
+
+  const endPartnerShowcaseTextLayerDrag = () => {
+    partnerShowcaseTextLayerDragRef.current = null
   }
 
   const startPartnerShowcaseDesignItemDrag = (
@@ -6960,7 +7104,16 @@ function App() {
 
   const renderMerchantTextEditor = (field: MerchantEditableTextField) => {
     if (!merchantDesignEditMode || activeMerchantTextEditor !== field) return null
-    const isTextField = ['badge', 'heroTitle', 'intro', 'contactCopy', 'caseOne', 'caseTwo'].includes(field)
+    const isTextField = [
+      'badge',
+      'heroTitle',
+      'intro',
+      'contactCopy',
+      'caseOne',
+      'caseTwo',
+      'showcaseArtTitle',
+      'showcaseArtSubtitle',
+    ].includes(field)
     return (
       <div className="merchant-inline-edit-popover" onDoubleClick={(event) => event.stopPropagation()}>
         {isTextField && (
@@ -7011,6 +7164,12 @@ function App() {
           <button type="button" onClick={() => setActiveMerchantTextEditor(null)}>
             完成
           </button>
+          <button type="button" onClick={() => moveTextLayer(activePartnerDetailSlug, activeMerchantDecorationDraft, field, 1)}>
+            图层上移
+          </button>
+          <button type="button" onClick={() => moveTextLayer(activePartnerDetailSlug, activeMerchantDecorationDraft, field, -1)}>
+            图层下移
+          </button>
         </div>
       </div>
     )
@@ -7031,6 +7190,9 @@ function App() {
             event.stopPropagation()
             selectMerchantTextLayer(field, true)
           },
+          onPointerDown: (event: PointerEvent<HTMLElement>) => {
+            startMerchantTextLayerDrag(field, event)
+          },
         }
       : {}
 
@@ -7046,6 +7208,9 @@ function App() {
             event.preventDefault()
             event.stopPropagation()
             setActivePartnerShowcaseTextEditor(field)
+          },
+          onPointerDown: (event: PointerEvent<HTMLElement>) => {
+            startPartnerShowcaseTextLayerDrag(field, event)
           },
         }
       : {}
@@ -7120,6 +7285,18 @@ function App() {
             }}
           >
             完成
+          </button>
+          <button
+            type="button"
+            onClick={() => moveTextLayer(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, 1)}
+          >
+            图层上移
+          </button>
+          <button
+            type="button"
+            onClick={() => moveTextLayer(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, -1)}
+          >
+            图层下移
           </button>
         </div>
       </div>
@@ -7321,6 +7498,7 @@ function App() {
         }
     const textLayers: MerchantStudioLayer[] = [
       { id: 'text:badge', kind: 'text', field: 'badge', group: '主视觉', title: '页面标识', preview: activeMerchantDecorationDraft.badge },
+      { id: 'text:showcaseArtTitle', kind: 'text', field: 'showcaseArtTitle', group: '主视觉', title: '品牌大字', preview: activeMerchantDecorationDraft.showcaseArtTitle },
       { id: 'text:heroTitle', kind: 'text', field: 'heroTitle', group: '主视觉', title: '主标题', preview: activeMerchantDecorationDraft.heroTitle },
       { id: 'text:intro', kind: 'text', field: 'intro', group: '主视觉', title: '品牌介绍', preview: activeMerchantDecorationDraft.intro },
       { id: 'text:contactCopy', kind: 'text', field: 'contactCopy', group: '右侧卡片', title: '咨询提示', preview: activeMerchantDecorationDraft.contactCopy },
@@ -9641,14 +9819,17 @@ function App() {
               onPointerMove={(event) => {
                 moveMerchantDecorationImageDrag(event)
                 moveMerchantDesignItemDrag(event)
+                moveMerchantTextLayerDrag(event)
               }}
               onPointerUp={() => {
                 endMerchantDecorationImageDrag()
                 endMerchantDesignItemDrag()
+                endMerchantTextLayerDrag()
               }}
               onPointerCancel={() => {
                 endMerchantDecorationImageDrag()
                 endMerchantDesignItemDrag()
+                endMerchantTextLayerDrag()
               }}
             >
               {renderMerchantDecorationMedia('hero', activeMerchantPreviewDecoration)}
@@ -9658,7 +9839,11 @@ function App() {
                 <span className="merchant-direct-drop-hint">拖入图片/视频到主视觉区</span>
               )}
               <div className="merchant-inline-edit-wrap">
-                <p className="eyebrow dark" style={activeMerchantAccentStyle} {...getMerchantEditableTextProps('badge')}>
+                <p
+                  className="eyebrow dark"
+                  style={{ ...activeMerchantAccentStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'badge') }}
+                  {...getMerchantEditableTextProps('badge')}
+                >
                   {partnerDetailBadge}
                 </p>
                 {renderMerchantTextEditor('badge')}
@@ -9677,20 +9862,34 @@ function App() {
                 </div>
                 <div>
                   <span>{activePartnerDetail.showcase.type}</span>
-                  <strong>{activePartnerDetail.merchant.name}</strong>
+                  <div className="merchant-inline-edit-wrap partner-detail-name-edit-wrap">
+                    <strong
+                      style={{ ...activeMerchantTitleStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'showcaseArtTitle') }}
+                      {...getMerchantEditableTextProps('showcaseArtTitle')}
+                    >
+                      {activeMerchantDisplayName}
+                    </strong>
+                    {renderMerchantTextEditor('showcaseArtTitle')}
+                  </div>
                   <small>
                     {'location' in activePartnerDetail.merchant ? activePartnerDetail.merchant.location : '售业认证商家展示'}
                   </small>
                 </div>
               </div>
               <div className="merchant-inline-edit-wrap">
-                <h1 style={activeMerchantTitleStyle} {...getMerchantEditableTextProps('heroTitle')}>
+                <h1
+                  style={{ ...activeMerchantTitleStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'heroTitle') }}
+                  {...getMerchantEditableTextProps('heroTitle')}
+                >
                   {partnerDetailHeroTitle}
                 </h1>
                 {renderMerchantTextEditor('heroTitle')}
               </div>
               <div className="merchant-inline-edit-wrap">
-                <p style={activeMerchantBodyStyle} {...getMerchantEditableTextProps('intro')}>
+                <p
+                  style={{ ...activeMerchantBodyStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'intro') }}
+                  {...getMerchantEditableTextProps('intro')}
+                >
                   {partnerDetailIntro}
                 </p>
                 {renderMerchantTextEditor('intro')}
@@ -9714,7 +9913,10 @@ function App() {
               <span style={activeMerchantAccentStyle}>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
               <strong style={activeMerchantTitleStyle}>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
               <div className="merchant-inline-edit-wrap">
-              <p style={activeMerchantBodyStyle} {...getMerchantEditableTextProps('contactCopy')}>
+              <p
+                style={{ ...activeMerchantBodyStyle, ...getTextLayerStyle(activeMerchantPreviewDecoration, 'contactCopy') }}
+                {...getMerchantEditableTextProps('contactCopy')}
+              >
                 {isWalaPartnerDetail
                   ? activeSiteContent.merchantWalaContactCopy
                   : activeMerchantPreviewDecoration?.contactCopy ?? '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
@@ -9740,14 +9942,17 @@ function App() {
             onPointerMove={(event) => {
               moveMerchantDecorationImageDrag(event)
               moveMerchantDesignItemDrag(event)
+              moveMerchantTextLayerDrag(event)
             }}
             onPointerUp={() => {
               endMerchantDecorationImageDrag()
               endMerchantDesignItemDrag()
+              endMerchantTextLayerDrag()
             }}
             onPointerCancel={() => {
               endMerchantDecorationImageDrag()
               endMerchantDesignItemDrag()
+              endMerchantTextLayerDrag()
             }}
           >
             {renderMerchantDecorationMedia('service', activeMerchantPreviewDecoration)}
@@ -9763,7 +9968,12 @@ function App() {
             {partnerDetailCases.map((item, index) => (
               <article key={`${index}-${item}`} style={activeMerchantBodyStyle}>
                 <div className="merchant-inline-edit-wrap">
-                  <span {...getMerchantEditableTextProps(index === 0 ? 'caseOne' : 'caseTwo')}>{item}</span>
+                  <span
+                    style={getTextLayerStyle(activeMerchantPreviewDecoration, index === 0 ? 'caseOne' : 'caseTwo')}
+                    {...getMerchantEditableTextProps(index === 0 ? 'caseOne' : 'caseTwo')}
+                  >
+                    {item}
+                  </span>
                   {renderMerchantTextEditor(index === 0 ? 'caseOne' : 'caseTwo')}
                 </div>
               </article>
@@ -11170,10 +11380,22 @@ function App() {
             initial={{ opacity: 0, rotateX: -7, y: 18 }}
             animate={{ opacity: 1, rotateX: 0, y: 0 }}
             transition={{ duration: 0.42, ease: 'easeOut' }}
-            onPointerMove={movePartnerShowcaseDesignItemDrag}
-            onPointerUp={endPartnerShowcaseDesignItemDrag}
-            onPointerCancel={endPartnerShowcaseDesignItemDrag}
-            onPointerLeave={endPartnerShowcaseDesignItemDrag}
+            onPointerMove={(event) => {
+              movePartnerShowcaseDesignItemDrag(event)
+              movePartnerShowcaseTextLayerDrag(event)
+            }}
+            onPointerUp={() => {
+              endPartnerShowcaseDesignItemDrag()
+              endPartnerShowcaseTextLayerDrag()
+            }}
+            onPointerCancel={() => {
+              endPartnerShowcaseDesignItemDrag()
+              endPartnerShowcaseTextLayerDrag()
+            }}
+            onPointerLeave={() => {
+              endPartnerShowcaseDesignItemDrag()
+              endPartnerShowcaseTextLayerDrag()
+            }}
           >
             {canManageActivePartnerMerchant && (
               <div className="partner-showcase-edit-toolbar">
@@ -11225,7 +11447,10 @@ function App() {
                     <span>{selectedPartnerShowcase.type}</span>
                     <strong>{activePartnerMerchant.name}</strong>
                     <span className="partner-showcase-text-wrap">
-                      <small style={activePartnerShowcaseAccentStyle} {...getPartnerShowcaseEditableTextProps('badge')}>
+                      <small
+                        style={{ ...activePartnerShowcaseAccentStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'badge') }}
+                        {...getPartnerShowcaseEditableTextProps('badge')}
+                      >
                         {activePartnerShowcaseBadge}
                       </small>
                       {renderPartnerShowcaseTextEditor('badge')}
@@ -11234,13 +11459,19 @@ function App() {
                 </div>
                 <div className="partner-showcase-copy">
                   <div className="partner-showcase-text-wrap">
-                    <h3 style={activePartnerShowcaseTitleStyle} {...getPartnerShowcaseEditableTextProps('heroTitle')}>
+                    <h3
+                      style={{ ...activePartnerShowcaseTitleStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'heroTitle') }}
+                      {...getPartnerShowcaseEditableTextProps('heroTitle')}
+                    >
                       {activePartnerShowcaseTitle}
                     </h3>
                     {renderPartnerShowcaseTextEditor('heroTitle')}
                   </div>
                   <div className="partner-showcase-text-wrap">
-                    <p style={activePartnerShowcaseBodyStyle} {...getPartnerShowcaseEditableTextProps('intro')}>
+                    <p
+                      style={{ ...activePartnerShowcaseBodyStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'intro') }}
+                      {...getPartnerShowcaseEditableTextProps('intro')}
+                    >
                       {activePartnerShowcaseDescription}
                     </p>
                     {renderPartnerShowcaseTextEditor('intro')}
@@ -11263,7 +11494,7 @@ function App() {
                 <span className="partner-art-plane" />
                 <span className="partner-showcase-text-wrap partner-showcase-art-text">
                   <strong
-                    style={activePartnerShowcaseTitleStyle}
+                    style={{ ...activePartnerShowcaseTitleStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtTitle') }}
                     {...getPartnerShowcaseEditableTextProps('showcaseArtTitle')}
                   >
                     {activePartnerShowcaseArtTitle}
@@ -11272,7 +11503,7 @@ function App() {
                 </span>
                 <span className="partner-showcase-text-wrap partner-showcase-art-text">
                   <small
-                    style={activePartnerShowcaseTitleStyle}
+                    style={{ ...activePartnerShowcaseTitleStyle, ...getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtSubtitle') }}
                     {...getPartnerShowcaseEditableTextProps('showcaseArtSubtitle')}
                   >
                     {activePartnerShowcaseArtSubtitle}
