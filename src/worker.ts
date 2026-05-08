@@ -59,6 +59,7 @@ type PartnerApplicationRecord = {
   direction: string
   budget: string
   detail: string
+  reviewNote: string
   status: 'pending' | 'approved' | 'rejected' | 'contacted' | 'closed'
   createdAt: string
 }
@@ -1171,6 +1172,7 @@ const rowToPartnerApplication = (row: Record<string, unknown>): PartnerApplicati
   direction: String(row.direction),
   budget: String(row.budget ?? ''),
   detail: String(row.detail ?? ''),
+  reviewNote: String(row.review_note ?? ''),
   status: String(row.status) as PartnerApplicationRecord['status'],
   createdAt: String(row.created_at),
 })
@@ -1710,8 +1712,29 @@ const getQuestionDetail = async (env: Env, questionId: string) => {
   }
 }
 
+const ensurePartnerApplicationsTable = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS partner_applications (
+      id TEXT PRIMARY KEY,
+      company TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT '',
+      contact TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      direction TEXT NOT NULL DEFAULT '',
+      budget TEXT NOT NULL DEFAULT '',
+      detail TEXT NOT NULL DEFAULT '',
+      review_note TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL
+    )`,
+  ).run()
+  await ensureColumn(env, 'partner_applications', 'review_note', "review_note TEXT NOT NULL DEFAULT ''")
+}
+
 const getPartnerApplications = async (env: Env) => {
   if (!env.DB) return []
+  await ensurePartnerApplicationsTable(env)
   const rows = await env.DB.prepare('SELECT * FROM partner_applications ORDER BY created_at DESC').all<
     Record<string, unknown>
   >()
@@ -3003,6 +3026,7 @@ const handlePostUnlock = async (request: Request, env: Env, postId: string) => {
 
 const handlePartnerCreate = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensurePartnerApplicationsTable(env)
   const body = await readBody<PartnerApplicationRecord>(request)
 
   if (!body.company?.trim() || !body.contact?.trim() || !body.phone?.trim()) {
@@ -3029,14 +3053,15 @@ const handlePartnerCreate = async (request: Request, env: Env) => {
     direction: body.direction || '内容入驻',
     budget: body.budget?.trim() || '',
     detail: body.detail?.trim() || '',
+    reviewNote: '',
     status: 'pending',
     createdAt: new Date().toISOString(),
   }
 
   await env.DB.prepare(
     `INSERT INTO partner_applications
-      (id, company, type, contact, phone, direction, budget, detail, status, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (id, company, type, contact, phone, direction, budget, detail, review_note, status, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       application.id,
@@ -3047,6 +3072,7 @@ const handlePartnerCreate = async (request: Request, env: Env) => {
       application.direction,
       application.budget,
       application.detail,
+      application.reviewNote,
       application.status,
       application.createdAt,
     )
@@ -3795,15 +3821,21 @@ const updatePost = async (request: Request, env: Env, postId: string) => {
 
 const updatePartnerApplication = async (request: Request, env: Env, partnerId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensurePartnerApplicationsTable(env)
   const body = await readBody<Partial<PartnerApplicationRecord>>(request)
+  const reviewNote = typeof body.reviewNote === 'string' ? body.reviewNote.trim() : null
+  if (body.status === 'rejected' && !reviewNote) {
+    return json({ error: '审核不通过时请填写理由。' }, { status: 400 })
+  }
   await env.DB.prepare(
     `UPDATE partner_applications SET
       status = COALESCE(?, status),
       direction = COALESCE(?, direction),
-      detail = COALESCE(?, detail)
+      detail = COALESCE(?, detail),
+      review_note = COALESCE(?, review_note)
      WHERE id = ?`,
   )
-    .bind(body.status ?? null, body.direction ?? null, body.detail ?? null, partnerId)
+    .bind(body.status ?? null, body.direction ?? null, body.detail ?? null, reviewNote, partnerId)
     .run()
 
   return json({ partnerApplications: await getPartnerApplications(env) })
@@ -4210,6 +4242,7 @@ export default {
       if (partnerMatch && request.method === 'PATCH') return updatePartnerApplication(request, env, partnerMatch[1])
       if (partnerMatch && request.method === 'DELETE') {
         if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+        await ensurePartnerApplicationsTable(env)
         await env.DB.prepare('DELETE FROM partner_applications WHERE id = ?').bind(partnerMatch[1]).run()
         return json({ partnerApplications: await getPartnerApplications(env) })
       }

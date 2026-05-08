@@ -85,8 +85,14 @@ type PartnerApplication = {
   direction: string
   budget: string
   detail: string
+  reviewNote: string
   status: 'pending' | 'approved' | 'rejected' | 'contacted' | 'closed'
   createdAt: string
+}
+
+type PartnerApplicationReviewDraft = {
+  status: PartnerApplication['status']
+  reviewNote: string
 }
 
 type PartnerMerchant = {
@@ -4996,6 +5002,20 @@ const normalizeUser = (user: Partial<User>): User => ({
   documents: user.documents ?? [],
 })
 
+const normalizePartnerApplication = (application: Partial<PartnerApplication>): PartnerApplication => ({
+  id: application.id ?? createId('partner'),
+  company: application.company ?? '',
+  type: application.type ?? '留学机构',
+  contact: application.contact ?? '',
+  phone: application.phone ?? '',
+  direction: application.direction ?? '内容入驻',
+  budget: application.budget ?? '',
+  detail: application.detail ?? '',
+  reviewNote: application.reviewNote ?? '',
+  status: application.status ?? 'pending',
+  createdAt: application.createdAt ?? new Date().toISOString(),
+})
+
 const initialState = (): StoredState => {
   if (typeof window === 'undefined') {
     return {
@@ -5047,7 +5067,7 @@ const initialState = (): StoredState => {
       posts: mergeSeedPosts(parsed.posts),
       questions: parsed.questions?.length ? parsed.questions : seedQuestions,
       answers: parsed.answers?.length ? parsed.answers : seedAnswers,
-      partnerApplications: parsed.partnerApplications ?? [],
+      partnerApplications: (parsed.partnerApplications ?? []).map(normalizePartnerApplication),
       merchantLeads: parsed.merchantLeads ?? [],
       merchantBrandDecorations: mergeMerchantBrandDecorations(parsed.merchantBrandDecorations),
       questionBounties: parsed.questionBounties ?? [],
@@ -5217,6 +5237,7 @@ function App() {
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | MerchantLead['status']>('all')
   const [leadAssigneeFilter, setLeadAssigneeFilter] = useState('全部')
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
+  const [partnerReviewDrafts, setPartnerReviewDrafts] = useState<Record<string, PartnerApplicationReviewDraft>>({})
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [partnerShowcaseSaving, setPartnerShowcaseSaving] = useState(false)
@@ -6385,6 +6406,26 @@ function App() {
     }
   }
 
+  const getPartnerReviewDraft = (application: PartnerApplication): PartnerApplicationReviewDraft =>
+    partnerReviewDrafts[application.id] ?? {
+      status: application.status,
+      reviewNote: application.reviewNote ?? '',
+    }
+
+  const updatePartnerReviewDraft = (
+    application: PartnerApplication,
+    patch: Partial<PartnerApplicationReviewDraft>,
+  ) => {
+    setPartnerReviewDrafts((drafts) => ({
+      ...drafts,
+      [application.id]: {
+        status: drafts[application.id]?.status ?? application.status,
+        reviewNote: drafts[application.id]?.reviewNote ?? application.reviewNote ?? '',
+        ...patch,
+      },
+    }))
+  }
+
   const updatePartnerApplication = (partnerId: string, patch: Partial<PartnerApplication>) => {
     setAppState((state) => ({
       ...state,
@@ -6400,8 +6441,38 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('商家审核状态保存失败，请稍后重试。'))
+      })
+        .then(async (response) => {
+          const data = (await response.json()) as { partnerApplications?: PartnerApplication[]; error?: string }
+          if (!response.ok) throw new Error(data.error ?? '商家审核状态保存失败，请稍后重试。')
+          if (data.partnerApplications) {
+            setAppState((state) => ({
+              ...state,
+              partnerApplications: data.partnerApplications!.map(normalizePartnerApplication),
+            }))
+          }
+        })
+        .catch((error) => setMessage(error instanceof Error ? error.message : '商家审核状态保存失败，请稍后重试。'))
     }
+  }
+
+  const submitPartnerApplicationReview = (application: PartnerApplication) => {
+    const draft = getPartnerReviewDraft(application)
+    const reviewNote = draft.reviewNote.trim()
+    if (draft.status === 'rejected' && !reviewNote) {
+      setMessage('审核不通过时请填写理由，方便商家查看并修改。')
+      return
+    }
+    updatePartnerApplication(application.id, {
+      status: draft.status,
+      reviewNote: draft.status === 'rejected' ? reviewNote : reviewNote,
+    })
+    setPartnerReviewDrafts((drafts) => {
+      const nextDrafts = { ...drafts }
+      delete nextDrafts[application.id]
+      return nextDrafts
+    })
+    setMessage('合作申请审核结果已提交。')
   }
 
   const updateMerchantLead = (leadId: string, patch: Partial<MerchantLead>) => {
@@ -8443,7 +8514,7 @@ function App() {
       users: data.users ?? state.users,
       posts: data.posts?.length ? data.posts : state.posts,
       reports: data.reports ?? state.reports,
-      partnerApplications: data.partnerApplications ?? state.partnerApplications,
+      partnerApplications: data.partnerApplications?.map(normalizePartnerApplication) ?? state.partnerApplications,
       merchantLeads: data.merchantLeads ?? state.merchantLeads,
       merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? state.merchantBrandDecorations),
       questionBounties: data.questionBounties ?? state.questionBounties,
@@ -9031,14 +9102,16 @@ function App() {
         setMessage(data.error ?? '合作申请提交失败，请稍后再试。')
         return
       }
+      const nextApplication = normalizePartnerApplication(data.application!)
       setAppState((state) => ({
         ...state,
-        partnerApplications: [data.application as PartnerApplication, ...state.partnerApplications],
+        partnerApplications: [nextApplication, ...state.partnerApplications],
       }))
     } catch {
       const localApplication: PartnerApplication = {
         id: createId('partner'),
         ...partnerForm,
+        reviewNote: '',
         status: 'pending',
         createdAt: new Date().toISOString(),
       }
@@ -13118,42 +13191,64 @@ function App() {
                   <span>方向</span>
                   <span>联系人</span>
                   <span>需求</span>
+                  <span>审核</span>
                 </div>
                 {appState.partnerApplications.length === 0 ? (
                   <p className="admin-empty">暂无合作申请。</p>
                 ) : (
-                  appState.partnerApplications.map((application) => (
-                    <div className="admin-row" key={application.id}>
-                      <div>
-                        <strong>{application.company}</strong>
-                        <small>{new Date(application.createdAt).toLocaleDateString('zh-CN')}</small>
+                  appState.partnerApplications.map((application) => {
+                    const reviewDraft = getPartnerReviewDraft(application)
+                    return (
+                      <div className="admin-row" key={application.id}>
+                        <div>
+                          <strong>{application.company}</strong>
+                          <small>{new Date(application.createdAt).toLocaleDateString('zh-CN')}</small>
+                        </div>
+                        <span>{application.type}</span>
+                        <span>{application.direction}</span>
+                        <div>
+                          <strong>{application.contact}</strong>
+                          <small>{application.phone}</small>
+                          <small>{application.budget || '未填写预算'}</small>
+                        </div>
+                        <div>
+                          <p className="admin-partner-detail">{application.detail || '未填写详细需求'}</p>
+                          {application.reviewNote ? (
+                            <small className="admin-review-note-text">审核留言：{application.reviewNote}</small>
+                          ) : null}
+                        </div>
+                        <div className="admin-actions">
+                          <select
+                            value={reviewDraft.status}
+                            onChange={(event) =>
+                              updatePartnerReviewDraft(application, {
+                                status: event.target.value as PartnerApplication['status'],
+                              })
+                            }
+                          >
+                            <option value="pending">待审核</option>
+                            <option value="approved">审核通过</option>
+                            <option value="rejected">审核拒绝</option>
+                            <option value="contacted">已联系</option>
+                            <option value="closed">已关闭</option>
+                          </select>
+                          {reviewDraft.status === 'rejected' ? (
+                            <textarea
+                              className="admin-review-note"
+                              value={reviewDraft.reviewNote}
+                              onChange={(event) =>
+                                updatePartnerReviewDraft(application, { reviewNote: event.target.value })
+                              }
+                              placeholder="填写审核不通过理由，商家可据此修改资料后重新提交。"
+                            />
+                          ) : null}
+                          <button type="button" onClick={() => submitPartnerApplicationReview(application)}>
+                            提交审核
+                          </button>
+                        </div>
                       </div>
-                      <span>{application.type}</span>
-                      <span>{application.direction}</span>
-                      <div>
-                        <strong>{application.contact}</strong>
-                        <small>{application.phone}</small>
-                        <small>{application.budget || '未填写预算'}</small>
-                      </div>
-                      <p className="admin-partner-detail">{application.detail || '未填写详细需求'}</p>
-                      <div className="admin-actions">
-                        <select
-                          value={application.status}
-                          onChange={(event) =>
-                            updatePartnerApplication(application.id, {
-                              status: event.target.value as PartnerApplication['status'],
-                            })
-                          }
-                        >
-                          <option value="pending">待审核</option>
-                          <option value="approved">审核通过</option>
-                          <option value="rejected">审核拒绝</option>
-                          <option value="contacted">已联系</option>
-                          <option value="closed">已关闭</option>
-                        </select>
-                      </div>
-                    </div>
-                  ))
+                    )
+                  })
                 )}
                 <div className="admin-content-head merchant-logo-review-head">
                   <div>

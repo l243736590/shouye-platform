@@ -5917,7 +5917,7 @@ small[data-merchant-inline-edit='true'] {
 }
 
 .admin-partner-table .admin-row {
-  grid-template-columns: minmax(180px, 1fr) 120px 150px 180px minmax(260px, 1.4fr);
+  grid-template-columns: minmax(180px, 1fr) 120px 150px 180px minmax(260px, 1.4fr) 180px;
 }
 
 .admin-row-head {
@@ -5934,7 +5934,8 @@ small[data-merchant-inline-edit='true'] {
 }
 
 .admin-row input,
-.admin-row select {
+.admin-row select,
+.admin-row textarea {
   background: #f6f8f4;
   border: 1px solid var(--line);
   border-radius: 7px;
@@ -5950,6 +5951,14 @@ small[data-merchant-inline-edit='true'] {
   font-size: 13px;
   line-height: 1.55;
   margin: 0;
+}
+
+.admin-review-note-text {
+  color: var(--coral);
+  display: block;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.5;
 }
 
 .admin-brand-access-note {
@@ -5986,6 +5995,10 @@ small[data-merchant-inline-edit='true'] {
   min-height: 36px;
   padding: 0 10px;
   width: 100%;
+}
+
+.admin-actions textarea {
+  grid-column: 1 / -1;
 }
 
 .account-badge {
@@ -6176,6 +6189,11 @@ small[data-merchant-inline-edit='true'] {
   padding: 10px 12px;
   resize: vertical;
   width: 100%;
+}
+
+.admin-row textarea {
+  min-height: 74px;
+  resize: vertical;
 }
 
 .admin-content-grid input[type='range'] {
