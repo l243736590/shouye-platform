@@ -2495,7 +2495,7 @@ h3 {
   position: absolute;
   right: 22px;
   top: 22px;
-  z-index: 40;
+  z-index: 240;
 }
 
 .partner-showcase-edit-toolbar button {
@@ -2505,6 +2505,25 @@ h3 {
   font-size: 13px;
   font-weight: 950;
   padding: 9px 13px;
+  transition:
+    background 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.partner-showcase-edit-toolbar button:hover {
+  box-shadow: 0 8px 20px rgba(16, 32, 29, 0.22);
+  transform: translateY(-1px);
+}
+
+.partner-showcase-edit-toolbar button:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+.partner-showcase-edit-toolbar button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
 }
 
 .partner-showcase-edit-toolbar button:last-of-type {
@@ -2666,6 +2685,43 @@ h3 {
   object-fit: contain;
   pointer-events: none;
   width: 100%;
+}
+
+.partner-showcase-item-controls {
+  align-items: center;
+  background: rgba(16, 32, 29, 0.92);
+  border: 1px solid rgba(255, 253, 247, 0.18);
+  border-radius: 10px;
+  color: #fffdf7;
+  display: flex;
+  gap: 8px;
+  left: 50%;
+  padding: 8px;
+  position: absolute;
+  top: -86px;
+  transform: translateX(-50%);
+  width: max-content;
+  z-index: 260;
+}
+
+.partner-showcase-item-controls label {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  font-weight: 950;
+  gap: 6px;
+}
+
+.partner-showcase-item-controls input[type='range'] {
+  width: 84px;
+}
+
+.partner-showcase-item-controls input[type='color'] {
+  background: transparent;
+  border: 0;
+  height: 28px;
+  padding: 0;
+  width: 32px;
 }
 
 .partner-showcase-layer-controls {

@@ -101,6 +101,8 @@ type MerchantTextLayerStyleRecord = {
   x: number
   y: number
   z: number
+  fontSize: number
+  color: string
 }
 
 type MerchantBrandDecorationRecord = {
@@ -457,6 +459,8 @@ const normalizeMerchantTextLayerStyles = (
         x: clampNumber(style?.x, 0, -800, 800),
         y: clampNumber(style?.y, 0, -800, 800),
         z: clampNumber(style?.z, 20, 1, 120),
+        fontSize: clampNumber(style?.fontSize, 0, 0, 120),
+        color: typeof style?.color === 'string' ? style.color : '',
       },
     ]),
   )

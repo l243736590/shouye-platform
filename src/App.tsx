@@ -129,6 +129,8 @@ type MerchantTextLayerStyle = {
   x: number
   y: number
   z: number
+  fontSize: number
+  color: string
 }
 
 type TextPopoverAnchor = {
@@ -941,6 +943,8 @@ const normalizeMerchantBrandDecoration = (
           x: Math.min(800, Math.max(-800, Number.isFinite(Number(style?.x)) ? Number(style?.x) : 0)),
           y: Math.min(800, Math.max(-800, Number.isFinite(Number(style?.y)) ? Number(style?.y) : 0)),
           z: Math.min(120, Math.max(1, Number.isFinite(Number(style?.z)) ? Number(style?.z) : 20)),
+          fontSize: Math.min(120, Math.max(0, Number.isFinite(Number(style?.fontSize)) ? Number(style?.fontSize) : 0)),
+          color: typeof style?.color === 'string' ? style.color : '',
         },
       ]),
     )
@@ -5209,6 +5213,7 @@ function App() {
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
+  const [partnerShowcaseSaving, setPartnerShowcaseSaving] = useState(false)
   const [partnerShowcaseEditMode, setPartnerShowcaseEditMode] = useState(false)
   const [activePartnerShowcaseTextEditor, setActivePartnerShowcaseTextEditor] = useState<MerchantEditableTextField | null>(null)
   const [partnerShowcaseTextPopoverAnchor, setPartnerShowcaseTextPopoverAnchor] = useState<TextPopoverAnchor | null>(null)
@@ -5259,6 +5264,8 @@ function App() {
     originWidth: number
     originHeight: number
     aspectRatio: number
+    stageWidth: number
+    stageHeight: number
   } | null>(null)
   const partnerShowcaseTextLayerDragRef = useRef<{
     brandId: string
@@ -6053,7 +6060,7 @@ function App() {
   const getTextLayerState = (
     decoration: MerchantBrandDecoration | undefined,
     field: MerchantEditableTextField,
-  ): MerchantTextLayerStyle => decoration?.textLayerStyles?.[field] ?? { x: 0, y: 0, z: 20 }
+  ): MerchantTextLayerStyle => decoration?.textLayerStyles?.[field] ?? { x: 0, y: 0, z: 20, fontSize: 0, color: '' }
   const getTextLayerStyle = (
     decoration: MerchantBrandDecoration | undefined,
     field: MerchantEditableTextField,
@@ -6063,6 +6070,18 @@ function App() {
       position: 'relative',
       transform: `translate(${layer.x}px, ${layer.y}px)`,
       zIndex: layer.z,
+    }
+  }
+  const getTextContentStyle = (
+    decoration: MerchantBrandDecoration | undefined,
+    field: MerchantEditableTextField,
+    baseStyle: CSSProperties,
+  ): CSSProperties => {
+    const layer = getTextLayerState(decoration, field)
+    return {
+      ...baseStyle,
+      ...(layer.color ? { color: layer.color } : {}),
+      ...(layer.fontSize ? { fontSize: layer.fontSize } : {}),
     }
   }
   const getTextPopoverAnchor = (element: HTMLElement): TextPopoverAnchor => {
@@ -7065,6 +7084,11 @@ function App() {
     event.preventDefault()
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
+    const stageElement =
+      event.currentTarget.closest<HTMLElement>('[data-partner-showcase-stage]') ??
+      event.currentTarget.parentElement ??
+      event.currentTarget
+    const stageRect = stageElement.getBoundingClientRect()
     setActivePartnerShowcaseDesignItemId(item.id)
     partnerShowcaseItemDragRef.current = {
       id: item.id,
@@ -7076,15 +7100,16 @@ function App() {
       originWidth: item.width,
       originHeight: item.height,
       aspectRatio: item.width / Math.max(1, item.height),
+      stageWidth: Math.max(1, stageRect.width),
+      stageHeight: Math.max(1, stageRect.height),
     }
   }
 
   const movePartnerShowcaseDesignItemDrag = (event: PointerEvent<HTMLElement>) => {
     const drag = partnerShowcaseItemDragRef.current
     if (!drag) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const deltaX = ((event.clientX - drag.startX) / rect.width) * 100
-    const deltaY = ((event.clientY - drag.startY) / rect.height) * 100
+    const deltaX = ((event.clientX - drag.startX) / drag.stageWidth) * 100
+    const deltaY = ((event.clientY - drag.startY) / drag.stageHeight) * 100
     if (drag.mode === 'resize') {
       const nextWidth = Math.min(88, Math.max(8, drag.originWidth + deltaX))
       const nextHeight = event.shiftKey
@@ -7429,6 +7454,32 @@ function App() {
             </select>
           </label>
           <label>
+            字号
+            <input
+              max="120"
+              min="0"
+              type="range"
+              value={getTextLayerState(activePartnerMerchantDecorationDraft, field).fontSize || 0}
+              onChange={(event) =>
+                updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, {
+                  fontSize: Number(event.target.value),
+                })
+              }
+            />
+          </label>
+          <label>
+            本层字色
+            <input
+              type="color"
+              value={getTextLayerState(activePartnerMerchantDecorationDraft, field).color || '#10201d'}
+              onChange={(event) =>
+                updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, {
+                  color: event.target.value,
+                })
+              }
+            />
+          </label>
+          <label>
             标题色
             <input
               type="color"
@@ -7506,7 +7557,7 @@ function App() {
             event.stopPropagation()
             openPartnerShowcaseTextEditor(field, event.currentTarget)
           },
-          onPointerDown: (event: PointerEvent<HTMLElement>) => {
+                  onPointerDown: (event: PointerEvent<HTMLElement>) => {
             startPartnerShowcaseTextLayerDrag(field, event)
           },
         }
@@ -7682,6 +7733,9 @@ function App() {
                     }
                     startPartnerShowcaseDesignItemDrag(item, 'move', event)
                   }}
+                  onPointerMove={(event) => movePartnerShowcaseDesignItemDrag(event)}
+                  onPointerUp={endPartnerShowcaseDesignItemDrag}
+                  onPointerCancel={endPartnerShowcaseDesignItemDrag}
                 >
                   {selected && (
                     <>
@@ -7711,6 +7765,46 @@ function App() {
                           deletePartnerShowcaseDesignItem(item.id)
                         }}>×</button>
                       </div>
+                      {item.kind === 'bubble' && (
+                        <div
+                          className="partner-showcase-item-controls"
+                          onPointerDown={(event) => {
+                            event.preventDefault()
+                            event.stopPropagation()
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <label>
+                            字号
+                            <input
+                              max="96"
+                              min="12"
+                              type="range"
+                              value={item.fontSize}
+                              onChange={(event) => updatePartnerShowcaseDesignItem(item.id, { fontSize: Number(event.target.value) })}
+                            />
+                          </label>
+                          <label>
+                            字色
+                            <input
+                              type="color"
+                              value={item.color || '#10201d'}
+                              onChange={(event) => updatePartnerShowcaseDesignItem(item.id, { color: event.target.value })}
+                            />
+                          </label>
+                          <label>
+                            透明
+                            <input
+                              max="1"
+                              min="0.1"
+                              step="0.05"
+                              type="range"
+                              value={item.opacity}
+                              onChange={(event) => updatePartnerShowcaseDesignItem(item.id, { opacity: Number(event.target.value) })}
+                            />
+                          </label>
+                        </div>
+                      )}
                       <span
                         className="partner-showcase-design-resize"
                         title="拖动缩放，按住 Shift 保持比例"
@@ -8108,6 +8202,8 @@ function App() {
       ownerUserId: currentUser.id,
       updatedAt: new Date().toISOString(),
     })
+    setPartnerShowcaseSaving(true)
+    setMerchantDecorationNotice('正在保存商家展示卡...')
     setAppState((state) => ({
       ...state,
       merchantBrandDecorations: mergeMerchantBrandDecorations([
@@ -8140,6 +8236,8 @@ function App() {
       setMerchantDecorationNotice('商家展示卡已保存。')
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+    } finally {
+      setPartnerShowcaseSaving(false)
     }
   }
 
@@ -11802,6 +11900,7 @@ function App() {
             className={`partner-showcase-card partner-looseleaf-card partner-tone-${selectedPartnerShowcase.tone} ${
               partnerShowcaseEditMode && canManageActivePartnerMerchant ? 'is-showcase-editing' : ''
             }`}
+            data-partner-showcase-stage="true"
             key={`${selectedPartnerShowcase.type}-${activePartnerMerchant.name}`}
             initial={{ opacity: 0, rotateX: -7, y: 18 }}
             animate={{ opacity: 1, rotateX: 0, y: 0 }}
@@ -11827,9 +11926,10 @@ function App() {
               <div className="partner-showcase-edit-toolbar">
                 <button
                   type="button"
-                  onClick={() => {
+                  disabled={partnerShowcaseSaving}
+                  onClick={async () => {
                     if (partnerShowcaseEditMode) {
-                      savePartnerShowcaseDecoration(true)
+                      await savePartnerShowcaseDecoration(true)
                       setActivePartnerShowcaseTextEditor(null)
                       setActivePartnerShowcaseDesignItemId(null)
                       return
@@ -11837,7 +11937,7 @@ function App() {
                     setPartnerShowcaseEditMode(true)
                   }}
                 >
-                  {partnerShowcaseEditMode ? '完成编辑' : '编辑'}
+                  {partnerShowcaseSaving ? '保存中...' : partnerShowcaseEditMode ? '完成编辑' : '编辑'}
                 </button>
                 {partnerShowcaseEditMode && (
                   <>
@@ -11880,7 +11980,7 @@ function App() {
                       style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'badge')}
                     >
                       <small
-                        style={activePartnerShowcaseAccentStyle}
+                        style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'badge', activePartnerShowcaseAccentStyle)}
                         {...getPartnerShowcaseEditableTextProps('badge')}
                       >
                         {activePartnerShowcaseBadge}
@@ -11895,7 +11995,7 @@ function App() {
                     style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'heroTitle')}
                   >
                     <h3
-                      style={activePartnerShowcaseTitleStyle}
+                      style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'heroTitle', activePartnerShowcaseTitleStyle)}
                       {...getPartnerShowcaseEditableTextProps('heroTitle')}
                     >
                       {activePartnerShowcaseTitle}
@@ -11907,7 +12007,7 @@ function App() {
                     style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'intro')}
                   >
                     <p
-                      style={activePartnerShowcaseBodyStyle}
+                      style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'intro', activePartnerShowcaseBodyStyle)}
                       {...getPartnerShowcaseEditableTextProps('intro')}
                     >
                       {activePartnerShowcaseDescription}
@@ -11935,7 +12035,7 @@ function App() {
                   style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtTitle')}
                   {...getPartnerShowcaseEditableTextProps('showcaseArtTitle')}
                 >
-                  <strong style={activePartnerShowcaseTitleStyle}>
+                  <strong style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtTitle', activePartnerShowcaseTitleStyle)}>
                     {activePartnerShowcaseArtTitle}
                   </strong>
                   {renderPartnerShowcaseTextEditor('showcaseArtTitle')}
@@ -11945,7 +12045,7 @@ function App() {
                   style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtSubtitle')}
                   {...getPartnerShowcaseEditableTextProps('showcaseArtSubtitle')}
                 >
-                  <small style={activePartnerShowcaseTitleStyle}>
+                  <small style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtSubtitle', activePartnerShowcaseTitleStyle)}>
                     {activePartnerShowcaseArtSubtitle}
                   </small>
                   {renderPartnerShowcaseTextEditor('showcaseArtSubtitle')}
