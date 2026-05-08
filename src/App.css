@@ -2887,6 +2887,7 @@ h3 {
   opacity: 0.45;
   pointer-events: auto;
   touch-action: none;
+  z-index: 22;
 }
 
 .partner-detail-floating-image.is-selected {
@@ -2896,11 +2897,17 @@ h3 {
     0 0 0 10px rgba(239, 90, 60, 0.16),
     0 18px 42px rgba(16, 32, 29, 0.22);
   opacity: 0.72;
+  z-index: 32;
+}
+
+img.partner-detail-floating-image {
+  height: auto;
+  object-fit: contain;
 }
 
 video.partner-detail-floating-image {
   background: #111;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .partner-detail-floating-image-service {
@@ -3056,7 +3063,8 @@ video.partner-detail-floating-image {
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease;
-  z-index: 80;
+  pointer-events: auto;
+  z-index: 2147482000;
 }
 
 .merchant-studio-heading {

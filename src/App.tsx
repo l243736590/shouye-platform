@@ -146,6 +146,12 @@ type MerchantBrandDecoration = {
   contactCopy: string
   panelLabel: string
   panelTitle: string
+  sectionOneTitle: string
+  sectionOneText: string
+  sectionTwoTitle: string
+  sectionTwoText: string
+  sectionThreeTitle: string
+  sectionThreeText: string
   caseOne: string
   caseTwo: string
   showcaseArtTitle: string
@@ -821,6 +827,12 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
     panelLabel: '土著人品牌的管理商家',
     panelTitle: '论文流程・毕业审查・韩文发表',
+    sectionOneTitle: '适合咨询的人',
+    sectionOneText: '正在准备论文、毕业材料、发表稿、延毕申请或学院窗口材料的本科、大学院和毕业阶段学生。',
+    sectionTwoTitle: '咨询前先准备',
+    sectionTwoText: '学校、专业、毕业要求、论文阶段、导师反馈、提交截止日、已写材料和目前最卡的具体问题。',
+    sectionThreeTitle: '平台提醒',
+    sectionThreeText: '只展示合规学业支持边界，不提供代写、代投、替考、伪造材料等服务；毕业要求以学校和学院最新通知为准。',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
     showcaseArtTitle: '土著人',
@@ -942,6 +954,12 @@ const normalizeMerchantBrandDecoration = (
     contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
     panelLabel: decoration.panelLabel || fallback?.panelLabel || '认证商家展示',
     panelTitle: decoration.panelTitle || fallback?.panelTitle || '',
+    sectionOneTitle: decoration.sectionOneTitle ?? fallback?.sectionOneTitle ?? '服务说明',
+    sectionOneText: decoration.sectionOneText ?? fallback?.sectionOneText ?? '',
+    sectionTwoTitle: decoration.sectionTwoTitle ?? fallback?.sectionTwoTitle ?? '对比建议',
+    sectionTwoText: decoration.sectionTwoText ?? fallback?.sectionTwoText ?? '',
+    sectionThreeTitle: decoration.sectionThreeTitle ?? fallback?.sectionThreeTitle ?? '平台提醒',
+    sectionThreeText: decoration.sectionThreeText ?? fallback?.sectionThreeText ?? '',
     caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
     caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
     showcaseArtTitle: decoration.showcaseArtTitle ?? fallback?.showcaseArtTitle ?? '',
@@ -5068,6 +5086,12 @@ type MerchantEditableTextField =
   | 'contactCopy'
   | 'panelLabel'
   | 'panelTitle'
+  | 'sectionOneTitle'
+  | 'sectionOneText'
+  | 'sectionTwoTitle'
+  | 'sectionTwoText'
+  | 'sectionThreeTitle'
+  | 'sectionThreeText'
   | 'caseOne'
   | 'caseTwo'
   | 'showcaseArtTitle'
@@ -5201,6 +5225,8 @@ function App() {
     startY: number
     originX: number
     originY: number
+    stageWidth: number
+    stageHeight: number
   } | null>(null)
   const merchantDesignItemDragRef = useRef<{
     id: string
@@ -5356,25 +5382,30 @@ function App() {
     documents: [] as CredentialDocument[],
   })
 
-  const handleMerchantDesignItemInput = async (itemId: string, event: ChangeEvent<HTMLInputElement>) => {
+  const handleMerchantStudioMediaInput = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = Array.from(event.target.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
+    event.target.value = ''
     if (!file) return
-    try {
-      const mediaUrl = file.type.startsWith('video/')
-        ? await readVideoFileToDataUrl(file)
-        : await resizeImageFileToDataUrl(file, 1100, 0.86)
-      updateMerchantDesignItem(itemId, {
-        kind: 'media',
-        mediaUrl,
-        mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
-      })
-      setActiveMerchantDesignItemId(itemId)
-      setActiveMerchantStageLayerId(`design:${itemId}`)
-    } catch (error) {
-      setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
-    } finally {
-      event.target.value = ''
+    if (activeMerchantDesignItem) {
+      try {
+        const mediaUrl = file.type.startsWith('video/')
+          ? await readVideoFileToDataUrl(file)
+          : await resizeImageFileToDataUrl(file, 1100, 0.86)
+        updateMerchantDesignItem(activeMerchantDesignItem.id, {
+          kind: 'media',
+          mediaUrl,
+          mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
+          background: 'transparent',
+        })
+        setActiveMerchantDesignItemId(activeMerchantDesignItem.id)
+        setActiveMerchantStageLayerId(`design:${activeMerchantDesignItem.id}`)
+        setMerchantDecorationNotice('素材已放入选中框，可拖动、缩放，保存后展示。')
+      } catch (error) {
+        setMerchantDecorationNotice(error instanceof Error ? error.message : '素材上传失败，请换一个文件重试。')
+      }
+      return
     }
+    await updateMerchantDecorationImage(activeMerchantMediaZone ?? 'service', file)
   }
 
   useEffect(() => {
@@ -5929,6 +5960,12 @@ function App() {
             ? activePartnerDetail.merchant.detailTone
             : `${activePartnerDetail.showcase.type}服务展示`,
         panelTitle: activePartnerDetail.merchant.tags.join(' · '),
+        sectionOneTitle: '服务说明',
+        sectionOneText: activePartnerDetail.merchant.description,
+        sectionTwoTitle: '对比建议',
+        sectionTwoText: '建议先比较服务范围、价格区间、交付方式、售后规则和真实评价，再决定是否咨询或下单。',
+        sectionThreeTitle: '平台提醒',
+        sectionThreeText: '商家展示页用于信息对比，不代表平台担保服务结果；线下交易、付款和售后由用户与商家自行确认。',
         caseOne: activePartnerDetail.merchant.tags[0]
           ? `${activePartnerDetail.merchant.tags[0]}：展示服务范围、交付方式和适合人群。`
           : '服务范围：展示商家能提供的具体帮助和边界。',
@@ -5973,7 +6010,13 @@ function App() {
     },
   ]
   const partnerDetailSections =
-    'detailSections' in activePartnerDetail.merchant
+    !isWalaPartnerDetail && activeMerchantPreviewDecoration
+      ? [
+          { title: activeMerchantPreviewDecoration.sectionOneTitle, text: activeMerchantPreviewDecoration.sectionOneText },
+          { title: activeMerchantPreviewDecoration.sectionTwoTitle, text: activeMerchantPreviewDecoration.sectionTwoText },
+          { title: activeMerchantPreviewDecoration.sectionThreeTitle, text: activeMerchantPreviewDecoration.sectionThreeText },
+        ]
+      : 'detailSections' in activePartnerDetail.merchant
       ? activePartnerDetail.merchant.detailSections ?? fallbackPartnerDetailSections
       : fallbackPartnerDetailSections
   const partnerDetailHeroTitle = isWalaPartnerDetail
@@ -6640,21 +6683,27 @@ function App() {
     setActiveMerchantTextEditor(null)
     setActiveMerchantMediaZone(zone)
     event.currentTarget.setPointerCapture(event.pointerId)
+    const stageElement =
+      event.currentTarget.closest<HTMLElement>('[data-merchant-design-stage]') ??
+      event.currentTarget.parentElement ??
+      event.currentTarget
+    const stageRect = stageElement.getBoundingClientRect()
     merchantImageDragRef.current = {
       zone,
       startX: event.clientX,
       startY: event.clientY,
       originX: zone === 'hero' ? activeMerchantDecorationDraft.heroImageX : activeMerchantDecorationDraft.serviceImageX,
       originY: zone === 'hero' ? activeMerchantDecorationDraft.heroImageY : activeMerchantDecorationDraft.serviceImageY,
+      stageWidth: Math.max(1, stageRect.width),
+      stageHeight: Math.max(1, stageRect.height),
     }
   }
 
-  const moveMerchantDecorationImageDrag = (event: PointerEvent<HTMLDivElement>) => {
+  const moveMerchantDecorationImageDrag = (event: PointerEvent<HTMLElement>) => {
     const drag = merchantImageDragRef.current
     if (!drag) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const nextX = Math.min(100, Math.max(0, drag.originX + ((event.clientX - drag.startX) / rect.width) * 100))
-    const nextY = Math.min(100, Math.max(0, drag.originY + ((event.clientY - drag.startY) / rect.height) * 100))
+    const nextX = Math.min(100, Math.max(0, drag.originX + ((event.clientX - drag.startX) / drag.stageWidth) * 100))
+    const nextY = Math.min(100, Math.max(0, drag.originY + ((event.clientY - drag.startY) / drag.stageHeight) * 100))
     if (drag.zone === 'hero') {
       updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageX', Number(nextX.toFixed(1)))
       updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageY', Number(nextY.toFixed(1)))
@@ -7301,6 +7350,15 @@ function App() {
       onPointerDown: (event: PointerEvent<HTMLElement>) => {
         if (editable) startMerchantDecorationImageDrag(zone, event)
       },
+      onPointerMove: (event: PointerEvent<HTMLElement>) => {
+        if (editable) moveMerchantDecorationImageDrag(event)
+      },
+      onPointerUp: () => {
+        if (editable) endMerchantDecorationImageDrag()
+      },
+      onPointerCancel: () => {
+        if (editable) endMerchantDecorationImageDrag()
+      },
     }
 
     return isVideoDataUrl(media) ? (
@@ -7319,6 +7377,12 @@ function App() {
       'contactCopy',
       'panelLabel',
       'panelTitle',
+      'sectionOneTitle',
+      'sectionOneText',
+      'sectionTwoTitle',
+      'sectionTwoText',
+      'sectionThreeTitle',
+      'sectionThreeText',
       'caseOne',
       'caseTwo',
       'showcaseArtTitle',
@@ -7743,14 +7807,13 @@ function App() {
             吸管
           </button>
         </div>
-        <label className={`merchant-studio-file-button ${activeMerchantDesignItem ? '' : 'is-disabled'}`}>
+        <label className="merchant-studio-file-button">
           <UploadCloud size={16} aria-hidden="true" />
-          上传到选中框
+          {activeMerchantDesignItem ? '上传到选中框' : activeMerchantMediaZone === 'hero' ? '上传到主视觉' : '上传到服务区'}
           <input
             accept="image/*,video/*"
-            disabled={!activeMerchantDesignItem}
             type="file"
-            onChange={(event) => activeMerchantDesignItem && handleMerchantDesignItemInput(activeMerchantDesignItem.id, event)}
+            onChange={handleMerchantStudioMediaInput}
           />
         </label>
         <p className="merchant-studio-tip">双击原有文字可改文案；选中泡泡框后可拖动、拉伸、调色、换图或删除。</p>
@@ -7798,6 +7861,12 @@ function App() {
       { id: 'text:panelLabel', kind: 'text', field: 'panelLabel', group: '右侧卡片', title: '右侧标识', preview: activeMerchantDecorationDraft.panelLabel },
       { id: 'text:panelTitle', kind: 'text', field: 'panelTitle', group: '右侧卡片', title: '右侧标题', preview: activeMerchantDecorationDraft.panelTitle },
       { id: 'text:contactCopy', kind: 'text', field: 'contactCopy', group: '右侧卡片', title: '咨询提示', preview: activeMerchantDecorationDraft.contactCopy },
+      { id: 'text:sectionOneTitle', kind: 'text', field: 'sectionOneTitle', group: '说明卡片', title: '卡片 1 标题', preview: activeMerchantDecorationDraft.sectionOneTitle },
+      { id: 'text:sectionOneText', kind: 'text', field: 'sectionOneText', group: '说明卡片', title: '卡片 1 内容', preview: activeMerchantDecorationDraft.sectionOneText },
+      { id: 'text:sectionTwoTitle', kind: 'text', field: 'sectionTwoTitle', group: '说明卡片', title: '卡片 2 标题', preview: activeMerchantDecorationDraft.sectionTwoTitle },
+      { id: 'text:sectionTwoText', kind: 'text', field: 'sectionTwoText', group: '说明卡片', title: '卡片 2 内容', preview: activeMerchantDecorationDraft.sectionTwoText },
+      { id: 'text:sectionThreeTitle', kind: 'text', field: 'sectionThreeTitle', group: '说明卡片', title: '卡片 3 标题', preview: activeMerchantDecorationDraft.sectionThreeTitle },
+      { id: 'text:sectionThreeText', kind: 'text', field: 'sectionThreeText', group: '说明卡片', title: '卡片 3 内容', preview: activeMerchantDecorationDraft.sectionThreeText },
       { id: 'text:caseOne', kind: 'text', field: 'caseOne', group: '服务区', title: '服务展示 1', preview: activeMerchantDecorationDraft.caseOne },
       { id: 'text:caseTwo', kind: 'text', field: 'caseTwo', group: '服务区', title: '服务展示 2', preview: activeMerchantDecorationDraft.caseTwo },
     ]
@@ -10253,12 +10322,40 @@ function App() {
           </div>
 
           <div className="partner-detail-grid">
-            {partnerDetailSections.map((section) => (
+            {partnerDetailSections.map((section, index) => {
+              const titleField = (index === 0
+                ? 'sectionOneTitle'
+                : index === 1
+                  ? 'sectionTwoTitle'
+                  : 'sectionThreeTitle') as MerchantEditableTextField
+              const textField = (index === 0
+                ? 'sectionOneText'
+                : index === 1
+                  ? 'sectionTwoText'
+                  : 'sectionThreeText') as MerchantEditableTextField
+              return (
               <article key={section.title}>
-                <span style={activeMerchantAccentStyle}>{section.title}</span>
-                <p style={activeMerchantBodyStyle}>{section.text}</p>
+                <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, titleField)}>
+                  <span
+                    style={activeMerchantAccentStyle}
+                    {...getMerchantEditableTextProps(titleField)}
+                  >
+                    {section.title}
+                  </span>
+                  {renderMerchantTextEditor(titleField)}
+                </div>
+                <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, textField)}>
+                  <p
+                    style={activeMerchantBodyStyle}
+                    {...getMerchantEditableTextProps(textField)}
+                  >
+                    {section.text}
+                  </p>
+                  {renderMerchantTextEditor(textField)}
+                </div>
               </article>
-            ))}
+              )
+            })}
           </div>
 
           <div
