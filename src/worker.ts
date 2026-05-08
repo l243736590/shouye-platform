@@ -22,6 +22,7 @@ type CredentialDocument = {
   type: string
   status: VerificationStatus
   uploadedAt: string
+  dataUrl?: string
 }
 
 type UserRecord = {
@@ -1162,6 +1163,7 @@ const rowToDocument = (row: Record<string, unknown>): CredentialDocument => ({
   type: String(row.type),
   status: String(row.status) as VerificationStatus,
   uploadedAt: String(row.uploaded_at),
+  dataUrl: row.data_url ? String(row.data_url) : undefined,
 })
 
 const rowToPartnerApplication = (row: Record<string, unknown>): PartnerApplicationRecord => ({
@@ -1557,8 +1559,25 @@ const requireAdmin = async (request: Request, env: Env) => {
   return Boolean(session)
 }
 
+const ensureUserDocumentsTable = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS user_documents (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      data_url TEXT NOT NULL DEFAULT '',
+      uploaded_at TEXT NOT NULL
+    )`,
+  ).run()
+  await ensureColumn(env, 'user_documents', 'data_url', "data_url TEXT NOT NULL DEFAULT ''")
+}
+
 const getAllUsers = async (env: Env) => {
   if (!env.DB) return []
+  await ensureUserDocumentsTable(env)
   const userRows = await env.DB.prepare('SELECT * FROM users ORDER BY joined_at DESC').all<Record<string, unknown>>()
   const documentRows = await env.DB.prepare('SELECT * FROM user_documents ORDER BY uploaded_at DESC').all<
     Record<string, unknown>
@@ -1572,6 +1591,9 @@ const getAllUsers = async (env: Env) => {
 
   return (userRows.results ?? []).map((row) => rowToUser(row, documentsByUser.get(String(row.id)) ?? []))
 }
+
+const stripDocumentPreviewData = (documents: CredentialDocument[]) =>
+  documents.map((document) => ({ ...document, dataUrl: undefined }))
 
 const getAllPosts = async (env: Env) => {
   if (!env.DB) return []
@@ -2318,6 +2340,7 @@ const handleRegister = async (request: Request, env: Env) => {
 
 const handleLogin = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureUserDocumentsTable(env)
   const body = await readBody<{ email: string; password: string }>(request)
   const email = body.email?.trim().toLowerCase()
   const password = body.password ?? ''
@@ -2428,6 +2451,7 @@ const handleWechatMiniappLogin = async (request: Request, env: Env) => {
     .bind(session.openid, session.unionid, String(userRow.id), session.sessionKey, now, now)
     .run()
 
+  await ensureUserDocumentsTable(env)
   const documents = await env.DB.prepare('SELECT * FROM user_documents WHERE user_id = ? ORDER BY uploaded_at DESC')
     .bind(userRow.id)
     .all<Record<string, unknown>>()
@@ -3704,6 +3728,7 @@ const handleWithdrawalCreate = async (request: Request, env: Env) => {
 
 const updateProfile = async (request: Request, env: Env, userId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureUserDocumentsTable(env)
   const body = await readBody<Partial<UserRecord>>(request)
   const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
   if (!existing) return json({ error: '用户不存在。' }, { status: 404 })
@@ -3722,14 +3747,15 @@ const updateProfile = async (request: Request, env: Env, userId: string) => {
 
   for (const document of body.documents ?? []) {
     await env.DB.prepare(
-      `INSERT INTO user_documents (id, user_id, name, type, status, uploaded_at)
-       VALUES (?, ?, ?, ?, 'pending', ?)`,
+      `INSERT INTO user_documents (id, user_id, name, type, status, data_url, uploaded_at)
+       VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
     )
       .bind(
         document.id || createId('doc'),
         userId,
         document.name || '认证材料',
         document.type || '身份/学校认证材料',
+        document.dataUrl || '',
         document.uploadedAt || new Date().toISOString(),
       )
       .run()
@@ -3745,16 +3771,18 @@ const updateProfile = async (request: Request, env: Env, userId: string) => {
 
 const getPublicUserProfile = async (env: Env, userId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureUserDocumentsTable(env)
   const row = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
   if (!row) return json({ error: '用户不存在。' }, { status: 404 })
   const documents = await env.DB.prepare('SELECT * FROM user_documents WHERE user_id = ? ORDER BY uploaded_at DESC')
     .bind(userId)
     .all<Record<string, unknown>>()
-  return json({ user: rowToUser(row, (documents.results ?? []).map(rowToDocument)) })
+  return json({ user: rowToUser(row, stripDocumentPreviewData((documents.results ?? []).map(rowToDocument))) })
 }
 
 const updateUser = async (request: Request, env: Env, userId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureUserDocumentsTable(env)
   const body = await readBody<Partial<UserRecord>>(request)
   const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first()
   if (!existing) return json({ error: '用户不存在。' }, { status: 404 })

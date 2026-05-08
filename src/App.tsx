@@ -48,6 +48,7 @@ type CredentialDocument = {
   type: string
   status: VerificationStatus
   uploadedAt: string
+  dataUrl?: string
 }
 
 type User = {
@@ -2745,6 +2746,17 @@ const readVideoFileToDataUrl = (file: File) =>
     reader.readAsDataURL(file)
   })
 
+const readCredentialFileToDataUrl = async (file: File) => {
+  if (file.type.startsWith('image/')) return resizeImageFileToDataUrl(file, 1600, 0.9)
+  if (file.size > 5 * 1024 * 1024) throw new Error('认证材料不能超过 5MB，请压缩后重新上传。')
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('认证材料读取失败。'))
+    reader.onload = () => resolve(String(reader.result ?? ''))
+    reader.readAsDataURL(file)
+  })
+}
+
 const isVideoDataUrl = (value?: string) => Boolean(value?.startsWith('data:video/'))
 
 const seedQuestions: CommunityQuestion[] = [
@@ -5014,6 +5026,15 @@ const normalizeUser = (user: Partial<User>): User => ({
   bio: user.bio ?? '',
   documents: user.documents ?? [],
 })
+
+const openCredentialDocument = (document: CredentialDocument, setMessage: (message: string) => void) => {
+  if (!document.dataUrl) {
+    setMessage('这份材料是旧记录，之前没有保存文件内容；请让用户重新上传后再查看。')
+    return
+  }
+  const preview = window.open(document.dataUrl, '_blank', 'noopener,noreferrer')
+  if (!preview) setMessage('浏览器拦截了预览窗口，请允许弹窗后重试。')
+}
 
 const normalizePartnerApplication = (application: Partial<PartnerApplication>): PartnerApplication => ({
   id: application.id ?? createId('partner'),
@@ -11223,18 +11244,27 @@ function App() {
                   <input
                     multiple
                     type="file"
-                    onChange={(event) => {
+                    onChange={async (event) => {
                       const files = Array.from(event.target.files ?? [])
-                      setProfileForm({
-                        ...profileForm,
-                        documents: files.map((file) => ({
+                      event.target.value = ''
+                      try {
+                        const documents = await Promise.all(
+                          files.map(async (file) => ({
                           id: createId('doc'),
                           name: file.name,
                           type: file.type || '身份/学校认证材料',
-                          status: 'pending',
+                          status: 'pending' as VerificationStatus,
                           uploadedAt: new Date().toISOString(),
+                            dataUrl: await readCredentialFileToDataUrl(file),
                         })),
-                      })
+                        )
+                        setProfileForm({
+                          ...profileForm,
+                          documents,
+                        })
+                      } catch (error) {
+                        setMessage(error instanceof Error ? error.message : '认证材料读取失败，请换一个文件重试。')
+                      }
                     }}
                   />
                   <small className="field-help">材料会进入后台审核；提交前建议遮挡证件号码等非必要敏感信息。</small>
@@ -11250,9 +11280,14 @@ function App() {
                         <strong>{document.name}</strong>
                         <small>{new Date(document.uploadedAt).toLocaleDateString('zh-CN')}</small>
                       </div>
-                      <span className={`account-badge ${document.status}`}>
-                        {verificationStatusLabel[document.status]}
-                      </span>
+                      <div className="credential-actions">
+                        <button type="button" onClick={() => openCredentialDocument(document, setMessage)}>
+                          查看材料
+                        </button>
+                        <span className={`account-badge ${document.status}`}>
+                          {verificationStatusLabel[document.status]}
+                        </span>
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -12858,9 +12893,14 @@ function App() {
                                   {document.type} · {new Date(document.uploadedAt).toLocaleDateString('zh-CN')}
                                 </small>
                               </div>
-                              <span className={`account-badge ${document.status}`}>
-                                {verificationStatusLabel[document.status]}
-                              </span>
+                              <div className="credential-actions">
+                                <button type="button" onClick={() => openCredentialDocument(document, setMessage)}>
+                                  查看材料
+                                </button>
+                                <span className={`account-badge ${document.status}`}>
+                                  {verificationStatusLabel[document.status]}
+                                </span>
+                              </div>
                             </div>
                           ))
                         ) : (

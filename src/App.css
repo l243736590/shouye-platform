@@ -6303,6 +6303,22 @@ small[data-merchant-inline-edit='true'] {
   gap: 4px;
 }
 
+.credential-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.credential-actions button {
+  background: var(--ink);
+  border-radius: 7px;
+  color: #ffffff;
+  min-height: 34px;
+  padding: 0 12px;
+}
+
 .detail-actions {
   border-top: 1px solid var(--line);
   grid-template-columns: repeat(4, minmax(0, 1fr));
