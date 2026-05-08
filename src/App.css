@@ -2347,7 +2347,8 @@ h3 {
   gap: 18px;
 }
 
-.partner-card-next {
+.partner-card-next,
+.partner-card-prev {
   align-items: center;
   background:
     linear-gradient(180deg, #173457, #0b2038);
@@ -2363,10 +2364,14 @@ h3 {
   padding: 0;
   position: absolute;
   right: 0;
-  top: 50%;
+  top: calc(50% + 48px);
   transform: translateY(-50%);
   width: 58px;
   z-index: 5;
+}
+
+.partner-card-prev {
+  top: calc(50% - 48px);
 }
 
 .partner-logo-mark {
@@ -7472,7 +7477,8 @@ small[data-merchant-inline-edit='true'] {
     right: 72px;
   }
 
-  .partner-card-next {
+  .partner-card-next,
+  .partner-card-prev {
     height: 46px;
     right: 6px;
     width: 46px;

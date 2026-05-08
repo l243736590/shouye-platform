@@ -7,6 +7,7 @@ import {
   BadgeCheck,
   Building2,
   ChevronDown,
+  ChevronUp,
   BookOpenCheck,
   BookOpenText,
   CircleDollarSign,
@@ -5141,6 +5142,8 @@ function App() {
   const [selectedCategory, setSelectedCategory] = useState(allCategoryLabel)
   const [selectedPartnerType, setSelectedPartnerType] = useState(partnerShowcases[0].type)
   const [selectedPartnerMerchantIndex, setSelectedPartnerMerchantIndex] = useState(0)
+  const [partnerAutoFlip, setPartnerAutoFlip] = useState(true)
+  const [partnerAutoFlipDelay, setPartnerAutoFlipDelay] = useState(10000)
   const [questionCategoryFilter, setQuestionCategoryFilter] = useState(allCategoryLabel)
   const [questionStatusFilter, setQuestionStatusFilter] = useState<'all' | QuestionStatus>('all')
   const [questionSort, setQuestionSort] = useState<'reward' | 'views' | 'latest'>('reward')
@@ -5519,13 +5522,33 @@ function App() {
     routeSchool ?? allSchoolProfiles.find((school) => school.id === selectedSchoolId) ?? allSchoolProfiles[0]
   const selectedPartnerShowcase =
     partnerShowcases.find((partner) => partner.type === selectedPartnerType) ?? partnerShowcases[0]
+  const selectedPartnerMerchantCount = selectedPartnerShowcase.merchants.length
+  const activePartnerMerchantIndex = selectedPartnerMerchantCount
+    ? ((selectedPartnerMerchantIndex % selectedPartnerMerchantCount) + selectedPartnerMerchantCount) % selectedPartnerMerchantCount
+    : 0
   const activePartnerMerchant =
-    selectedPartnerShowcase.merchants[selectedPartnerMerchantIndex % selectedPartnerShowcase.merchants.length] ??
+    selectedPartnerShowcase.merchants[activePartnerMerchantIndex] ??
     selectedPartnerShowcase.merchants[0]
   const activePartnerMerchantSlug =
     'id' in activePartnerMerchant && activePartnerMerchant.id
       ? activePartnerMerchant.id
       : encodeURIComponent(activePartnerMerchant.name)
+
+  useEffect(() => {
+    if (!partnerAutoFlip || partnerShowcaseEditMode || selectedPartnerMerchantCount < 2) return
+    const timer = window.setTimeout(() => {
+      setSelectedPartnerMerchantIndex((index) => (index + 1) % selectedPartnerMerchantCount)
+      setPartnerAutoFlipDelay(5000)
+    }, partnerAutoFlipDelay)
+    return () => window.clearTimeout(timer)
+  }, [
+    partnerAutoFlip,
+    partnerAutoFlipDelay,
+    partnerShowcaseEditMode,
+    selectedPartnerMerchantCount,
+    selectedPartnerMerchantIndex,
+  ])
+
   const activePartnerMerchantDecoration = appState.merchantBrandDecorations.find(
     (decoration) => decoration.brandId === activePartnerMerchantSlug,
   )
@@ -8875,11 +8898,20 @@ function App() {
   const selectPartnerType = (type: string) => {
     setSelectedPartnerType(type)
     setSelectedPartnerMerchantIndex(0)
+    setPartnerAutoFlip(true)
+    setPartnerAutoFlipDelay(10000)
     setPartnerShowcaseEditMode(false)
   }
 
-  const showNextPartnerCards = () => {
-    setSelectedPartnerMerchantIndex((index) => (index + 1) % selectedPartnerShowcase.merchants.length)
+  const showNextPartnerCards = (manual = true) => {
+    if (manual) setPartnerAutoFlip(false)
+    setSelectedPartnerMerchantIndex((index) => (index + 1) % selectedPartnerMerchantCount)
+    setPartnerShowcaseEditMode(false)
+  }
+
+  const showPreviousPartnerCards = () => {
+    setPartnerAutoFlip(false)
+    setSelectedPartnerMerchantIndex((index) => (index - 1 + selectedPartnerMerchantCount) % selectedPartnerMerchantCount)
     setPartnerShowcaseEditMode(false)
   }
 
@@ -11787,10 +11819,20 @@ function App() {
             </div>
           </motion.article>
           <div className="partner-page-stack" aria-hidden="true" />
+          {selectedPartnerMerchantCount > 1 && activePartnerMerchantIndex > 0 && (
+            <button
+              className="partner-card-prev"
+              type="button"
+              onClick={showPreviousPartnerCards}
+              aria-label={`翻到上一家${selectedPartnerShowcase.type}商家`}
+            >
+              <ChevronUp size={24} aria-hidden="true" />
+            </button>
+          )}
           <button
             className="partner-card-next"
             type="button"
-            onClick={showNextPartnerCards}
+            onClick={() => showNextPartnerCards()}
             aria-label={`翻到下一家${selectedPartnerShowcase.type}商家`}
           >
             <ChevronDown size={24} aria-hidden="true" />
@@ -11800,10 +11842,13 @@ function App() {
           <div className="partner-page-dots" aria-label={`${selectedPartnerShowcase.type}商家页码`}>
             {selectedPartnerShowcase.merchants.map((merchant, index) => (
               <button
-                className={index === selectedPartnerMerchantIndex % selectedPartnerShowcase.merchants.length ? 'active' : ''}
+                className={index === activePartnerMerchantIndex ? 'active' : ''}
                 key={merchant.name}
                 type="button"
-                onClick={() => setSelectedPartnerMerchantIndex(index)}
+                onClick={() => {
+                  setPartnerAutoFlip(false)
+                  setSelectedPartnerMerchantIndex(index)
+                }}
               >
                 <span>{index + 1}</span>
               </button>
