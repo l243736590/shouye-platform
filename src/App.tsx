@@ -196,6 +196,9 @@ type MerchantBrandDecoration = {
   pendingLogoImage: string
   logoReviewStatus: VerificationStatus
   bubbleColor: string
+  bubbleTextColor: string
+  bubbleMetaColor: string
+  bubbleLogoBackground: string
   fontFamily: string
   titleColor: string
   bodyColor: string
@@ -878,6 +881,9 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     pendingLogoImage: '',
     logoReviewStatus: 'approved',
     bubbleColor: 'rgba(194, 151, 62, 0.92)',
+    bubbleTextColor: '#12345a',
+    bubbleMetaColor: '#ef5a3c',
+    bubbleLogoBackground: 'rgba(194, 151, 62, 0.92)',
     fontFamily: '',
     titleColor: '',
     bodyColor: '',
@@ -1008,6 +1014,9 @@ const normalizeMerchantBrandDecoration = (
     pendingLogoImage: decoration.pendingLogoImage ?? fallback?.pendingLogoImage ?? '',
     logoReviewStatus: decoration.logoReviewStatus ?? fallback?.logoReviewStatus ?? 'approved',
     bubbleColor: decoration.bubbleColor ?? fallback?.bubbleColor ?? '',
+    bubbleTextColor: decoration.bubbleTextColor ?? fallback?.bubbleTextColor ?? '',
+    bubbleMetaColor: decoration.bubbleMetaColor ?? fallback?.bubbleMetaColor ?? '',
+    bubbleLogoBackground: decoration.bubbleLogoBackground ?? fallback?.bubbleLogoBackground ?? '',
     fontFamily: decoration.fontFamily ?? fallback?.fontFamily ?? '',
     titleColor: decoration.titleColor ?? fallback?.titleColor ?? '',
     bodyColor: decoration.bodyColor ?? fallback?.bodyColor ?? '',
@@ -5746,12 +5755,19 @@ function App() {
         ? getPartnerLogoImage(entry.merchant) || approvedLogoImage
         : approvedLogoImage || getPartnerLogoImage(entry.merchant)
     const bubbleColor = decoration?.bubbleColor || (entry.slug === 'tuzhuren-thesis' ? 'rgba(194, 151, 62, 0.92)' : '')
+    const bubbleTextColor = decoration?.bubbleTextColor || ''
+    const bubbleMetaColor = decoration?.bubbleMetaColor || ''
+    const bubbleLogoBackground =
+      decoration?.bubbleLogoBackground || (entry.slug === 'tuzhuren-thesis' ? 'rgba(194, 151, 62, 0.92)' : '')
     const seedX = 10 + ((index * 19) % 76)
     const seedY = 12 + ((index * 29) % 72)
     return {
       ...entry,
       logoImage,
       bubbleColor,
+      bubbleTextColor,
+      bubbleMetaColor,
+      bubbleLogoBackground,
       seedX,
       seedY,
     }
@@ -11024,6 +11040,81 @@ function App() {
                       />
                     </label>
                   </div>
+                  <div className="merchant-bubble-style-panel">
+                    <div>
+                      <strong>集体展示气泡样式</strong>
+                      <p>这里控制“我要找商家要福利”水箱页里当前品牌气泡的底色、LOGO 背景和文字颜色。</p>
+                    </div>
+                    <div className="admin-content-grid">
+                      <label>
+                        气泡底色
+                        <input
+                          value={activeMerchantDecorationDraft.bubbleColor}
+                          onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'bubbleColor', event.target.value)}
+                          placeholder="例如 rgba(194, 151, 62, 0.92)"
+                        />
+                      </label>
+                      <label>
+                        LOGO 背景色
+                        <input
+                          value={activeMerchantDecorationDraft.bubbleLogoBackground}
+                          onChange={(event) =>
+                            updateMerchantDecorationDraft(activePartnerDetailSlug, 'bubbleLogoBackground', event.target.value)
+                          }
+                          placeholder="例如 rgba(194, 151, 62, 0.92)"
+                        />
+                      </label>
+                      <label>
+                        气泡主文字色
+                        <input
+                          type="color"
+                          value={activeMerchantDecorationDraft.bubbleTextColor || '#12345a'}
+                          onChange={(event) =>
+                            updateMerchantDecorationDraft(activePartnerDetailSlug, 'bubbleTextColor', event.target.value)
+                          }
+                        />
+                      </label>
+                      <label>
+                        分类小字色
+                        <input
+                          type="color"
+                          value={activeMerchantDecorationDraft.bubbleMetaColor || '#ef5a3c'}
+                          onChange={(event) =>
+                            updateMerchantDecorationDraft(activePartnerDetailSlug, 'bubbleMetaColor', event.target.value)
+                          }
+                        />
+                      </label>
+                    </div>
+                    <div
+                      className={`partner-merchant-bubble merchant-bubble-preview ${
+                        activePartnerDetail.merchant.level === 'pinned' ? 'is-pinned' : ''
+                      }`}
+                      style={
+                        {
+                          '--merchant-bubble-bg': activeMerchantDecorationDraft.bubbleColor || undefined,
+                          '--merchant-bubble-text-color': activeMerchantDecorationDraft.bubbleTextColor || undefined,
+                          '--merchant-bubble-meta-color': activeMerchantDecorationDraft.bubbleMetaColor || undefined,
+                          '--merchant-bubble-logo-bg': activeMerchantDecorationDraft.bubbleLogoBackground || undefined,
+                        } as CSSProperties
+                      }
+                    >
+                      <span
+                        className={`partner-logo-mark ${activePartnerDetail.showcase.tone} ${
+                          activeMerchantDecorationDraft.pendingLogoImage || activePartnerDetailLogoImage ? 'has-image' : ''
+                        } ${activeMerchantDecorationDraft.bubbleLogoBackground ? 'has-custom-logo-bg' : ''}`}
+                      >
+                        {activeMerchantDecorationDraft.pendingLogoImage ? (
+                          <img src={activeMerchantDecorationDraft.pendingLogoImage} alt="" />
+                        ) : activePartnerDetailLogoImage ? (
+                          <img src={activePartnerDetailLogoImage} alt="" />
+                        ) : (
+                          <i>{activePartnerDetail.merchant.logo}</i>
+                        )}
+                      </span>
+                      <strong>{activePartnerDetail.merchant.name}</strong>
+                      <small>{activePartnerDetail.showcase.type}</small>
+                    </div>
+                  </div>
                   <div className="merchant-image-editor-grid">
                     {renderMerchantDecorationImageEditor('hero', '主视觉图片区', '拖入图片或点击上传，按住图片可自由拉动位置。')}
                     {renderMerchantDecorationImageEditor('service', '服务展示图片区', '用于下方服务展示区域，保存后对外展示。')}
@@ -12379,13 +12470,20 @@ function App() {
                     key={`${entry.showcase.type}-${entry.slug}`}
                     style={{
                       '--merchant-bubble-bg': entry.bubbleColor || undefined,
+                      '--merchant-bubble-text-color': entry.bubbleTextColor || undefined,
+                      '--merchant-bubble-meta-color': entry.bubbleMetaColor || undefined,
+                      '--merchant-bubble-logo-bg': entry.bubbleLogoBackground || undefined,
                       left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,
                       top: `${partnerBubblePositions[entry.slug]?.y ?? entry.seedY}%`,
                     } as CSSProperties}
                     type="button"
                     onClick={() => navigateToPath(`/partners/${entry.slug}`)}
                   >
-                    <span className={`partner-logo-mark ${entry.showcase.tone} ${entry.logoImage ? 'has-image' : ''}`}>
+                    <span
+                      className={`partner-logo-mark ${entry.showcase.tone} ${entry.logoImage ? 'has-image' : ''} ${
+                        entry.bubbleLogoBackground ? 'has-custom-logo-bg' : ''
+                      }`}
+                    >
                       {entry.logoImage ? <img src={entry.logoImage} alt="" /> : <i>{entry.merchant.logo}</i>}
                     </span>
                     <strong>{entry.merchant.name}</strong>
