@@ -9310,7 +9310,6 @@ function App() {
   }
 
   const selectPartnerType = (type: string) => {
-    if (suppressPartnerCategoryClickRef.current) return
     setSelectedPartnerType(type)
     setSelectedPartnerMerchantIndex(0)
     setPartnerAutoFlip(true)
@@ -9326,7 +9325,6 @@ function App() {
       dragged: false,
     }
     setPartnerCategoryDragging(true)
-    event.currentTarget.setPointerCapture(event.pointerId)
   }
 
   const movePartnerCategoryRailDrag = (event: PointerEvent<HTMLDivElement>) => {
@@ -9337,6 +9335,9 @@ function App() {
       drag.dragged = true
       suppressPartnerCategoryClickRef.current = true
       event.preventDefault()
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.setPointerCapture(event.pointerId)
+      }
     }
     event.currentTarget.scrollLeft = drag.scrollLeft - deltaX
   }
@@ -12164,7 +12165,15 @@ function App() {
             <button
               className={selectedPartnerType === partner.type ? 'partner-category-tab active' : 'partner-category-tab'}
               key={partner.type}
-              onClick={() => selectPartnerType(partner.type)}
+              onClick={(event) => {
+                if (suppressPartnerCategoryClickRef.current) {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  suppressPartnerCategoryClickRef.current = false
+                  return
+                }
+                selectPartnerType(partner.type)
+              }}
               type="button"
             >
               <span>{partner.type}</span>
