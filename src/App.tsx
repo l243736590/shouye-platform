@@ -144,6 +144,8 @@ type MerchantBrandDecoration = {
   heroTitle: string
   intro: string
   contactCopy: string
+  panelLabel: string
+  panelTitle: string
   caseOne: string
   caseTwo: string
   showcaseArtTitle: string
@@ -817,6 +819,8 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     intro:
       '土著人面向在韩本科、大学院和毕业阶段学生，展示论文流程说明、毕业材料检查、韩文表达校对和发表准备等合规学业支持服务。',
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
+    panelLabel: '土著人品牌的管理商家',
+    panelTitle: '论文流程・毕业审查・韩文发表',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
     showcaseArtTitle: '土著人',
@@ -936,6 +940,8 @@ const normalizeMerchantBrandDecoration = (
     heroTitle: decoration.heroTitle ?? fallback?.heroTitle ?? '',
     intro: decoration.intro ?? fallback?.intro ?? '',
     contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
+    panelLabel: decoration.panelLabel || fallback?.panelLabel || '认证商家展示',
+    panelTitle: decoration.panelTitle || fallback?.panelTitle || '',
     caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
     caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
     showcaseArtTitle: decoration.showcaseArtTitle ?? fallback?.showcaseArtTitle ?? '',
@@ -5060,6 +5066,8 @@ type MerchantEditableTextField =
   | 'heroTitle'
   | 'intro'
   | 'contactCopy'
+  | 'panelLabel'
+  | 'panelTitle'
   | 'caseOne'
   | 'caseTwo'
   | 'showcaseArtTitle'
@@ -5203,6 +5211,8 @@ function App() {
     originY: number
     originWidth: number
     originHeight: number
+    stageWidth: number
+    stageHeight: number
   } | null>(null)
   const merchantTextLayerDragRef = useRef<{
     brandId: string
@@ -5914,6 +5924,11 @@ function App() {
         heroTitle: activePartnerDetail.merchant.summary,
         intro: activePartnerDetail.merchant.description,
         contactCopy: '联系前请先确认服务范围、价格区间、交付方式和售后规则。',
+        panelLabel:
+          'detailTone' in activePartnerDetail.merchant
+            ? activePartnerDetail.merchant.detailTone
+            : `${activePartnerDetail.showcase.type}服务展示`,
+        panelTitle: activePartnerDetail.merchant.tags.join(' · '),
         caseOne: activePartnerDetail.merchant.tags[0]
           ? `${activePartnerDetail.merchant.tags[0]}：展示服务范围、交付方式和适合人群。`
           : '服务范围：展示商家能提供的具体帮助和边界。',
@@ -6778,6 +6793,11 @@ function App() {
     event.preventDefault()
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
+    const stageElement =
+      event.currentTarget.closest<HTMLElement>('[data-merchant-design-stage]') ??
+      event.currentTarget.parentElement ??
+      event.currentTarget
+    const stageRect = stageElement.getBoundingClientRect()
     setActiveMerchantDesignItemId(item.id)
     setActiveMerchantStageLayerId(`design:${item.id}`)
     merchantDesignItemDragRef.current = {
@@ -6789,15 +6809,16 @@ function App() {
       originY: item.y,
       originWidth: item.width,
       originHeight: item.height,
+      stageWidth: Math.max(1, stageRect.width),
+      stageHeight: Math.max(1, stageRect.height),
     }
   }
 
   const moveMerchantDesignItemDrag = (event: PointerEvent<HTMLDivElement>) => {
     const drag = merchantDesignItemDragRef.current
     if (!drag) return
-    const rect = event.currentTarget.getBoundingClientRect()
-    const deltaX = ((event.clientX - drag.startX) / rect.width) * 100
-    const deltaY = ((event.clientY - drag.startY) / rect.height) * 100
+    const deltaX = ((event.clientX - drag.startX) / drag.stageWidth) * 100
+    const deltaY = ((event.clientY - drag.startY) / drag.stageHeight) * 100
     if (drag.mode === 'resize') {
       updateMerchantDesignItem(drag.id, {
         width: Number(Math.min(92, Math.max(10, drag.originWidth + deltaX)).toFixed(1)),
@@ -7221,6 +7242,9 @@ function App() {
                     }
                     startMerchantDesignItemDrag(item, 'move', event)
                   }}
+                  onPointerMove={(event) => moveMerchantDesignItemDrag(event)}
+                  onPointerUp={endMerchantDesignItemDrag}
+                  onPointerCancel={endMerchantDesignItemDrag}
                 >
                   {selected && (
                     <>
@@ -7293,6 +7317,8 @@ function App() {
       'heroTitle',
       'intro',
       'contactCopy',
+      'panelLabel',
+      'panelTitle',
       'caseOne',
       'caseTwo',
       'showcaseArtTitle',
@@ -7769,6 +7795,8 @@ function App() {
       { id: 'text:showcaseArtTitle', kind: 'text', field: 'showcaseArtTitle', group: '主视觉', title: '品牌大字', preview: activeMerchantDecorationDraft.showcaseArtTitle },
       { id: 'text:heroTitle', kind: 'text', field: 'heroTitle', group: '主视觉', title: '主标题', preview: activeMerchantDecorationDraft.heroTitle },
       { id: 'text:intro', kind: 'text', field: 'intro', group: '主视觉', title: '品牌介绍', preview: activeMerchantDecorationDraft.intro },
+      { id: 'text:panelLabel', kind: 'text', field: 'panelLabel', group: '右侧卡片', title: '右侧标识', preview: activeMerchantDecorationDraft.panelLabel },
+      { id: 'text:panelTitle', kind: 'text', field: 'panelTitle', group: '右侧卡片', title: '右侧标题', preview: activeMerchantDecorationDraft.panelTitle },
       { id: 'text:contactCopy', kind: 'text', field: 'contactCopy', group: '右侧卡片', title: '咨询提示', preview: activeMerchantDecorationDraft.contactCopy },
       { id: 'text:caseOne', kind: 'text', field: 'caseOne', group: '服务区', title: '服务展示 1', preview: activeMerchantDecorationDraft.caseOne },
       { id: 'text:caseTwo', kind: 'text', field: 'caseTwo', group: '服务区', title: '服务展示 2', preview: activeMerchantDecorationDraft.caseTwo },
@@ -10091,6 +10119,7 @@ function App() {
           <div className={`partner-detail-hero ${merchantDesignEditMode && canManageActivePartnerBrand ? 'is-direct-editing' : ''}`}>
             <div
               className="partner-detail-copy"
+              data-merchant-design-stage="true"
               onDragOver={(event) => merchantDesignEditMode && event.preventDefault()}
               onDrop={(event) => merchantDesignEditMode && handleMerchantDecorationImageDrop('hero', event)}
               onPointerMove={(event) => {
@@ -10188,8 +10217,27 @@ function App() {
               </a>
             </div>
             <div className="partner-detail-panel" aria-label={`${activePartnerDetail.merchant.name}服务标签`}>
-              <span style={activeMerchantAccentStyle}>{'detailTone' in activePartnerDetail.merchant ? activePartnerDetail.merchant.detailTone : `${activePartnerDetail.showcase.type}服务展示`}</span>
-              <strong style={activeMerchantTitleStyle}>{activePartnerDetail.merchant.tags.join(' · ')}</strong>
+              <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'panelLabel')}>
+                <span
+                  style={activeMerchantAccentStyle}
+                  {...getMerchantEditableTextProps('panelLabel')}
+                >
+                  {activeMerchantPreviewDecoration?.panelLabel ||
+                    ('detailTone' in activePartnerDetail.merchant
+                      ? activePartnerDetail.merchant.detailTone
+                      : `${activePartnerDetail.showcase.type}服务展示`)}
+                </span>
+                {renderMerchantTextEditor('panelLabel')}
+              </div>
+              <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'panelTitle')}>
+                <strong
+                  style={activeMerchantTitleStyle}
+                  {...getMerchantEditableTextProps('panelTitle')}
+                >
+                  {activeMerchantPreviewDecoration?.panelTitle || activePartnerDetail.merchant.tags.join(' · ')}
+                </strong>
+                {renderMerchantTextEditor('panelTitle')}
+              </div>
               <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, 'contactCopy')}>
               <p
                 style={activeMerchantBodyStyle}
@@ -10215,6 +10263,7 @@ function App() {
 
           <div
             className={`partner-detail-cases ${merchantDesignEditMode && canManageActivePartnerBrand ? 'is-direct-editing' : ''}`}
+            data-merchant-design-stage="true"
             onDragOver={(event) => merchantDesignEditMode && event.preventDefault()}
             onDrop={(event) => merchantDesignEditMode && handleMerchantDecorationImageDrop('service', event)}
             onPointerMove={(event) => {

@@ -110,6 +110,8 @@ type MerchantBrandDecorationRecord = {
   heroTitle: string
   intro: string
   contactCopy: string
+  panelLabel: string
+  panelTitle: string
   caseOne: string
   caseTwo: string
   showcaseArtTitle: string
@@ -327,6 +329,8 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
     intro:
       '土著人面向在韩本科、大学院和毕业阶段学生，展示论文流程说明、毕业材料检查、韩文表达校对和发表准备等合规学业支持服务。',
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
+    panelLabel: '土著人品牌的管理商家',
+    panelTitle: '论文流程・毕业审查・韩文发表',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
     showcaseArtTitle: '土著人',
@@ -471,6 +475,8 @@ const normalizeMerchantBrandDecoration = (
   heroTitle: decoration.heroTitle ?? fallback?.heroTitle ?? '',
   intro: decoration.intro ?? fallback?.intro ?? '',
   contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
+  panelLabel: decoration.panelLabel || fallback?.panelLabel || '认证商家展示',
+  panelTitle: decoration.panelTitle || fallback?.panelTitle || '',
   caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
   caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
   showcaseArtTitle: decoration.showcaseArtTitle ?? fallback?.showcaseArtTitle ?? '',
@@ -1170,6 +1176,8 @@ const rowToMerchantBrandDecoration = (row: Record<string, unknown>): MerchantBra
   heroTitle: String(row.hero_title ?? ''),
   intro: String(row.intro ?? ''),
   contactCopy: String(row.contact_copy ?? ''),
+  panelLabel: String(row.panel_label ?? ''),
+  panelTitle: String(row.panel_title ?? ''),
   caseOne: String(row.case_one ?? ''),
   caseTwo: String(row.case_two ?? ''),
   showcaseArtTitle: String(row.showcase_art_title ?? ''),
@@ -1726,6 +1734,8 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
       hero_title TEXT NOT NULL DEFAULT '',
       intro TEXT NOT NULL DEFAULT '',
       contact_copy TEXT NOT NULL DEFAULT '',
+      panel_label TEXT NOT NULL DEFAULT '',
+      panel_title TEXT NOT NULL DEFAULT '',
       case_one TEXT NOT NULL DEFAULT '',
       case_two TEXT NOT NULL DEFAULT '',
       showcase_art_title TEXT NOT NULL DEFAULT '',
@@ -1751,6 +1761,8 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
     )`,
   ).run()
   await ensureColumn(env, 'merchant_brand_decorations', 'logo_image', "logo_image TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'panel_label', "panel_label TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'panel_title', "panel_title TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'showcase_art_title', "showcase_art_title TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'showcase_art_subtitle', "showcase_art_subtitle TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'pending_logo_image', "pending_logo_image TEXT NOT NULL DEFAULT ''")
@@ -3165,6 +3177,8 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
     decoration.heroTitle,
     decoration.intro,
     decoration.contactCopy,
+    decoration.panelLabel,
+    decoration.panelTitle,
     decoration.caseOne,
     decoration.caseTwo,
     decoration.showcaseArtTitle,
@@ -3184,14 +3198,16 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
         hero_title = excluded.hero_title,
         intro = excluded.intro,
         contact_copy = excluded.contact_copy,
+        panel_label = excluded.panel_label,
+        panel_title = excluded.panel_title,
         case_one = excluded.case_one,
         case_two = excluded.case_two,
         showcase_art_title = excluded.showcase_art_title,
@@ -3222,6 +3238,8 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
       decoration.heroTitle,
       decoration.intro,
       decoration.contactCopy,
+      decoration.panelLabel,
+      decoration.panelTitle,
       decoration.caseOne,
       decoration.caseTwo,
       decoration.showcaseArtTitle,
@@ -3274,14 +3292,16 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
         hero_title = excluded.hero_title,
         intro = excluded.intro,
         contact_copy = excluded.contact_copy,
+        panel_label = excluded.panel_label,
+        panel_title = excluded.panel_title,
         case_one = excluded.case_one,
         case_two = excluded.case_two,
         showcase_art_title = excluded.showcase_art_title,
@@ -3312,6 +3332,8 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
       decoration.heroTitle,
       decoration.intro,
       decoration.contactCopy,
+      decoration.panelLabel,
+      decoration.panelTitle,
       decoration.caseOne,
       decoration.caseTwo,
       decoration.showcaseArtTitle,
