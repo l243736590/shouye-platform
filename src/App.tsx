@@ -6628,7 +6628,8 @@ function App() {
   const moveMerchantDesignItemLayer = (itemId: string, direction: 1 | -1) => {
     const item = activeMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
     if (!item) return
-    updateMerchantDesignItem(itemId, { z: Math.min(80, Math.max(1, item.z + direction)) })
+    const maxZ = Math.max(20, ...activeMerchantDecorationDraft.designItems.map((entry) => entry.z))
+    updateMerchantDesignItem(itemId, { z: direction > 0 ? Math.min(120, maxZ + 10) : 0 })
   }
 
   const updateTextLayerStyle = (
@@ -6659,7 +6660,7 @@ function App() {
 
   const startMerchantTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
     if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
-    event.preventDefault()
+    if (event.detail > 1) return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     selectMerchantTextLayer(field)
@@ -6813,12 +6814,13 @@ function App() {
   const movePartnerShowcaseDesignItemLayer = (itemId: string, direction: 1 | -1) => {
     const item = activePartnerMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
     if (!item) return
-    updatePartnerShowcaseDesignItem(itemId, { z: Math.min(90, Math.max(1, item.z + direction)) })
+    const maxZ = Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((entry) => entry.z))
+    updatePartnerShowcaseDesignItem(itemId, { z: direction > 0 ? Math.min(120, maxZ + 10) : 0 })
   }
 
   const startPartnerShowcaseTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
     if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
-    event.preventDefault()
+    if (event.detail > 1) return
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
     setActivePartnerShowcaseTextEditor(null)
@@ -6897,17 +6899,38 @@ function App() {
   }
 
   useEffect(() => {
-    if (!merchantDesignEditMode || !activeMerchantDesignItemId) return
+    if (!merchantDesignEditMode || (!activeMerchantDesignItemId && !activeMerchantMediaZone)) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Delete' && event.key !== 'Backspace') return
       const target = event.target as HTMLElement | null
       if (target?.closest('input, textarea, select')) return
       event.preventDefault()
-      deleteMerchantDesignItem(activeMerchantDesignItemId)
+      if (activeMerchantDesignItemId) {
+        deleteMerchantDesignItem(activeMerchantDesignItemId)
+        return
+      }
+      if (activeMerchantMediaZone) {
+        updateMerchantDecorationDraft(activePartnerDetailSlug, activeMerchantMediaZone === 'hero' ? 'heroImage' : 'serviceImage', '')
+        setActiveMerchantMediaZone(null)
+        setActiveMerchantStageLayerId(null)
+      }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [merchantDesignEditMode, activeMerchantDesignItemId, activeMerchantDecorationDraft.designItems])
+  }, [merchantDesignEditMode, activeMerchantDesignItemId, activeMerchantMediaZone, activeMerchantDecorationDraft.designItems])
+
+  useEffect(() => {
+    if (!partnerShowcaseEditMode || !activePartnerShowcaseDesignItemId) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return
+      const target = event.target as HTMLElement | null
+      if (target?.closest('input, textarea, select')) return
+      event.preventDefault()
+      deletePartnerShowcaseDesignItem(activePartnerShowcaseDesignItemId)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [partnerShowcaseEditMode, activePartnerShowcaseDesignItemId, activePartnerMerchantDecorationDraft.designItems])
 
   const renderMerchantDecorationImageEditor = (zone: 'hero' | 'service', title: string, description: string) => {
     const image = zone === 'hero' ? activeMerchantDecorationDraft.heroImage : activeMerchantDecorationDraft.serviceImage
@@ -7050,6 +7073,10 @@ function App() {
                   <button
                     className="merchant-design-delete"
                     type="button"
+                    onPointerDown={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }}
                     onClick={(event) => {
                       event.preventDefault()
                       event.stopPropagation()
@@ -7060,6 +7087,7 @@ function App() {
                   </button>
                   <span
                     className="merchant-design-resize"
+                    onClick={(event) => event.stopPropagation()}
                     onPointerDown={(event) => startMerchantDesignItemDrag(item, 'resize', event)}
                   />
                 </>
@@ -7340,17 +7368,26 @@ function App() {
               {selected && (
                 <>
                   <div className="partner-showcase-layer-controls">
-                    <button type="button" onClick={(event) => {
+                    <button type="button" onPointerDown={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }} onClick={(event) => {
                       event.preventDefault()
                       event.stopPropagation()
                       movePartnerShowcaseDesignItemLayer(item.id, 1)
                     }}>↑</button>
-                    <button type="button" onClick={(event) => {
+                    <button type="button" onPointerDown={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }} onClick={(event) => {
                       event.preventDefault()
                       event.stopPropagation()
                       movePartnerShowcaseDesignItemLayer(item.id, -1)
                     }}>↓</button>
-                    <button type="button" onClick={(event) => {
+                    <button type="button" onPointerDown={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                    }} onClick={(event) => {
                       event.preventDefault()
                       event.stopPropagation()
                       deletePartnerShowcaseDesignItem(item.id)
@@ -7359,6 +7396,7 @@ function App() {
                   <span
                     className="partner-showcase-design-resize"
                     title="拖动缩放，按住 Shift 保持比例"
+                    onClick={(event) => event.stopPropagation()}
                     onPointerDown={(event) => startPartnerShowcaseDesignItemDrag(item, 'resize', event)}
                   />
                 </>
