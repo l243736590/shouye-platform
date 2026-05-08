@@ -5260,6 +5260,8 @@ function App() {
   const [selectedPartnerMerchantIndex, setSelectedPartnerMerchantIndex] = useState(0)
   const [partnerAutoFlip, setPartnerAutoFlip] = useState(true)
   const [showPartnerCollectiveBoard, setShowPartnerCollectiveBoard] = useState(true)
+  const [partnerBubblePositions, setPartnerBubblePositions] = useState<Record<string, { x: number; y: number }>>({})
+  const partnerBubblePhysicsRef = useRef<Record<string, { x: number; y: number; vx: number; vy: number; boost: number }>>({})
   const [questionCategoryFilter, setQuestionCategoryFilter] = useState(allCategoryLabel)
   const [questionStatusFilter, setQuestionStatusFilter] = useState<'all' | QuestionStatus>('all')
   const [questionSort, setQuestionSort] = useState<'reward' | 'views' | 'latest'>('reward')
@@ -5740,29 +5742,114 @@ function App() {
       entry.slug === 'tuzhuren-thesis'
         ? getPartnerLogoImage(entry.merchant) || approvedLogoImage
         : approvedLogoImage || getPartnerLogoImage(entry.merchant)
-    const orbitX = 10 + ((index * 19) % 76)
-    const orbitY = 16 + ((index * 29) % 62)
-    const direction = index % 2 === 0 ? 1 : -1
-    const driftA = 14 + ((index * 7) % 26)
-    const driftB = 10 + ((index * 11) % 24)
+    const seedX = 10 + ((index * 19) % 76)
+    const seedY = 12 + ((index * 29) % 72)
     return {
       ...entry,
       logoImage,
-      style: {
-        '--bubble-x': `${orbitX}%`,
-        '--bubble-y': `${orbitY}%`,
-        '--bubble-delay': `${(index % 9) * -1.6}s`,
-        '--bubble-duration': `${12 + (index % 7) * 1.7}s`,
-        '--bubble-dx-a': `${driftA * direction}px`,
-        '--bubble-dy-a': `${driftB * -direction}px`,
-        '--bubble-dx-b': `${Math.round(driftB * 1.25) * -direction}px`,
-        '--bubble-dy-b': `${Math.round(driftA * 0.9) * direction}px`,
-        '--bubble-dx-c': `${Math.round(driftA * 0.6) * direction}px`,
-        '--bubble-dy-c': `${Math.round(driftB * 1.35) * direction}px`,
-        '--bubble-rotate': `${(index % 5) - 2}deg`,
-      } as CSSProperties,
+      seedX,
+      seedY,
     }
   })
+  const partnerBubbleKeys = partnerCollectiveBubbles.map((entry) => entry.slug).join('|')
+  useEffect(() => {
+    if (!showPartnerCollectiveBoard || partnerCollectiveBubbles.length === 0) return undefined
+
+    const bubbleState = partnerBubblePhysicsRef.current
+    partnerCollectiveBubbles.forEach((entry, index) => {
+      if (bubbleState[entry.slug]) return
+      const angle = ((index * 137) % 360) * (Math.PI / 180)
+      bubbleState[entry.slug] = {
+        x: entry.seedX,
+        y: entry.seedY,
+        vx: Math.cos(angle) * (0.026 + (index % 5) * 0.004),
+        vy: Math.sin(angle) * (0.022 + (index % 4) * 0.004),
+        boost: 1,
+      }
+    })
+
+    Object.keys(bubbleState).forEach((slug) => {
+      if (!partnerCollectiveBubbles.some((entry) => entry.slug === slug)) delete bubbleState[slug]
+    })
+
+    let animationFrame = 0
+    let lastFrame = performance.now()
+    const minX = 5
+    const maxX = 95
+    const minY = 7
+    const maxY = 92
+    const collisionDistance = 12
+    const baseMaxSpeed = 0.048
+    const boostedMaxSpeed = 0.18
+
+    const tick = (time: number) => {
+      const delta = Math.min((time - lastFrame) / 16.67, 2)
+      lastFrame = time
+      const entries = partnerCollectiveBubbles.map((entry) => ({ entry, state: bubbleState[entry.slug] })).filter((item) => item.state)
+      const collided = new Set<string>()
+
+      for (let i = 0; i < entries.length; i += 1) {
+        for (let j = i + 1; j < entries.length; j += 1) {
+          const first = entries[i]
+          const second = entries[j]
+          const dx = second.state.x - first.state.x
+          const dy = second.state.y - first.state.y
+          const distance = Math.max(Math.hypot(dx, dy), 0.1)
+          if (distance >= collisionDistance) continue
+          const push = (collisionDistance - distance) / collisionDistance
+          const nx = dx / distance
+          const ny = dy / distance
+          first.state.vx -= nx * push * 0.035
+          first.state.vy -= ny * push * 0.028
+          second.state.vx += nx * push * 0.035
+          second.state.vy += ny * push * 0.028
+          first.state.boost = 3.6
+          second.state.boost = 3.6
+          collided.add(first.entry.slug)
+          collided.add(second.entry.slug)
+        }
+      }
+
+      const nextPositions: Record<string, { x: number; y: number }> = {}
+      entries.forEach(({ entry, state }) => {
+        if (!collided.has(entry.slug)) {
+          state.boost += (1 - state.boost) * 0.025
+        }
+
+        const maxSpeed = collided.has(entry.slug) ? boostedMaxSpeed : baseMaxSpeed
+        const speed = Math.max(Math.hypot(state.vx, state.vy), 0.001)
+        if (speed > maxSpeed) {
+          state.vx = (state.vx / speed) * maxSpeed
+          state.vy = (state.vy / speed) * maxSpeed
+        } else if (!collided.has(entry.slug) && speed < 0.018) {
+          state.vx *= 1.015
+          state.vy *= 1.015
+        }
+
+        state.x += state.vx * state.boost * delta
+        state.y += state.vy * state.boost * delta
+
+        if (state.x < minX || state.x > maxX) {
+          state.x = Math.min(Math.max(state.x, minX), maxX)
+          state.vx *= -0.92
+        }
+        if (state.y < minY || state.y > maxY) {
+          state.y = Math.min(Math.max(state.y, minY), maxY)
+          state.vy *= -0.92
+        }
+
+        state.vx += Math.sin((time / 900) + entry.seedX) * 0.0007
+        state.vy += Math.cos((time / 1100) + entry.seedY) * 0.0006
+        nextPositions[entry.slug] = { x: state.x, y: state.y }
+      })
+
+      setPartnerBubblePositions(nextPositions)
+      animationFrame = window.requestAnimationFrame(tick)
+    }
+
+    animationFrame = window.requestAnimationFrame(tick)
+    return () => window.cancelAnimationFrame(animationFrame)
+  }, [partnerBubbleKeys, showPartnerCollectiveBoard])
   const manageablePartnerBrands = partnerMerchantEntries.map((entry) => ({
     id: entry.slug,
     name: entry.merchant.name,
@@ -12233,25 +12320,15 @@ function App() {
               animate={{ opacity: 1, rotateX: 0, y: 0 }}
               transition={{ duration: 0.42, ease: 'easeOut' }}
             >
-              <div className="partner-collective-intro">
-                <p className="eyebrow dark">商家福利总览</p>
-                <h3>先看已入驻商家，再按服务分类细看。</h3>
-                <p>点击漂浮气泡可以直接进入商家详情页；点击下方分类标签，会切到对应类别的商家展示日历。</p>
-                <div className="partner-collective-type-links" aria-label="商家分类入口">
-                  {partnerShowcasesWithApproved.map((partner) => (
-                    <button key={partner.type} type="button" onClick={() => selectPartnerType(partner.type)}>
-                      {partner.type}
-                      <ArrowRight size={15} aria-hidden="true" />
-                    </button>
-                  ))}
-                </div>
-              </div>
               <div className="partner-collective-bubble-field" aria-label="已入驻商家浮动入口">
                 {partnerCollectiveBubbles.map((entry) => (
                   <button
                     className={`partner-merchant-bubble partner-tone-${entry.showcase.tone}`}
                     key={`${entry.showcase.type}-${entry.slug}`}
-                    style={entry.style}
+                    style={{
+                      left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,
+                      top: `${partnerBubblePositions[entry.slug]?.y ?? entry.seedY}%`,
+                    }}
                     type="button"
                     onClick={() => navigateToPath(`/partners/${entry.slug}`)}
                   >
@@ -12262,17 +12339,6 @@ function App() {
                     <small>{entry.showcase.type}</small>
                   </button>
                 ))}
-              </div>
-              <div className="partner-service-strip partner-collective-strip">
-                <div className="partner-service-title">
-                  <span>当前入驻商家</span>
-                  <strong>{partnerCollectiveBubbles.length} 家</strong>
-                </div>
-                <div className="partner-service-items">
-                  {partnerShowcasesWithApproved.map((partner) => (
-                    <span key={partner.type}>{partner.type}</span>
-                  ))}
-                </div>
               </div>
             </motion.article>
           ) : (
