@@ -5762,8 +5762,8 @@ function App() {
       bubbleState[entry.slug] = {
         x: entry.seedX,
         y: entry.seedY,
-        vx: Math.cos(angle) * (0.026 + (index % 5) * 0.004),
-        vy: Math.sin(angle) * (0.022 + (index % 4) * 0.004),
+        vx: Math.cos(angle) * (0.014 + (index % 5) * 0.003),
+        vy: Math.sin(angle) * (0.012 + (index % 4) * 0.003),
         boost: 1,
       }
     })
@@ -5778,9 +5778,17 @@ function App() {
     const maxX = 95
     const minY = 7
     const maxY = 92
-    const collisionDistance = 12
-    const baseMaxSpeed = 0.048
-    const boostedMaxSpeed = 0.18
+    const bubbleHalfWidth = 6.8
+    const bubbleHalfHeight = 4.6
+    const textLeftOffset = 1.2
+    const textHalfWidth = 4.1
+    const textHalfHeight = 2.8
+    const baseMaxSpeed = 0.03
+    const boostedMaxSpeed = 0.22
+    const rectsOverlap = (
+      first: { left: number; right: number; top: number; bottom: number },
+      second: { left: number; right: number; top: number; bottom: number },
+    ) => first.left < second.right && first.right > second.left && first.top < second.bottom && first.bottom > second.top
 
     const tick = (time: number) => {
       const delta = Math.min((time - lastFrame) / 16.67, 2)
@@ -5795,16 +5803,42 @@ function App() {
           const dx = second.state.x - first.state.x
           const dy = second.state.y - first.state.y
           const distance = Math.max(Math.hypot(dx, dy), 0.1)
-          if (distance >= collisionDistance) continue
-          const push = (collisionDistance - distance) / collisionDistance
+          const firstBubbleRect = {
+            left: first.state.x - bubbleHalfWidth,
+            right: first.state.x + bubbleHalfWidth,
+            top: first.state.y - bubbleHalfHeight,
+            bottom: first.state.y + bubbleHalfHeight,
+          }
+          const secondBubbleRect = {
+            left: second.state.x - bubbleHalfWidth,
+            right: second.state.x + bubbleHalfWidth,
+            top: second.state.y - bubbleHalfHeight,
+            bottom: second.state.y + bubbleHalfHeight,
+          }
+          const firstTextRect = {
+            left: first.state.x + textLeftOffset - textHalfWidth,
+            right: first.state.x + textLeftOffset + textHalfWidth,
+            top: first.state.y - textHalfHeight,
+            bottom: first.state.y + textHalfHeight,
+          }
+          const secondTextRect = {
+            left: second.state.x + textLeftOffset - textHalfWidth,
+            right: second.state.x + textLeftOffset + textHalfWidth,
+            top: second.state.y - textHalfHeight,
+            bottom: second.state.y + textHalfHeight,
+          }
+          const firstTextCovered = rectsOverlap(firstTextRect, secondBubbleRect)
+          const secondTextCovered = rectsOverlap(secondTextRect, firstBubbleRect)
+          if (!firstTextCovered && !secondTextCovered) continue
+          const push = Math.max(0.35, Math.min(1, (bubbleHalfWidth * 2 - Math.abs(dx)) / (bubbleHalfWidth * 2)))
           const nx = dx / distance
           const ny = dy / distance
-          first.state.vx -= nx * push * 0.035
-          first.state.vy -= ny * push * 0.028
-          second.state.vx += nx * push * 0.035
-          second.state.vy += ny * push * 0.028
-          first.state.boost = 3.6
-          second.state.boost = 3.6
+          first.state.vx -= nx * push * 0.045
+          first.state.vy -= ny * push * 0.036
+          second.state.vx += nx * push * 0.045
+          second.state.vy += ny * push * 0.036
+          first.state.boost = 4.2
+          second.state.boost = 4.2
           collided.add(first.entry.slug)
           collided.add(second.entry.slug)
         }
@@ -5821,9 +5855,9 @@ function App() {
         if (speed > maxSpeed) {
           state.vx = (state.vx / speed) * maxSpeed
           state.vy = (state.vy / speed) * maxSpeed
-        } else if (!collided.has(entry.slug) && speed < 0.018) {
-          state.vx *= 1.015
-          state.vy *= 1.015
+        } else if (!collided.has(entry.slug) && speed < 0.01) {
+          state.vx *= 1.012
+          state.vy *= 1.012
         }
 
         state.x += state.vx * state.boost * delta
@@ -5838,8 +5872,8 @@ function App() {
           state.vy *= -0.92
         }
 
-        state.vx += Math.sin((time / 900) + entry.seedX) * 0.0007
-        state.vy += Math.cos((time / 1100) + entry.seedY) * 0.0006
+        state.vx += Math.sin((time / 1200) + entry.seedX) * 0.00042
+        state.vy += Math.cos((time / 1400) + entry.seedY) * 0.00036
         nextPositions[entry.slug] = { x: state.x, y: state.y }
       })
 
@@ -12323,7 +12357,9 @@ function App() {
               <div className="partner-collective-bubble-field" aria-label="已入驻商家浮动入口">
                 {partnerCollectiveBubbles.map((entry) => (
                   <button
-                    className={`partner-merchant-bubble partner-tone-${entry.showcase.tone}`}
+                    className={`partner-merchant-bubble partner-tone-${entry.showcase.tone} ${
+                      entry.merchant.level === 'pinned' ? 'is-pinned' : ''
+                    }`}
                     key={`${entry.showcase.type}-${entry.slug}`}
                     style={{
                       left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,

@@ -2439,9 +2439,9 @@ h3 {
 
 .partner-merchant-bubble {
   align-items: center;
-  background: rgba(255, 253, 247, 0.78);
+  background: rgba(255, 253, 247, 0.92);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 999px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.62),
@@ -2463,12 +2463,40 @@ h3 {
   z-index: 5;
 }
 
+.partner-merchant-bubble.is-pinned {
+  background:
+    linear-gradient(135deg, rgba(255, 253, 247, 0.98), rgba(255, 246, 218, 0.94));
+  border-color: rgba(255, 215, 122, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 0 0 2px rgba(255, 196, 72, 0.26),
+    0 22px 46px rgba(255, 185, 56, 0.26),
+    0 18px 36px rgba(0, 20, 43, 0.18);
+}
+
+.partner-merchant-bubble.is-pinned strong::after {
+  color: #c98b18;
+  content: '置顶';
+  font-size: 10px;
+  font-weight: 950;
+  margin-left: 6px;
+}
+
 .partner-merchant-bubble:hover {
   background: rgba(255, 253, 247, 0.96);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.7),
     0 24px 48px rgba(0, 20, 43, 0.24);
   transform: translate(-50%, -50%) scale(1.05);
+}
+
+.partner-merchant-bubble.is-pinned:hover {
+  background: #fffdf7;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 0 0 2px rgba(255, 205, 82, 0.34),
+    0 28px 54px rgba(255, 185, 56, 0.34),
+    0 24px 48px rgba(0, 20, 43, 0.2);
 }
 
 .partner-merchant-bubble:active {
