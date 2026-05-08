@@ -5352,6 +5352,14 @@ function App() {
     originX: number
     originY: number
   } | null>(null)
+  const partnerCategoryRailDragRef = useRef<{
+    pointerId: number
+    startX: number
+    scrollLeft: number
+    dragged: boolean
+  } | null>(null)
+  const suppressPartnerCategoryClickRef = useRef(false)
+  const [partnerCategoryDragging, setPartnerCategoryDragging] = useState(false)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
   const [openVerificationBubbleUserId, setOpenVerificationBubbleUserId] = useState<string | null>(null)
@@ -9301,10 +9309,52 @@ function App() {
   }
 
   const selectPartnerType = (type: string) => {
+    if (suppressPartnerCategoryClickRef.current) return
     setSelectedPartnerType(type)
     setSelectedPartnerMerchantIndex(0)
     setPartnerAutoFlip(true)
     setPartnerShowcaseEditMode(false)
+  }
+
+  const startPartnerCategoryRailDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    partnerCategoryRailDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      scrollLeft: event.currentTarget.scrollLeft,
+      dragged: false,
+    }
+    setPartnerCategoryDragging(true)
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const movePartnerCategoryRailDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = partnerCategoryRailDragRef.current
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const deltaX = event.clientX - drag.startX
+    if (Math.abs(deltaX) > 4) {
+      drag.dragged = true
+      suppressPartnerCategoryClickRef.current = true
+      event.preventDefault()
+    }
+    event.currentTarget.scrollLeft = drag.scrollLeft - deltaX
+  }
+
+  const endPartnerCategoryRailDrag = (event: PointerEvent<HTMLDivElement>) => {
+    const drag = partnerCategoryRailDragRef.current
+    if (drag?.pointerId === event.pointerId) {
+      if (drag.dragged) {
+        suppressPartnerCategoryClickRef.current = true
+        window.setTimeout(() => {
+          suppressPartnerCategoryClickRef.current = false
+        }, 160)
+      }
+      partnerCategoryRailDragRef.current = null
+    }
+    setPartnerCategoryDragging(false)
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
   }
 
   const showNextPartnerCards = (manual = true) => {
@@ -12100,7 +12150,15 @@ function App() {
             <Plus size={18} aria-hidden="true" />
           </button>
         </div>
-        <div className="partner-category-rail" aria-label="入驻商家分类横向导航">
+        <div
+          className={`partner-category-rail ${partnerCategoryDragging ? 'is-dragging' : ''}`}
+          aria-label="入驻商家分类横向导航"
+          onPointerDown={startPartnerCategoryRailDrag}
+          onPointerMove={movePartnerCategoryRailDrag}
+          onPointerUp={endPartnerCategoryRailDrag}
+          onPointerCancel={endPartnerCategoryRailDrag}
+          onPointerLeave={endPartnerCategoryRailDrag}
+        >
           {partnerShowcasesWithApproved.map((partner) => (
             <button
               className={selectedPartnerType === partner.type ? 'partner-category-tab active' : 'partner-category-tab'}

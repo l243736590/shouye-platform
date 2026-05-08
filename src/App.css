@@ -2175,15 +2175,25 @@ h3 {
 }
 
 .partner-category-rail {
+  cursor: grab;
   display: flex;
   gap: 12px;
   min-width: 0;
+  overscroll-behavior-x: contain;
   overflow-x: auto;
   padding: 4px 0 12px;
   scroll-padding-left: 2px;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-overflow-scrolling: touch;
   width: 100%;
+}
+
+.partner-category-rail.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
 }
 
 .partner-category-tab {
