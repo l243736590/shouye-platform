@@ -6832,6 +6832,34 @@ function App() {
     }
   }
 
+  const addPartnerShowcaseTextBox = () => {
+    if (!canManageActivePartnerMerchant) return
+    const maxZ = Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((item) => item.z))
+    const item: MerchantDesignItem = {
+      id: createId('showcase-text'),
+      zone: 'showcase',
+      kind: 'bubble',
+      text: '双击修改文字',
+      mediaUrl: '',
+      mediaKind: 'image',
+      x: 36,
+      y: 42,
+      width: 24,
+      height: 12,
+      z: maxZ + 1,
+      opacity: 0.94,
+      fontSize: 20,
+      color: '#10201d',
+      background: 'rgba(255, 253, 247, 0.86)',
+    }
+    updateMerchantDecorationDraft(activePartnerMerchantSlug, 'designItems', [
+      ...activePartnerMerchantDecorationDraft.designItems,
+      item,
+    ])
+    setActivePartnerShowcaseDesignItemId(item.id)
+    setMerchantDecorationNotice('文本框已添加到展示卡，拖动调整位置，双击可修改文字。')
+  }
+
   const deletePartnerShowcaseDesignItem = (itemId: string) => {
     updateMerchantDecorationDraft(
       activePartnerMerchantSlug,
@@ -7465,17 +7493,24 @@ function App() {
             minHeight: `${item.height}%`,
             zIndex: item.z,
             opacity: item.opacity,
+            color: item.color,
+            background: item.kind === 'media' ? 'transparent' : item.background,
+            fontSize: item.fontSize,
           }
           return (
             <Fragment key={item.id}>
               <div
-                className={`partner-showcase-design-item ${selected ? 'is-selected' : ''}`}
+                className={`partner-showcase-design-item ${item.kind === 'media' ? 'is-media' : 'is-bubble'} ${selected ? 'is-selected' : ''}`}
                 style={itemStyle}
               >
-                {item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
-                  <video draggable={false} muted playsInline src={item.mediaUrl} />
+                {item.kind === 'media' && item.mediaUrl ? (
+                  item.mediaKind === 'video' || isVideoDataUrl(item.mediaUrl) ? (
+                    <video draggable={false} muted playsInline src={item.mediaUrl} />
+                  ) : (
+                    <img alt="" draggable={false} src={item.mediaUrl} />
+                  )
                 ) : (
-                  <img alt="" draggable={false} src={item.mediaUrl} />
+                  <span>{item.text}</span>
                 )}
               </div>
               {editable && (
@@ -7486,6 +7521,13 @@ function App() {
                     event.preventDefault()
                     event.stopPropagation()
                     setActivePartnerShowcaseDesignItemId(item.id)
+                  }}
+                  onDoubleClick={(event) => {
+                    if (item.kind === 'media') return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const nextText = window.prompt('修改文本框文字', item.text)
+                    if (nextText !== null) updatePartnerShowcaseDesignItem(item.id, { text: nextText })
                   }}
                   onPointerDown={(event) => {
                     if (event.detail > 1) {
@@ -11595,6 +11637,9 @@ function App() {
                   <>
                     <button type="button" onClick={() => partnerShowcaseFileInputRef.current?.click()}>
                       添加图片
+                    </button>
+                    <button type="button" onClick={addPartnerShowcaseTextBox}>
+                      添加文本框
                     </button>
                     <input
                       accept="image/*,video/*"

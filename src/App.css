@@ -2608,15 +2608,25 @@ h3 {
 }
 
 .partner-showcase-design-item {
+  align-content: center;
+  border-radius: 12px;
   cursor: grab;
   display: grid;
+  font-weight: 900;
+  line-height: 1.25;
   min-width: 52px;
   overflow: visible;
+  padding: 8px;
   position: absolute;
   pointer-events: auto;
+  text-align: center;
   touch-action: none;
   transform: translate(-50%, -50%);
   user-select: none;
+}
+
+.partner-showcase-design-item.is-media {
+  padding: 0;
 }
 
 .partner-showcase-design-hitbox {
