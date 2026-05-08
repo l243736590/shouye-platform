@@ -1982,9 +1982,19 @@ const ensureWechatMiniappTables = async (env: Env) => {
 
 const sendVerificationEmail = async (env: Env, email: string, code: string) => {
   const provider = (env.EMAIL_PROVIDER || (env.RESEND_API_KEY ? 'resend' : '')).toLowerCase()
-  const from = env.MAIL_FROM || '留学生经验分享与问题解决平台 <noreply@shouye.fun>'
-  const subject = '留学生经验分享与问题解决平台验证码'
-  const html = `<p>你的平台注册验证码是：</p><h2>${code}</h2><p>验证码 10 分钟内有效。如果不是你本人操作，请忽略这封邮件。</p>`
+  const fromAddress = env.MAIL_FROM?.match(/<([^>]+)>/)?.[1]?.trim() || env.MAIL_FROM?.trim() || 'noreply@shouye.fun'
+  const from = `售业 <${fromAddress}>`
+  const subject = '售业验证码'
+  const html = `
+    <div style="margin:0;padding:28px 24px;background:#f7faf6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Microsoft YaHei',Arial,sans-serif;color:#1f292b;">
+      <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #dde6df;border-radius:16px;padding:28px;">
+        <img src="https://shouye.fun/brand/shouye-logo-text-dark.png" alt="售业" style="display:block;width:136px;height:auto;margin:0 0 28px;" />
+        <p style="margin:0 0 12px;font-size:16px;font-weight:700;">你的平台注册验证码是：</p>
+        <div style="font-size:34px;line-height:1.1;font-weight:900;letter-spacing:6px;color:#1f292b;margin:0 0 22px;">${code}</div>
+        <p style="margin:0;color:#4f5f60;font-size:14px;line-height:1.8;">验证码 10 分钟内有效。如果不是你本人操作，请忽略这封邮件。</p>
+      </div>
+    </div>
+  `
 
   if (provider === 'resend' && env.RESEND_API_KEY) {
     const response = await fetch('https://api.resend.com/emails', {
