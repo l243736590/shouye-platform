@@ -10040,11 +10040,9 @@ function App() {
                   <div
                     className="merchant-inline-edit-wrap partner-detail-name-edit-wrap"
                     style={getTextLayerStyle(activeMerchantPreviewDecoration, 'showcaseArtTitle')}
+                    {...getMerchantEditableTextProps('showcaseArtTitle')}
                   >
-                    <strong
-                      style={activeMerchantTitleStyle}
-                      {...getMerchantEditableTextProps('showcaseArtTitle')}
-                    >
+                    <strong style={activeMerchantTitleStyle}>
                       {activeMerchantDisplayName}
                     </strong>
                     {renderMerchantTextEditor('showcaseArtTitle')}
@@ -11684,11 +11682,9 @@ function App() {
                 <span
                   className="partner-showcase-text-wrap partner-showcase-art-text"
                   style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtTitle')}
+                  {...getPartnerShowcaseEditableTextProps('showcaseArtTitle')}
                 >
-                  <strong
-                    style={activePartnerShowcaseTitleStyle}
-                    {...getPartnerShowcaseEditableTextProps('showcaseArtTitle')}
-                  >
+                  <strong style={activePartnerShowcaseTitleStyle}>
                     {activePartnerShowcaseArtTitle}
                   </strong>
                   {renderPartnerShowcaseTextEditor('showcaseArtTitle')}
@@ -11696,11 +11692,9 @@ function App() {
                 <span
                   className="partner-showcase-text-wrap partner-showcase-art-text"
                   style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseArtSubtitle')}
+                  {...getPartnerShowcaseEditableTextProps('showcaseArtSubtitle')}
                 >
-                  <small
-                    style={activePartnerShowcaseTitleStyle}
-                    {...getPartnerShowcaseEditableTextProps('showcaseArtSubtitle')}
-                  >
+                  <small style={activePartnerShowcaseTitleStyle}>
                     {activePartnerShowcaseArtSubtitle}
                   </small>
                   {renderPartnerShowcaseTextEditor('showcaseArtSubtitle')}
