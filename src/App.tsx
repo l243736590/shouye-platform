@@ -40,6 +40,7 @@ type VerificationStatus = 'pending' | 'approved' | 'rejected'
 type AuthUserType = 'student' | 'merchant'
 type StudentStage = 'preparing' | 'admitted' | 'language_school' | 'undergraduate' | 'graduate' | 'graduated'
 type PublishMode = 'knowledge' | 'skill'
+type MerchantLevel = 'normal' | 'pinned'
 
 type CredentialDocument = {
   id: string
@@ -74,6 +75,7 @@ type UserBioSettings = {
   city?: string
   managedBrandId?: string
   managedBrandName?: string
+  managedBrandLevel?: MerchantLevel
 }
 
 type PartnerApplication = {
@@ -106,6 +108,7 @@ type PartnerMerchant = {
   verified?: boolean
   location?: string
   detailTone?: string
+  level?: MerchantLevel
   detailSections?: { title: string; text: string }[]
 }
 
@@ -1059,13 +1062,23 @@ const parseUserBioSettings = (bio?: string): UserBioSettings => {
   }
 }
 
-const serializeUserBrandAccess = (bio: string, brandId: string, brandName: string) => {
+const serializeUserBrandAccess = (
+  bio: string,
+  brandId: string,
+  brandName: string,
+  brandLevel: MerchantLevel = 'normal',
+) => {
   const settings = parseUserBioSettings(bio)
   if (!brandId) {
-    const { managedBrandId: _managedBrandId, managedBrandName: _managedBrandName, ...rest } = settings
+    const {
+      managedBrandId: _managedBrandId,
+      managedBrandName: _managedBrandName,
+      managedBrandLevel: _managedBrandLevel,
+      ...rest
+    } = settings
     return Object.keys(rest).length ? JSON.stringify(rest) : ''
   }
-  return JSON.stringify({ ...settings, managedBrandId: brandId, managedBrandName: brandName })
+  return JSON.stringify({ ...settings, managedBrandId: brandId, managedBrandName: brandName, managedBrandLevel: brandLevel })
 }
 
 const storageKey = 'shouye-platform-mvp-v1'
@@ -5598,9 +5611,24 @@ function App() {
   const approvedPartnerApplications = appState.partnerApplications.filter(
     (application) => application.status === 'approved' && application.company.trim(),
   )
+  const merchantLevelByBrandId = new Map(
+    appState.users
+      .map((user) => parseUserBioSettings(user.bio))
+      .filter((settings) => settings.managedBrandId)
+      .map((settings) => [settings.managedBrandId!, settings.managedBrandLevel ?? 'normal'] as const),
+  )
+  const getPartnerMerchantSlug = (merchant: PartnerMerchant) =>
+    'id' in merchant && merchant.id ? merchant.id : encodeURIComponent(merchant.name)
+  const sortPartnerMerchants = (merchants: PartnerMerchant[]) =>
+    [...merchants].sort((first, second) => {
+      const firstPinned = first.level === 'pinned' ? 1 : 0
+      const secondPinned = second.level === 'pinned' ? 1 : 0
+      return secondPinned - firstPinned
+    })
   const partnerShowcasesWithApproved = approvedPartnerApplications.reduce<PartnerShowcase[]>(
     (showcases, application) => {
       const brandId = `partner-${application.id.replace(/[^a-zA-Z0-9_-]/g, '') || encodeURIComponent(application.company)}`
+      const merchantLevel = merchantLevelByBrandId.get(brandId) ?? 'normal'
       const merchant: PartnerMerchant = {
         id: brandId,
         name: application.company.trim(),
@@ -5609,18 +5637,23 @@ function App() {
         description:
           application.detail ||
           `${application.company.trim()}已通过售业合作审核，可展示服务范围、联系方式、优惠和咨询边界。`,
-        tags: [application.type, application.direction || '合作商家', application.budget || '已审核'].filter(Boolean),
+        tags: [
+          application.type,
+          application.direction || '合作商家',
+          merchantLevel === 'pinned' ? '置顶商家' : application.budget || '已审核',
+        ].filter(Boolean),
         verified: true,
         location: '认证商家',
         detailTone: `${application.type}服务展示`,
+        level: merchantLevel,
       }
       const index = showcases.findIndex((showcase) => showcase.type === application.type)
       if (index >= 0) {
-        if (showcases[index].merchants.some((entry) => ('id' in entry ? entry.id : encodeURIComponent(entry.name)) === brandId)) {
+        if (showcases[index].merchants.some((entry) => getPartnerMerchantSlug(entry) === brandId)) {
           return showcases
         }
         return showcases.map((showcase, showcaseIndex) =>
-          showcaseIndex === index ? { ...showcase, merchants: [...showcase.merchants, merchant] } : showcase,
+          showcaseIndex === index ? { ...showcase, merchants: sortPartnerMerchants([...showcase.merchants, merchant]) } : showcase,
         )
       }
       return [
@@ -5633,13 +5666,21 @@ function App() {
         },
       ]
     },
-    partnerShowcases.map((showcase) => ({ ...showcase, merchants: [...showcase.merchants] })),
+    partnerShowcases.map((showcase) => ({
+      ...showcase,
+      merchants: sortPartnerMerchants(
+        showcase.merchants.map((merchant) => ({
+          ...merchant,
+          level: merchantLevelByBrandId.get(getPartnerMerchantSlug(merchant)) ?? merchant.level ?? 'normal',
+        })),
+      ),
+    })),
   )
   const partnerMerchantEntries = partnerShowcasesWithApproved.flatMap((showcase) =>
     showcase.merchants.map((merchant) => ({
       showcase,
       merchant,
-      slug: 'id' in merchant ? merchant.id : encodeURIComponent(merchant.name),
+      slug: getPartnerMerchantSlug(merchant),
     })),
   )
   const manageablePartnerBrands = partnerMerchantEntries.map((entry) => ({
@@ -12752,7 +12793,12 @@ function App() {
                             onChange={(event) => {
                               const brand = manageablePartnerBrands.find((item) => item.id === event.target.value)
                               updateUserAccount(selectedAdminUser.id, {
-                                bio: serializeUserBrandAccess(selectedAdminUser.bio, brand?.id ?? '', brand?.name ?? ''),
+                                bio: serializeUserBrandAccess(
+                                  selectedAdminUser.bio,
+                                  brand?.id ?? '',
+                                  brand?.name ?? '',
+                                  selectedAdminUserBioSettings.managedBrandLevel ?? 'normal',
+                                ),
                               })
                             }}
                           >
@@ -12764,14 +12810,38 @@ function App() {
                             ))}
                           </select>
                         </label>
+                        <label>
+                          商家级别
+                          <select
+                            value={selectedAdminUserBioSettings.managedBrandLevel ?? 'normal'}
+                            onChange={(event) => {
+                              updateUserAccount(selectedAdminUser.id, {
+                                bio: serializeUserBrandAccess(
+                                  selectedAdminUser.bio,
+                                  selectedAdminUserBioSettings.managedBrandId ?? '',
+                                  selectedAdminUserBioSettings.managedBrandName ?? '',
+                                  event.target.value as MerchantLevel,
+                                ),
+                              })
+                            }}
+                            disabled={!selectedAdminUserBioSettings.managedBrandId}
+                          >
+                            <option value="normal">普通</option>
+                            <option value="pinned">置顶</option>
+                          </select>
+                        </label>
                         <div className="admin-brand-access-note">
                           <span>当前权限</span>
                           <strong>
                             {selectedAdminUserBioSettings.managedBrandName
-                              ? `${selectedAdminUserBioSettings.managedBrandName}品牌的管理商家`
+                              ? `${selectedAdminUserBioSettings.managedBrandName}品牌的管理商家 · ${
+                                  selectedAdminUserBioSettings.managedBrandLevel === 'pinned' ? '置顶商家' : '普通商家'
+                                }`
                               : '未分配'}
                           </strong>
-                          <small>账号认证状态为“已通过”后，商家才能在对应详情页装饰自己的品牌。</small>
+                          <small>
+                            账号认证状态为“已通过”后，商家才能在对应详情页装饰自己的品牌；置顶商家会优先显示。
+                          </small>
                         </div>
                       </div>
                       <div className="credential-panel">

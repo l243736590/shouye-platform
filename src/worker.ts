@@ -48,6 +48,7 @@ type UserBioSettings = {
   city?: string
   managedBrandId?: string
   managedBrandName?: string
+  managedBrandLevel?: 'normal' | 'pinned'
 }
 
 type PartnerApplicationRecord = {
