@@ -5773,6 +5773,10 @@ function App() {
     }
   })
   const partnerBubbleKeys = partnerCollectiveBubbles.map((entry) => entry.slug).join('|')
+  const partnerCollectiveBubblesForRender = [
+    ...partnerCollectiveBubbles.filter((entry) => entry.merchant.level !== 'pinned'),
+    ...partnerCollectiveBubbles.filter((entry) => entry.merchant.level === 'pinned'),
+  ]
   useEffect(() => {
     if (!showPartnerCollectiveBoard || partnerCollectiveBubbles.length === 0) return undefined
 
@@ -12462,7 +12466,7 @@ function App() {
               transition={{ duration: 0.42, ease: 'easeOut' }}
             >
               <div className="partner-collective-bubble-field" aria-label="已入驻商家浮动入口">
-                {partnerCollectiveBubbles.map((entry) => (
+                {partnerCollectiveBubblesForRender.map((entry) => (
                   <button
                     className={`partner-merchant-bubble partner-tone-${entry.showcase.tone} ${
                       entry.merchant.level === 'pinned' ? 'is-pinned' : ''
@@ -12475,6 +12479,7 @@ function App() {
                       '--merchant-bubble-logo-bg': entry.bubbleLogoBackground || undefined,
                       left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,
                       top: `${partnerBubblePositions[entry.slug]?.y ?? entry.seedY}%`,
+                      zIndex: entry.merchant.level === 'pinned' ? 90 : 5,
                     } as CSSProperties}
                     type="button"
                     onClick={() => navigateToPath(`/partners/${entry.slug}`)}
