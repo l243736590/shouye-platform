@@ -168,7 +168,10 @@ type TextPopoverAnchor = {
   left: number
   top: number
   width: number
+  fontSize: number
 }
+
+const MERCHANT_TEXT_FONT_SIZE_OPTIONS = [0, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 56, 64, 72, 84, 96, 108, 120]
 
 type MerchantBrandDecoration = {
   brandId: string
@@ -6253,10 +6256,12 @@ function App() {
   const getTextPopoverAnchor = (element: HTMLElement): TextPopoverAnchor => {
     const rect = element.getBoundingClientRect()
     const nextWidth = Math.max(360, Math.min(680, rect.width + 96, window.innerWidth - 32))
+    const computedFontSize = Number.parseFloat(window.getComputedStyle(element).fontSize)
     return {
       left: Math.min(window.innerWidth - nextWidth / 2 - 16, Math.max(nextWidth / 2 + 16, rect.left + rect.width / 2)),
       top: rect.top - 10,
       width: nextWidth,
+      fontSize: Number.isFinite(computedFontSize) ? Math.round(computedFontSize) : 0,
     }
   }
   const getMerchantDecorationImageStyle = (
@@ -7640,6 +7645,12 @@ function App() {
           zIndex: 2147483000,
         }
       : undefined
+    const activeTextLayerState = getTextLayerState(activeMerchantDecorationDraft, field)
+    const explicitFontSize = activeTextLayerState.fontSize || 0
+    const displayedFontSize = explicitFontSize || merchantTextPopoverAnchor?.fontSize || 0
+    const fontSizeOptions = Array.from(
+      new Set([...MERCHANT_TEXT_FONT_SIZE_OPTIONS, explicitFontSize].filter((size) => Number.isFinite(size) && size >= 0)),
+    ).sort((a, b) => a - b)
     const editor = (
       <div
         className="merchant-inline-edit-popover"
@@ -7671,52 +7682,31 @@ function App() {
           </label>
           <label>
             字号
-            <input
-              max="120"
-              min="0"
-              type="range"
-              value={getTextLayerState(activePartnerMerchantDecorationDraft, field).fontSize || 0}
+            <select
+              value={explicitFontSize}
               onChange={(event) =>
-                updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, {
+                updateTextLayerStyle(activePartnerDetailSlug, activeMerchantDecorationDraft, field, {
                   fontSize: Number(event.target.value),
                 })
               }
-            />
+            >
+              {fontSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {size === 0 ? `默认${displayedFontSize ? `（当前 ${displayedFontSize}px）` : ''}` : `${size}px`}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
-            本层字色
+            当前字色
             <input
               type="color"
-              value={getTextLayerState(activePartnerMerchantDecorationDraft, field).color || '#10201d'}
+              value={activeTextLayerState.color || '#10201d'}
               onChange={(event) =>
-                updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, {
+                updateTextLayerStyle(activePartnerDetailSlug, activeMerchantDecorationDraft, field, {
                   color: event.target.value,
                 })
               }
-            />
-          </label>
-          <label>
-            标题色
-            <input
-              type="color"
-              value={activeMerchantDecorationDraft.titleColor || '#10201d'}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'titleColor', event.target.value)}
-            />
-          </label>
-          <label>
-            正文字色
-            <input
-              type="color"
-              value={activeMerchantDecorationDraft.bodyColor || '#4d5d58'}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'bodyColor', event.target.value)}
-            />
-          </label>
-          <label>
-            重点色
-            <input
-              type="color"
-              value={activeMerchantDecorationDraft.accentColor || '#ef5a3c'}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'accentColor', event.target.value)}
             />
           </label>
           <button type="button" onClick={() => {
@@ -7804,6 +7794,12 @@ function App() {
           zIndex: 2147483000,
         }
       : undefined
+    const activeTextLayerState = getTextLayerState(activePartnerMerchantDecorationDraft, field)
+    const explicitFontSize = activeTextLayerState.fontSize || 0
+    const displayedFontSize = explicitFontSize || partnerShowcaseTextPopoverAnchor?.fontSize || 0
+    const fontSizeOptions = Array.from(
+      new Set([...MERCHANT_TEXT_FONT_SIZE_OPTIONS, explicitFontSize].filter((size) => Number.isFinite(size) && size >= 0)),
+    ).sort((a, b) => a - b)
     const editor = (
       <div
         className="partner-showcase-text-popover"
@@ -7835,27 +7831,32 @@ function App() {
             </select>
           </label>
           <label>
-            标题色
-            <input
-              type="color"
-              value={activePartnerMerchantDecorationDraft.titleColor || '#10201d'}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'titleColor', event.target.value)}
-            />
+            字号
+            <select
+              value={explicitFontSize}
+              onChange={(event) =>
+                updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, {
+                  fontSize: Number(event.target.value),
+                })
+              }
+            >
+              {fontSizeOptions.map((size) => (
+                <option key={size} value={size}>
+                  {size === 0 ? `默认${displayedFontSize ? `（当前 ${displayedFontSize}px）` : ''}` : `${size}px`}
+                </option>
+              ))}
+            </select>
           </label>
           <label>
-            正文字色
+            当前字色
             <input
               type="color"
-              value={activePartnerMerchantDecorationDraft.bodyColor || '#4d5d58'}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'bodyColor', event.target.value)}
-            />
-          </label>
-          <label>
-            重点色
-            <input
-              type="color"
-              value={activePartnerMerchantDecorationDraft.accentColor || '#ef5a3c'}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'accentColor', event.target.value)}
+              value={activeTextLayerState.color || '#10201d'}
+              onChange={(event) =>
+                updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, {
+                  color: event.target.value,
+                })
+              }
             />
           </label>
           <button
