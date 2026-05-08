@@ -195,6 +195,7 @@ type MerchantBrandDecoration = {
   logoImage: string
   pendingLogoImage: string
   logoReviewStatus: VerificationStatus
+  bubbleColor: string
   fontFamily: string
   titleColor: string
   bodyColor: string
@@ -876,6 +877,7 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     logoImage: '',
     pendingLogoImage: '',
     logoReviewStatus: 'approved',
+    bubbleColor: 'rgba(194, 151, 62, 0.92)',
     fontFamily: '',
     titleColor: '',
     bodyColor: '',
@@ -1005,6 +1007,7 @@ const normalizeMerchantBrandDecoration = (
     logoImage: decoration.logoImage ?? fallback?.logoImage ?? '',
     pendingLogoImage: decoration.pendingLogoImage ?? fallback?.pendingLogoImage ?? '',
     logoReviewStatus: decoration.logoReviewStatus ?? fallback?.logoReviewStatus ?? 'approved',
+    bubbleColor: decoration.bubbleColor ?? fallback?.bubbleColor ?? '',
     fontFamily: decoration.fontFamily ?? fallback?.fontFamily ?? '',
     titleColor: decoration.titleColor ?? fallback?.titleColor ?? '',
     bodyColor: decoration.bodyColor ?? fallback?.bodyColor ?? '',
@@ -5742,11 +5745,13 @@ function App() {
       entry.slug === 'tuzhuren-thesis'
         ? getPartnerLogoImage(entry.merchant) || approvedLogoImage
         : approvedLogoImage || getPartnerLogoImage(entry.merchant)
+    const bubbleColor = decoration?.bubbleColor || (entry.slug === 'tuzhuren-thesis' ? 'rgba(194, 151, 62, 0.92)' : '')
     const seedX = 10 + ((index * 19) % 76)
     const seedY = 12 + ((index * 29) % 72)
     return {
       ...entry,
       logoImage,
+      bubbleColor,
       seedX,
       seedY,
     }
@@ -5759,11 +5764,12 @@ function App() {
     partnerCollectiveBubbles.forEach((entry, index) => {
       if (bubbleState[entry.slug]) return
       const angle = ((index * 137) % 360) * (Math.PI / 180)
+      const speedFactor = entry.merchant.level === 'pinned' ? 0.46 : 1
       bubbleState[entry.slug] = {
         x: entry.seedX,
         y: entry.seedY,
-        vx: Math.cos(angle) * (0.014 + (index % 5) * 0.003),
-        vy: Math.sin(angle) * (0.012 + (index % 4) * 0.003),
+        vx: Math.cos(angle) * (0.014 + (index % 5) * 0.003) * speedFactor,
+        vy: Math.sin(angle) * (0.012 + (index % 4) * 0.003) * speedFactor,
         boost: 1,
       }
     })
@@ -5784,7 +5790,9 @@ function App() {
     const textHalfWidth = 4.1
     const textHalfHeight = 2.8
     const baseMaxSpeed = 0.03
+    const pinnedMaxSpeed = 0.014
     const boostedMaxSpeed = 0.22
+    const pinnedBoostedMaxSpeed = 0.12
     const rectsOverlap = (
       first: { left: number; right: number; top: number; bottom: number },
       second: { left: number; right: number; top: number; bottom: number },
@@ -5850,12 +5858,19 @@ function App() {
           state.boost += (1 - state.boost) * 0.025
         }
 
-        const maxSpeed = collided.has(entry.slug) ? boostedMaxSpeed : baseMaxSpeed
+        const maxSpeed =
+          entry.merchant.level === 'pinned'
+            ? collided.has(entry.slug)
+              ? pinnedBoostedMaxSpeed
+              : pinnedMaxSpeed
+            : collided.has(entry.slug)
+              ? boostedMaxSpeed
+              : baseMaxSpeed
         const speed = Math.max(Math.hypot(state.vx, state.vy), 0.001)
         if (speed > maxSpeed) {
           state.vx = (state.vx / speed) * maxSpeed
           state.vy = (state.vy / speed) * maxSpeed
-        } else if (!collided.has(entry.slug) && speed < 0.01) {
+        } else if (!collided.has(entry.slug) && speed < (entry.merchant.level === 'pinned' ? 0.006 : 0.01)) {
           state.vx *= 1.012
           state.vy *= 1.012
         }
@@ -5872,8 +5887,9 @@ function App() {
           state.vy *= -0.92
         }
 
-        state.vx += Math.sin((time / 1200) + entry.seedX) * 0.00042
-        state.vy += Math.cos((time / 1400) + entry.seedY) * 0.00036
+        const driftFactor = entry.merchant.level === 'pinned' ? 0.42 : 1
+        state.vx += Math.sin((time / 1200) + entry.seedX) * 0.00042 * driftFactor
+        state.vy += Math.cos((time / 1400) + entry.seedY) * 0.00036 * driftFactor
         nextPositions[entry.slug] = { x: state.x, y: state.y }
       })
 
@@ -12362,9 +12378,10 @@ function App() {
                     }`}
                     key={`${entry.showcase.type}-${entry.slug}`}
                     style={{
+                      '--merchant-bubble-bg': entry.bubbleColor || undefined,
                       left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,
                       top: `${partnerBubblePositions[entry.slug]?.y ?? entry.seedY}%`,
-                    }}
+                    } as CSSProperties}
                     type="button"
                     onClick={() => navigateToPath(`/partners/${entry.slug}`)}
                   >

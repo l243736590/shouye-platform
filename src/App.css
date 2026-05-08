@@ -2439,7 +2439,7 @@ h3 {
 
 .partner-merchant-bubble {
   align-items: center;
-  background: rgba(255, 253, 247, 0.92);
+  background: var(--merchant-bubble-bg, rgba(255, 253, 247, 0.92));
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 999px;
@@ -2499,6 +2499,34 @@ h3 {
     0 24px 48px rgba(0, 20, 43, 0.2);
 }
 
+.partner-merchant-bubble.is-pinned {
+  background: var(--merchant-bubble-bg, linear-gradient(135deg, rgba(255, 253, 247, 0.99), rgba(255, 246, 218, 0.96)));
+  border-color: rgba(255, 222, 135, 0.98);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.88),
+    0 0 0 3px rgba(255, 211, 104, 0.28),
+    0 0 34px rgba(255, 221, 130, 0.34),
+    0 28px 54px rgba(255, 185, 56, 0.24),
+    0 22px 44px rgba(0, 20, 43, 0.18);
+  min-width: 220px;
+  padding: 13px 18px 13px 12px;
+  z-index: 30;
+}
+
+.partner-merchant-bubble.is-pinned strong::after {
+  content: none;
+}
+
+.partner-merchant-bubble.is-pinned:hover {
+  background: var(--merchant-bubble-bg, #fffdf7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 0 0 3px rgba(255, 214, 92, 0.4),
+    0 0 42px rgba(255, 221, 130, 0.42),
+    0 32px 60px rgba(255, 185, 56, 0.34),
+    0 24px 48px rgba(0, 20, 43, 0.2);
+}
+
 .partner-merchant-bubble:active {
   transform: translate(-50%, -50%) scale(0.98);
 }
@@ -2507,6 +2535,11 @@ h3 {
   border-radius: 999px;
   height: 52px;
   width: 52px;
+}
+
+.partner-merchant-bubble.is-pinned .partner-logo-mark {
+  height: 60px;
+  width: 60px;
 }
 
 .partner-logo-mark i,
@@ -2540,6 +2573,11 @@ h3 {
   white-space: nowrap;
 }
 
+.partner-merchant-bubble.is-pinned strong {
+  font-size: 17px;
+  max-width: 148px;
+}
+
 .partner-merchant-bubble small {
   color: var(--coral);
   display: block;
@@ -2547,6 +2585,10 @@ h3 {
   font-weight: 900;
   line-height: 1.2;
   text-align: left;
+}
+
+.partner-merchant-bubble.is-pinned small {
+  font-size: 12px;
 }
 
 .partner-collective-strip {
