@@ -1115,6 +1115,12 @@ const businessCategoryOptions = [
   '家政搬家',
   '不动产',
 ]
+const normalizeBusinessCategory = (category?: string, company?: string) => {
+  const categoryText = category?.trim() ?? ''
+  const searchable = `${company ?? ''} ${categoryText}`
+  if (searchable.includes('傻呱兔') || searchable.includes('作品集')) return '作品集辅导'
+  return businessCategoryOptions.includes(categoryText) ? categoryText : businessCategoryOptions[0]
+}
 const skillServiceCategories = [
   '宠物照看/遛狗喂猫',
   '跑腿/排队/代办',
@@ -5050,7 +5056,7 @@ const openCredentialDocument = (document: CredentialDocument, setMessage: (messa
 const normalizePartnerApplication = (application: Partial<PartnerApplication>): PartnerApplication => ({
   id: application.id ?? createId('partner'),
   company: application.company ?? '',
-  type: application.type ?? '留学机构',
+  type: normalizeBusinessCategory(application.type, application.company),
   contact: application.contact ?? '',
   phone: application.phone ?? '',
   direction: application.direction ?? '内容入驻',
@@ -5660,25 +5666,26 @@ function App() {
     (showcases, application) => {
       const brandId = `partner-${application.id.replace(/[^a-zA-Z0-9_-]/g, '') || encodeURIComponent(application.company)}`
       const merchantLevel = merchantLevelByBrandId.get(brandId) ?? 'normal'
+      const showcaseType = normalizeBusinessCategory(application.type, application.company)
       const merchant: PartnerMerchant = {
         id: brandId,
         name: application.company.trim(),
         logo: application.company.trim().slice(0, 3) || '商家',
-        summary: application.direction || `${application.type}服务展示`,
+        summary: application.direction || `${showcaseType}服务展示`,
         description:
           application.detail ||
           `${application.company.trim()}已通过售业合作审核，可展示服务范围、联系方式、优惠和咨询边界。`,
         tags: [
-          application.type,
+          showcaseType,
           application.direction || '合作商家',
           merchantLevel === 'pinned' ? '置顶商家' : application.budget || '已审核',
         ].filter(Boolean),
         verified: true,
         location: '认证商家',
-        detailTone: `${application.type}服务展示`,
+        detailTone: `${showcaseType}服务展示`,
         level: merchantLevel,
       }
-      const index = showcases.findIndex((showcase) => showcase.type === application.type)
+      const index = showcases.findIndex((showcase) => showcase.type === showcaseType)
       if (index >= 0) {
         if (showcases[index].merchants.some((entry) => getPartnerMerchantSlug(entry) === brandId)) {
           return showcases
@@ -5690,7 +5697,7 @@ function App() {
       return [
         ...showcases,
         {
-          type: application.type,
+          type: showcaseType,
           audience: application.direction || '已审核合作商家',
           tone: 'consulting',
           merchants: [merchant],
