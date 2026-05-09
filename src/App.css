@@ -2190,6 +2190,19 @@ h3 {
   width: fit-content;
 }
 
+.partner-heading-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.partner-fishbowl-link {
+  background: #fffdf7;
+  border: 1px solid rgba(16, 32, 29, 0.18);
+  color: var(--forest);
+}
+
 .partner-category-rail {
   cursor: grab;
   display: flex;

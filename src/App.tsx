@@ -5806,8 +5806,17 @@ function App() {
     const bubbleMetaColor = decoration?.bubbleMetaColor || ''
     const bubbleLogoBackground =
       decoration?.bubbleLogoBackground || (entry.slug === 'tuzhuren-thesis' ? 'rgba(194, 151, 62, 0.92)' : '')
-    const seedX = 10 + ((index * 19) % 76)
-    const seedY = 12 + ((index * 29) % 72)
+    const seedSource = `${entry.slug}-${entry.showcase.type}-${index}`
+    const seed = seedSource.split('').reduce((total, char, charIndex) => {
+      return (Math.imul(total, 31) + char.charCodeAt(0) + charIndex * 17) >>> 0
+    }, 2166136261)
+    const seedB = seedSource.split('').reduce((total, char, charIndex) => {
+      return (Math.imul(total, 37) ^ (char.charCodeAt(0) + charIndex * 23)) >>> 0
+    }, 16777619)
+    const seedX = 7 + ((seed % 8600) / 100)
+    const seedY = 8 + ((seedB % 8200) / 100)
+    const motionAngle = ((seedB % 360) + ((seed % 97) / 97 - 0.5) * 52) * (Math.PI / 180)
+    const motionSpeed = 0.012 + ((seed >>> 8) % 18) * 0.00115
     return {
       ...entry,
       logoImage,
@@ -5817,6 +5826,12 @@ function App() {
       bubbleLogoBackground,
       seedX,
       seedY,
+      motionAngle,
+      motionSpeed,
+      driftPhaseX: (seed % 1000) / 73,
+      driftPhaseY: (seedB % 1000) / 67,
+      driftRateX: 820 + (seed % 710),
+      driftRateY: 910 + (seedB % 760),
     }
   })
   const partnerBubbleKeys = partnerCollectiveBubbles.map((entry) => entry.slug).join('|')
@@ -5828,15 +5843,14 @@ function App() {
     if (!showPartnerCollectiveBoard || partnerCollectiveBubbles.length === 0) return undefined
 
     const bubbleState = partnerBubblePhysicsRef.current
-    partnerCollectiveBubbles.forEach((entry, index) => {
+    partnerCollectiveBubbles.forEach((entry) => {
       if (bubbleState[entry.slug]) return
-      const angle = ((index * 137) % 360) * (Math.PI / 180)
       const speedFactor = entry.merchant.level === 'pinned' ? 0.46 : 1
       bubbleState[entry.slug] = {
         x: entry.seedX,
         y: entry.seedY,
-        vx: Math.cos(angle) * (0.014 + (index % 5) * 0.003) * speedFactor,
-        vy: Math.sin(angle) * (0.012 + (index % 4) * 0.003) * speedFactor,
+        vx: Math.cos(entry.motionAngle) * entry.motionSpeed * speedFactor,
+        vy: Math.sin(entry.motionAngle) * entry.motionSpeed * speedFactor,
         boost: 1,
       }
     })
@@ -5955,8 +5969,8 @@ function App() {
         }
 
         const driftFactor = entry.merchant.level === 'pinned' ? 0.42 : 1
-        state.vx += Math.sin((time / 1200) + entry.seedX) * 0.00042 * driftFactor
-        state.vy += Math.cos((time / 1400) + entry.seedY) * 0.00036 * driftFactor
+        state.vx += Math.sin((time / entry.driftRateX) + entry.driftPhaseX) * 0.00038 * driftFactor
+        state.vy += Math.cos((time / entry.driftRateY) + entry.driftPhaseY) * 0.00034 * driftFactor
         nextPositions[entry.slug] = { x: state.x, y: state.y }
       })
 
@@ -12626,10 +12640,16 @@ function App() {
           <p>
             按服务类型查看广告、资质、优惠和联系方式，先比较再咨询。
           </p>
+          <div className="partner-heading-actions">
           <button className="partner-apply-link" type="button" onClick={scrollToPartnerSection}>
             商家申请入驻
             <Plus size={18} aria-hidden="true" />
           </button>
+          <button className="partner-apply-link partner-fishbowl-link" type="button" onClick={openMerchantBenefitBoard}>
+            查看商家鱼缸
+            <ArrowRight size={18} aria-hidden="true" />
+          </button>
+          </div>
         </div>
         <div
           className={`partner-category-rail ${partnerCategoryDragging ? 'is-dragging' : ''}`}
