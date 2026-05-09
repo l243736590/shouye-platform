@@ -7399,7 +7399,7 @@ function App() {
       opacity: 0.94,
       fontSize: 20,
       color: '#10201d',
-      background: 'rgba(255, 253, 247, 0.86)',
+      background: 'transparent',
     }
     updateMerchantDecorationDraft(activePartnerMerchantSlug, 'designItems', [
       ...activePartnerMerchantDecorationDraft.designItems,
@@ -8099,6 +8099,13 @@ function App() {
   const renderPartnerShowcaseDesignItems = () => {
     const editable = canManageActivePartnerMerchant && partnerShowcaseEditMode
     const items = (activePartnerMerchantPreviewDecoration?.designItems ?? []).filter((item) => item.zone === 'showcase')
+    const getPartnerShowcaseItemBackground = (item: MerchantDesignItem) => {
+      if (item.kind === 'media') return 'transparent'
+      const background = item.background.trim()
+      return background.startsWith('rgba(255, 253, 247') || background === '#fffdf7' || background === '#ffffff'
+        ? 'transparent'
+        : item.background
+    }
     if (!items.length && !editable) return null
     return (
       <div className="partner-showcase-design-layer" aria-hidden={!editable}>
@@ -8112,7 +8119,7 @@ function App() {
             zIndex: item.z,
             opacity: item.opacity,
             color: item.color,
-            background: item.kind === 'media' ? 'transparent' : item.background,
+            background: getPartnerShowcaseItemBackground(item),
             fontSize: item.fontSize,
           }
           return (
@@ -8196,7 +8203,6 @@ function App() {
                         <div
                           className="partner-showcase-item-controls"
                           onPointerDown={(event) => {
-                            event.preventDefault()
                             event.stopPropagation()
                           }}
                           onClick={(event) => event.stopPropagation()}
