@@ -2,6 +2,198 @@
   background: #f3f5f1;
 }
 
+.merchant-fishbowl {
+  position: relative;
+  height: 520rpx;
+  margin: 18rpx 14rpx 22rpx;
+  overflow: hidden;
+  border: 2rpx solid rgba(203, 151, 72, 0.65);
+  border-radius: 28rpx;
+  background: linear-gradient(180deg, #6db8db 0%, #0f4774 48%, #092f55 100%);
+  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.35), 0 24rpx 60rpx rgba(9, 39, 70, 0.18);
+}
+
+.fishbowl-water {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.25) 0 3rpx, transparent 5rpx) 6% 18% / 90rpx 84rpx,
+    radial-gradient(circle, rgba(255, 255, 255, 0.18) 0 2rpx, transparent 5rpx) 58% 10% / 120rpx 112rpx,
+    linear-gradient(180deg, rgba(255,255,255,.22), transparent 30%, rgba(0,16,36,.18));
+  opacity: 0.72;
+}
+
+.fishbowl-copy {
+  position: absolute;
+  left: 28rpx;
+  top: 28rpx;
+  z-index: 2;
+  width: 360rpx;
+  pointer-events: none;
+}
+
+.fishbowl-kicker {
+  display: block;
+  color: #ff6b4a;
+  font-size: 22rpx;
+  font-weight: 950;
+}
+
+.fishbowl-title {
+  display: block;
+  margin-top: 8rpx;
+  color: #fffdf7;
+  font-size: 42rpx;
+  font-weight: 950;
+  line-height: 1.1;
+}
+
+.fishbowl-desc {
+  display: block;
+  margin-top: 12rpx;
+  color: rgba(255, 253, 247, 0.82);
+  font-size: 23rpx;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.merchant-bubble {
+  position: absolute;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 240rpx;
+  max-width: 360rpx;
+  min-height: 72rpx;
+  padding: 10rpx 18rpx 10rpx 10rpx;
+  border: 1rpx solid rgba(255, 255, 255, 0.78);
+  border-radius: 999rpx;
+  background: rgba(255,253,247,.92);
+  box-shadow: inset 0 1rpx 0 rgba(255,255,255,.7), 0 18rpx 40rpx rgba(0, 20, 43, 0.22);
+  animation-duration: 16s;
+  animation-iteration-count: infinite;
+  animation-timing-function: ease-in-out;
+}
+
+.merchant-bubble.pinned {
+  z-index: 20;
+  min-width: 300rpx;
+  transform: scale(1.08);
+  border-color: rgba(255, 221, 126, 0.98);
+  box-shadow:
+    inset 0 1rpx 0 rgba(255,255,255,.86),
+    0 0 0 4rpx rgba(255, 221, 126, 0.26),
+    0 0 52rpx rgba(255, 221, 126, 0.42),
+    0 28rpx 56rpx rgba(0, 20, 43, 0.28);
+}
+
+.bubble-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56rpx;
+  height: 56rpx;
+  overflow: hidden;
+  border-radius: 999rpx;
+  background: #0f3158;
+  color: #fffdf7;
+  flex: 0 0 auto;
+  font-size: 24rpx;
+  font-weight: 950;
+}
+
+.bubble-logo image {
+  width: 100%;
+  height: 100%;
+}
+
+.bubble-copy {
+  min-width: 0;
+}
+
+.bubble-name {
+  display: block;
+  overflow: hidden;
+  color: #12345a;
+  font-size: 25rpx;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bubble-type {
+  display: block;
+  margin-top: 2rpx;
+  color: #ed573b;
+  font-size: 19rpx;
+  font-weight: 900;
+}
+
+.float-1 { left: 36rpx; top: 260rpx; animation-name: swimOne; }
+.float-2 { left: 330rpx; top: 70rpx; animation-name: swimTwo; }
+.float-3 { left: 80rpx; top: 390rpx; animation-name: swimThree; }
+.float-4 { left: 380rpx; top: 320rpx; animation-name: swimFour; }
+.float-5 { left: 170rpx; top: 160rpx; animation-name: swimFive; }
+.float-6 { left: 500rpx; top: 210rpx; animation-name: swimSix; }
+
+@keyframes swimOne {
+  0%, 100% { transform: translate(0, 0); }
+  35% { transform: translate(160rpx, -36rpx); }
+  68% { transform: translate(70rpx, 64rpx); }
+}
+
+@keyframes swimTwo {
+  0%, 100% { transform: translate(0, 0); }
+  38% { transform: translate(-140rpx, 70rpx); }
+  72% { transform: translate(70rpx, 150rpx); }
+}
+
+@keyframes swimThree {
+  0%, 100% { transform: translate(0, 0); }
+  45% { transform: translate(220rpx, -120rpx); }
+  76% { transform: translate(360rpx, -26rpx); }
+}
+
+@keyframes swimFour {
+  0%, 100% { transform: translate(0, 0); }
+  35% { transform: translate(-240rpx, -28rpx); }
+  68% { transform: translate(80rpx, -140rpx); }
+}
+
+@keyframes swimFive {
+  0%, 100% { transform: translate(0, 0); }
+  42% { transform: translate(310rpx, 46rpx); }
+  74% { transform: translate(120rpx, 190rpx); }
+}
+
+@keyframes swimSix {
+  0%, 100% { transform: translate(0, 0); }
+  44% { transform: translate(-280rpx, 120rpx); }
+  78% { transform: translate(-120rpx, -70rpx); }
+}
+
+.fish-category-row {
+  position: absolute;
+  left: 24rpx;
+  right: 24rpx;
+  bottom: 22rpx;
+  z-index: 24;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.fish-category-row button {
+  min-height: 54rpx;
+  padding: 0 18rpx;
+  border-radius: 999rpx;
+  background: rgba(255,253,247,.92);
+  color: #12345a;
+  font-size: 22rpx;
+  font-weight: 900;
+}
+
 .merchant-tags {
   display: flex;
   flex-wrap: wrap;
@@ -16,4 +208,8 @@
   color: #4c5658;
   font-size: 18rpx;
   font-weight: 800;
+}
+
+.pinned-card {
+  box-shadow: 0 22rpx 58rpx rgba(194, 151, 62, 0.22);
 }

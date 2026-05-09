@@ -1,48 +1,5 @@
-const { recordLike } = require('../../utils/api')
-const { partnerCategories, merchantCards } = require('../../utils/content')
-
-const extraMerchants = [
-  {
-    id: 'm_academic_1',
-    type: '学业相关',
-    title: '韩语发表和课业答疑怎么选？',
-    subtitle: '看服务边界、是否写明不代写、能否先做需求诊断。',
-    image: '/assets/merchant/merchant-academic.jpg',
-    author: '学业支持',
-    likes: 188,
-    tags: ['发表', 'TOPIK', '选课']
-  },
-  {
-    id: 'm_logistics_1',
-    type: '物流快递',
-    title: '行李海运、转运和同城配送比价',
-    subtitle: '重点看时效、可寄品类、赔付规则和上门范围。',
-    image: '/assets/merchant/merchant-logistics.jpg',
-    author: '物流服务',
-    likes: 92,
-    tags: ['海运', '文件', '同城配送']
-  },
-  {
-    id: 'm_telecom_1',
-    type: '通信',
-    title: '新生电话卡和宽带套餐怎么选',
-    subtitle: '先确认实名材料、合约期限、解约金和校园附近网点。',
-    image: '/assets/merchant/merchant-telecom.jpg',
-    author: '通信商家',
-    likes: 156,
-    tags: ['手机卡', '宽带', '实名']
-  },
-  {
-    id: 'm_housing_1',
-    type: '不动产',
-    title: '找房和转租服务怎么货比三家',
-    subtitle: '看区域、保证金、合同确认方式和中介资质。',
-    image: '/assets/merchant/merchant-housing.jpg',
-    author: '房源服务',
-    likes: 201,
-    tags: ['找房', '转租', '合同']
-  }
-]
+const { recordLike, fetchMerchantBrandAccesses } = require('../../utils/api')
+const { merchantCategories, merchantCards, withBrandAccess } = require('../../utils/merchant')
 
 function makeCard(item, index) {
   return {
@@ -50,7 +7,9 @@ function makeCard(item, index) {
     className: index % 3 === 1 ? 'tall' : index % 3 === 2 ? 'short' : '',
     coverText: item.type,
     avatar: item.author.slice(0, 1),
-    liked: false
+    liked: false,
+    bubbleClass: `float-${(index % 6) + 1} ${item.level === 'pinned' ? 'pinned' : ''}`,
+    bubbleStyle: `background:${item.bubbleColor || 'rgba(255,253,247,.92)'}; animation-delay:${index * -1.7}s;`,
   }
 }
 
@@ -63,42 +22,69 @@ Page({
     filteredCards: [],
     visibleCards: [],
     visibleLimit: 4,
+    fishbowlCards: [],
+    fishCategoryTabs: [],
     showLeftCatCue: false,
-    catScrollLeft: 0
+    catScrollLeft: 0,
   },
 
-  onLoad() {
-    this.setData({ cards: [...merchantCards, ...extraMerchants].map(makeCard) })
+  async onLoad(options = {}) {
+    const accesses = await fetchMerchantBrandAccesses()
+    const cards = withBrandAccess(merchantCards, accesses).map(makeCard)
+    this.setData({ cards, fishbowlCards: this.sortFishbowlCards(cards) })
     this.refreshCategories()
+    if (options.brand) this.focusBrand(decodeURIComponent(options.brand))
+    if (options.edit) wx.showToast({ title: '小程序已进入商家展示页', icon: 'none' })
     this.applyFilters()
   },
 
   onShow() {
     wx.setNavigationBarColor({
       frontColor: '#000000',
-      backgroundColor: '#fffdf7'
+      backgroundColor: '#fffdf7',
     })
   },
 
   onShareAppMessage() {
     return {
-      title: '售业｜商家福利',
+      title: '售业·商家福利',
       path: '/pages/partners/index',
-      imageUrl: 'https://shouye.fun/wechat-share-card.jpg'
+      imageUrl: 'https://shouye.fun/wechat-share-card.jpg',
     }
   },
 
+  sortFishbowlCards(cards) {
+    return [...cards].sort((a, b) => (a.level === 'pinned' ? 1 : 0) - (b.level === 'pinned' ? 1 : 0))
+  },
+
   refreshCategories() {
-    const names = ['推荐', ...partnerCategories.map((item) => item.title)]
+    const names = ['推荐', ...merchantCategories.map((item) => item.title)]
     this.setData({
-      categoryTabs: names.map((name) => ({ name, className: this.data.activeCategory === name ? 'active' : '' }))
+      categoryTabs: names.map((name) => ({ name, className: this.data.activeCategory === name ? 'active' : '' })),
+      fishCategoryTabs: merchantCategories.map((item) => item.title),
     })
+  },
+
+  focusBrand(brandId) {
+    const merchant = this.data.cards.find((item) => item.id === brandId)
+    if (!merchant) return
+    this.setData({ activeCategory: merchant.type })
+    this.refreshCategories()
   },
 
   chooseCategory(event) {
     this.setData({ activeCategory: event.currentTarget.dataset.name }, () => {
       this.refreshCategories()
       this.applyFilters()
+    })
+  },
+
+  chooseFishCategory(event) {
+    const type = event.currentTarget.dataset.type
+    this.setData({ activeCategory: type, catScrollLeft: 0 }, () => {
+      this.refreshCategories()
+      this.applyFilters()
+      wx.pageScrollTo({ selector: '.feed-search-box', duration: 240 })
     })
   },
 
@@ -139,19 +125,21 @@ Page({
 
   applyFilters() {
     const keyword = String(this.data.searchValue || '').trim().toLowerCase()
-    let filteredCards = this.data.activeCategory === '推荐'
-      ? this.data.cards
-      : this.data.cards.filter((item) => item.type === this.data.activeCategory)
+    let filteredCards =
+      this.data.activeCategory === '推荐'
+        ? this.data.cards
+        : this.data.cards.filter((item) => item.type === this.data.activeCategory)
     if (keyword) {
       filteredCards = filteredCards.filter((item) => {
         const text = `${item.type || ''} ${item.title || ''} ${item.subtitle || ''} ${item.author || ''} ${(item.tags || []).join(' ')}`.toLowerCase()
         return text.includes(keyword)
       })
     }
+    filteredCards = [...filteredCards].sort((a, b) => (b.level === 'pinned' ? 1 : 0) - (a.level === 'pinned' ? 1 : 0))
     this.setData({
       filteredCards,
       visibleLimit: 4,
-      visibleCards: filteredCards.slice(0, 4)
+      visibleCards: filteredCards.slice(0, 4),
     })
   },
 
@@ -160,7 +148,7 @@ Page({
     const visibleLimit = this.data.visibleLimit + 4
     this.setData({
       visibleLimit,
-      visibleCards: this.data.filteredCards.slice(0, visibleLimit)
+      visibleCards: this.data.filteredCards.slice(0, visibleLimit),
     })
   },
 
@@ -178,9 +166,9 @@ Page({
 
   contactMerchant(event) {
     const id = event.currentTarget.dataset.id
-    const merchant = this.data.visibleCards.find((item) => item.id === id)
+    const merchant = this.data.cards.find((item) => item.id === id) || this.data.visibleCards.find((item) => item.id === id)
     if (!merchant) return
     wx.setStorageSync('activeMerchantDetail', merchant)
     wx.navigateTo({ url: `/pages/partner-detail/index?id=${encodeURIComponent(merchant.id)}` })
-  }
+  },
 })

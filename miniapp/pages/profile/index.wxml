@@ -23,7 +23,17 @@
     <button class="logout-button" bindtap="logout">退出登录</button>
   </view>
 
-  <view class="login-card card" wx:else>
+  <view class="merchant-tools card" wx:if="{{user && merchantProfile.isMerchant}}">
+    <text class="merchant-tools-kicker">商家工具</text>
+    <text class="merchant-tools-title">{{merchantProfile.brandName}}</text>
+    <text class="merchant-tools-desc">{{merchantProfile.brandId ? '可直接进入品牌展示页或商铺主页。' : '后台分配品牌权限后，这里会显示编辑入口。'}}</text>
+    <view class="merchant-tool-actions">
+      <button disabled="{{!merchantProfile.brandId}}" bindtap="openMerchantDetailEditor">编辑展示页</button>
+      <button disabled="{{!merchantProfile.brandId}}" bindtap="openMerchantShopEditor">商铺页面编辑</button>
+    </view>
+  </view>
+
+  <view class="login-card card" wx:if="{{!user}}">
     <text class="login-title">先回首页登录</text>
     <text class="login-desc">首页已经改成微信登录和其他方式登录，登录后这里会展示积分和发布记录。</text>
     <button class="primary-button" bindtap="goHome">去登录</button>

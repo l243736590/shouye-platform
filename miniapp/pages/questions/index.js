@@ -1,5 +1,6 @@
 const { fetchPosts, fetchQuestions, normalizeDate, recordLike, searchItems } = require('../../utils/api')
-const { feedImages, merchantCards } = require('../../utils/content')
+const { feedImages } = require('../../utils/content')
+const { merchantCards } = require('../../utils/merchant')
 
 const baseCats = ['推荐', '签证', '找房', '入学', '打工', '论文', '生活', '商家福利']
 

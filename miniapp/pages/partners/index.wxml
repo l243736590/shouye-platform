@@ -8,6 +8,42 @@
     </view>
   </view>
 
+  <view class="merchant-fishbowl">
+    <view class="fishbowl-water"></view>
+    <view class="fishbowl-copy">
+      <text class="fishbowl-kicker">商家福利总览</text>
+      <text class="fishbowl-title">先看入驻商家，再按服务分类刷。</text>
+      <text class="fishbowl-desc">点击气泡可进入商家展示页，也可以点下方分类直接看对应类别。</text>
+    </view>
+    <view
+      class="merchant-bubble {{item.bubbleClass}}"
+      style="{{item.bubbleStyle}}"
+      wx:for="{{fishbowlCards}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="contactMerchant"
+    >
+      <view class="bubble-logo">
+        <image wx:if="{{item.logoImage}}" src="{{item.logoImage}}" mode="aspectFill" />
+        <text wx:else>{{item.logo}}</text>
+      </view>
+      <view class="bubble-copy">
+        <text class="bubble-name">{{item.author}}</text>
+        <text class="bubble-type">{{item.type}}</text>
+      </view>
+    </view>
+    <view class="fish-category-row">
+      <button
+        wx:for="{{fishCategoryTabs}}"
+        wx:key="*this"
+        data-type="{{item}}"
+        bindtap="chooseFishCategory"
+      >
+        {{item}} →
+      </button>
+    </view>
+  </view>
+
   <view class="feed-cat-shell">
     <view class="feed-cat-cue left" wx:if="{{showLeftCatCue}}" bindtap="scrollCatsLeft">‹</view>
     <scroll-view class="feed-cats" scroll-x enable-flex enhanced show-scrollbar="{{false}}" scroll-left="{{catScrollLeft}}" bindscroll="onCatScroll">
@@ -17,11 +53,11 @@
   </view>
 
   <view class="feed-search-box">
-    <input value="{{searchValue}}" bindinput="onSearchInput" placeholder="搜：中央大找房、艺术类入学、D-10..." />
+    <input value="{{searchValue}}" bindinput="onSearchInput" placeholder="搜：论文、作品集、找房、手机卡、D-10..." />
   </view>
 
   <view class="feed-grid">
-    <view class="note-card {{item.className}} ad-card" wx:for="{{visibleCards}}" wx:key="id" data-id="{{item.id}}" bindtap="contactMerchant">
+    <view class="note-card {{item.className}} ad-card {{item.level === 'pinned' ? 'pinned-card' : ''}}" wx:for="{{visibleCards}}" wx:key="id" data-id="{{item.id}}" bindtap="contactMerchant">
       <view class="note-cover-wrap">
         <text class="ad-label">{{item.type}}</text>
         <image class="note-cover" src="{{item.image}}" mode="aspectFill" lazy-load="true" />

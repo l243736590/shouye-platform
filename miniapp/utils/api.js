@@ -196,6 +196,15 @@ async function createMerchantLead(merchant, user, note) {
   })
 }
 
+async function fetchMerchantBrandAccesses() {
+  try {
+    const data = await request('/api/merchant-brand-accesses')
+    return Array.isArray(data.merchantBrandAccesses) ? data.merchantBrandAccesses : []
+  } catch (error) {
+    return []
+  }
+}
+
 async function recordLike(contentType, contentId, user) {
   if (!contentType || !contentId) return null
   return request('/api/reactions/like', {
@@ -251,6 +260,7 @@ module.exports = {
   createQuestionDispute,
   createPost,
   createMerchantLead,
+  fetchMerchantBrandAccesses,
   recordLike,
   normalizeDate,
   searchItems

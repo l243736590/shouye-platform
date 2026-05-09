@@ -68,6 +68,52 @@
   font-weight: 900;
 }
 
+.merchant-tools {
+  display: grid;
+  gap: 12rpx;
+  margin-top: 20rpx;
+  padding: 24rpx;
+}
+
+.merchant-tools-kicker {
+  color: #ed573b;
+  font-size: 22rpx;
+  font-weight: 950;
+}
+
+.merchant-tools-title {
+  color: #242b2e;
+  font-size: 36rpx;
+  font-weight: 950;
+  line-height: 1.15;
+}
+
+.merchant-tools-desc {
+  color: #687174;
+  font-size: 24rpx;
+  font-weight: 800;
+}
+
+.merchant-tool-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-top: 8rpx;
+}
+
+.merchant-tool-actions button {
+  min-height: 78rpx;
+  border-radius: 16rpx;
+  background: #242b2e;
+  color: #fffdf7;
+  font-size: 26rpx;
+  font-weight: 900;
+}
+
+.merchant-tool-actions button[disabled] {
+  opacity: 0.45;
+}
+
 .login-card {
   display: flex;
   flex-direction: column;
