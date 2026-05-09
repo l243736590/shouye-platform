@@ -6380,6 +6380,11 @@ function App() {
       ? getPartnerLogoImage(activePartnerDetail.merchant) || activeMerchantApprovedLogoImage
       : activeMerchantApprovedLogoImage || getPartnerLogoImage(activePartnerDetail.merchant)
   const currentUserBioSettings = parseUserBioSettings(currentUser?.bio)
+  const currentManagedBrandId = currentUserBioSettings.managedBrandId ?? ''
+  const currentUserIsMerchant =
+    currentUserBioSettings.userType === 'merchant' ||
+    currentUser?.identity === '商家' ||
+    Boolean(currentUserBioSettings.businessName || currentUserBioSettings.businessCategory)
   const canManageActivePartnerBrand =
     Boolean(currentUser) &&
     currentUser?.status === 'active' &&
@@ -9717,6 +9722,40 @@ function App() {
     document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
+  const openManagedBrandDetailEditor = () => {
+    if (!currentManagedBrandId) {
+      setMessage('后台还没有给这个商家账号分配品牌权限，请先在后台分配品牌。')
+      return
+    }
+    setMerchantDesignEditMode(true)
+    setActiveMerchantTextEditor(null)
+    setActiveMerchantStageLayerId(null)
+    setActiveMerchantDesignItemId(null)
+    navigateToPath(`/partners/${currentManagedBrandId}`)
+  }
+
+  const openManagedBrandShowcaseEditor = () => {
+    if (!currentManagedBrandId) {
+      setMessage('后台还没有给这个商家账号分配品牌权限，请先在后台分配品牌。')
+      return
+    }
+    const entry = partnerMerchantEntries.find((item) => item.slug === currentManagedBrandId)
+    if (!entry) {
+      setMessage('暂时没有找到这个商家的展示页，请刷新后重试。')
+      return
+    }
+    const showcase = partnerShowcasesWithApproved.find((item) => item.type === entry.showcase.type)
+    const merchantIndex = showcase?.merchants.findIndex((merchant) => getPartnerMerchantSlug(merchant) === currentManagedBrandId) ?? 0
+    setSelectedPartnerType(entry.showcase.type)
+    setSelectedPartnerMerchantIndex(Math.max(0, merchantIndex))
+    setShowPartnerCollectiveBoard(false)
+    setPartnerShowcaseEditMode(true)
+    navigateToPath('/')
+    window.setTimeout(() => {
+      document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 80)
+  }
+
   const scrollToPartnerSection = () => {
     document.getElementById('partner-apply')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -11833,6 +11872,25 @@ function App() {
                 <button type="submit">保存个人信息</button>
               </form>
               <div className="profile-panel">
+                {currentUserIsMerchant && (
+                  <div className="profile-merchant-tools">
+                    <div>
+                      <span>商家工具</span>
+                      <strong>{currentUserBioSettings.managedBrandName || currentUserBioSettings.businessName || '商家展示管理'}</strong>
+                      <small>
+                        {currentManagedBrandId
+                          ? '可直接进入你的品牌详情页或商铺首页展示编辑。'
+                          : '后台分配品牌权限后，这里会显示编辑入口。'}
+                      </small>
+                    </div>
+                    <button type="button" disabled={!currentManagedBrandId} onClick={openManagedBrandDetailEditor}>
+                      编辑展示页
+                    </button>
+                    <button type="button" disabled={!currentManagedBrandId} onClick={openManagedBrandShowcaseEditor}>
+                      商铺页面编辑
+                    </button>
+                  </div>
+                )}
                 <h3>我的认证材料</h3>
                 {currentUser.documents.length ? (
                   currentUser.documents.map((document) => (
@@ -12708,7 +12766,7 @@ function App() {
                       '--merchant-bubble-logo-bg': entry.bubbleLogoBackground || undefined,
                       left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,
                       top: `${partnerBubblePositions[entry.slug]?.y ?? entry.seedY}%`,
-                      zIndex: entry.merchant.level === 'pinned' ? 90 : 5,
+                      zIndex: entry.merchant.level === 'pinned' ? 1000 : 5,
                     } as CSSProperties}
                     type="button"
                     onClick={() => navigateToPath(`/partners/${entry.slug}`)}

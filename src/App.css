@@ -2537,9 +2537,10 @@ h3 {
     0 0 34px rgba(255, 221, 130, 0.34),
     0 28px 54px rgba(255, 185, 56, 0.24),
     0 22px 44px rgba(0, 20, 43, 0.18);
-  min-width: 220px;
-  padding: 13px 18px 13px 12px;
-  z-index: 30;
+  min-width: 246px;
+  padding: 14px 20px 14px 13px;
+  transform: translate(-50%, -50%) scale(1.12);
+  z-index: 1000;
 }
 
 .partner-merchant-bubble.is-pinned strong::after {
@@ -2554,10 +2555,15 @@ h3 {
     0 0 42px rgba(255, 221, 130, 0.42),
     0 32px 60px rgba(255, 185, 56, 0.34),
     0 24px 48px rgba(0, 20, 43, 0.2);
+  transform: translate(-50%, -50%) scale(1.18);
 }
 
 .partner-merchant-bubble:active {
   transform: translate(-50%, -50%) scale(0.98);
+}
+
+.partner-merchant-bubble.is-pinned:active {
+  transform: translate(-50%, -50%) scale(1.08);
 }
 
 .partner-merchant-bubble .partner-logo-mark {
@@ -5673,6 +5679,53 @@ small[data-merchant-inline-edit='true'] {
   padding: 0 10px;
 }
 
+.profile-merchant-tools {
+  align-items: center;
+  background: #f6f8f4;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  padding: 16px;
+}
+
+.profile-merchant-tools div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.profile-merchant-tools span {
+  color: var(--coral);
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.profile-merchant-tools strong {
+  color: var(--ink);
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.profile-merchant-tools small {
+  color: var(--muted);
+  font-weight: 850;
+  line-height: 1.45;
+}
+
+.profile-merchant-tools button {
+  background: var(--forest);
+  color: #fffdf0;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.profile-merchant-tools button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .school-posts-page .post-grid {
   margin: 20px auto 0;
   max-width: 1280px;
@@ -6808,6 +6861,10 @@ small[data-merchant-inline-edit='true'] {
   }
 
   .profile-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-merchant-tools {
     grid-template-columns: 1fr;
   }
 
