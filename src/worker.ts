@@ -52,6 +52,12 @@ type UserBioSettings = {
   managedBrandLevel?: 'normal' | 'pinned'
 }
 
+type MerchantBrandAccessRecord = {
+  brandId: string
+  brandName: string
+  level: 'normal' | 'pinned'
+}
+
 type PartnerApplicationRecord = {
   id: string
   company: string
@@ -1606,6 +1612,31 @@ const getAllUsers = async (env: Env) => {
   }
 
   return (userRows.results ?? []).map((row) => rowToUser(row, documentsByUser.get(String(row.id)) ?? []))
+}
+
+const getMerchantBrandAccesses = async (env: Env): Promise<MerchantBrandAccessRecord[]> => {
+  if (!env.DB) return []
+  const rows = await env.DB.prepare(
+    `SELECT bio
+     FROM users
+     WHERE status = 'active' AND verification_status = 'approved' AND bio IS NOT NULL AND bio <> ''`,
+  ).all<Record<string, unknown>>()
+  const accessByBrand = new Map<string, MerchantBrandAccessRecord>()
+
+  for (const row of rows.results ?? []) {
+    const settings = parseUserBioSettings(String(row.bio ?? ''))
+    if (!settings.managedBrandId) continue
+    const level = settings.managedBrandLevel === 'pinned' ? 'pinned' : 'normal'
+    const existing = accessByBrand.get(settings.managedBrandId)
+    if (existing?.level === 'pinned' && level !== 'pinned') continue
+    accessByBrand.set(settings.managedBrandId, {
+      brandId: settings.managedBrandId,
+      brandName: settings.managedBrandName ?? '',
+      level,
+    })
+  }
+
+  return Array.from(accessByBrand.values())
 }
 
 const stripDocumentPreviewData = (documents: CredentialDocument[]) =>
@@ -4232,6 +4263,9 @@ export default {
     if (url.pathname === '/api/merchant-leads' && request.method === 'POST') return handleMerchantLeadCreate(request, env)
     if (url.pathname === '/api/merchant-brand-decorations' && request.method === 'GET') {
       return json({ merchantBrandDecorations: await getMerchantBrandDecorations(env) })
+    }
+    if (url.pathname === '/api/merchant-brand-accesses' && request.method === 'GET') {
+      return json({ merchantBrandAccesses: await getMerchantBrandAccesses(env) })
     }
     const merchantBrandDecorationMatch = url.pathname.match(/^\/api\/merchant-brand-decorations\/([^/]+)$/)
     if (merchantBrandDecorationMatch && request.method === 'PUT') {

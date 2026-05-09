@@ -79,6 +79,12 @@ type UserBioSettings = {
   managedBrandLevel?: MerchantLevel
 }
 
+type MerchantBrandAccess = {
+  brandId: string
+  brandName: string
+  level: MerchantLevel
+}
+
 type PartnerApplication = {
   id: string
   company: string
@@ -5272,6 +5278,7 @@ function App() {
   const [selectedPartnerMerchantIndex, setSelectedPartnerMerchantIndex] = useState(0)
   const [partnerAutoFlip, setPartnerAutoFlip] = useState(true)
   const [showPartnerCollectiveBoard, setShowPartnerCollectiveBoard] = useState(true)
+  const [publicBrandAccesses, setPublicBrandAccesses] = useState<MerchantBrandAccess[]>([])
   const [partnerBubblePositions, setPartnerBubblePositions] = useState<Record<string, { x: number; y: number }>>({})
   const partnerBubblePhysicsRef = useRef<Record<string, { x: number; y: number; vx: number; vy: number; boost: number }>>({})
   const [questionCategoryFilter, setQuestionCategoryFilter] = useState(allCategoryLabel)
@@ -5567,6 +5574,26 @@ function App() {
   }, [])
 
   useEffect(() => {
+    fetch('/api/merchant-brand-accesses')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { merchantBrandAccesses?: Partial<MerchantBrandAccess>[] } | null) => {
+        if (!data?.merchantBrandAccesses) return
+        setPublicBrandAccesses(
+          data.merchantBrandAccesses
+            .map((access) => ({
+              brandId: String(access.brandId ?? ''),
+              brandName: String(access.brandName ?? ''),
+              level: (access.level === 'pinned' ? 'pinned' : 'normal') as MerchantLevel,
+            }))
+            .filter((access) => access.brandId),
+        )
+      })
+      .catch(() => {
+        // Local merchant permissions still work when the public status endpoint is unavailable.
+      })
+  }, [])
+
+  useEffect(() => {
     if (!appState.currentUserId) return
     let ignore = false
     fetch(`/api/users/${encodeURIComponent(appState.currentUserId)}`)
@@ -5692,10 +5719,13 @@ function App() {
     (application) => application.status === 'approved' && application.company.trim(),
   )
   const merchantLevelByBrandId = new Map(
-    appState.users
-      .map((user) => parseUserBioSettings(user.bio))
-      .filter((settings) => settings.managedBrandId)
-      .map((settings) => [settings.managedBrandId!, settings.managedBrandLevel ?? 'normal'] as const),
+    [
+      ...appState.users
+        .map((user) => parseUserBioSettings(user.bio))
+        .filter((settings) => settings.managedBrandId)
+        .map((settings) => [settings.managedBrandId!, settings.managedBrandLevel ?? 'normal'] as const),
+      ...publicBrandAccesses.map((access) => [access.brandId, access.level] as const),
+    ],
   )
   const getPartnerMerchantSlug = (merchant: PartnerMerchant) =>
     'id' in merchant && merchant.id ? merchant.id : encodeURIComponent(merchant.name)
@@ -6656,6 +6686,22 @@ function App() {
       '商家状态和品牌权限已保存。',
     )
     if (saved) {
+      setPublicBrandAccesses((accesses) => {
+        const previousBrandId = selectedAdminUserBioSettings.managedBrandId
+        const nextBrandId = brand?.id ?? ''
+        const withoutPrevious = previousBrandId
+          ? accesses.filter((access) => access.brandId !== previousBrandId)
+          : accesses
+        if (!nextBrandId) return withoutPrevious
+        return [
+          ...withoutPrevious.filter((access) => access.brandId !== nextBrandId),
+          {
+            brandId: nextBrandId,
+            brandName: brand?.name ?? '',
+            level: selectedAdminUserControlSettings.managedBrandLevel,
+          },
+        ]
+      })
       setAdminUserSettingDrafts((drafts) => {
         const nextDrafts = { ...drafts }
         delete nextDrafts[selectedAdminUser.id]
