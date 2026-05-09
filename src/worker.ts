@@ -144,6 +144,10 @@ type MerchantBrandDecorationRecord = {
   serviceImageScale: number
   textLayerStyles: Record<string, MerchantTextLayerStyleRecord>
   designItems: MerchantDesignItemRecord[]
+  bubbleColor: string
+  bubbleTextColor: string
+  bubbleMetaColor: string
+  bubbleLogoBackground: string
   updatedAt: string
 }
 
@@ -369,6 +373,10 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
     serviceImageScale: 1,
     textLayerStyles: {},
     designItems: [],
+    bubbleColor: 'rgba(194, 151, 62, 0.92)',
+    bubbleTextColor: '#12345a',
+    bubbleMetaColor: '#ef5a3c',
+    bubbleLogoBackground: 'rgba(194, 151, 62, 0.92)',
     updatedAt: '2026-05-07',
   },
 ]
@@ -523,6 +531,10 @@ const normalizeMerchantBrandDecoration = (
   serviceImageScale: clampNumber(decoration.serviceImageScale ?? fallback?.serviceImageScale, 1, 0.35, 2.4),
   textLayerStyles: normalizeMerchantTextLayerStyles(decoration.textLayerStyles ?? fallback?.textLayerStyles),
   designItems: normalizeMerchantDesignItems(decoration.designItems ?? fallback?.designItems ?? []),
+  bubbleColor: decoration.bubbleColor ?? fallback?.bubbleColor ?? '',
+  bubbleTextColor: decoration.bubbleTextColor ?? fallback?.bubbleTextColor ?? '',
+  bubbleMetaColor: decoration.bubbleMetaColor ?? fallback?.bubbleMetaColor ?? '',
+  bubbleLogoBackground: decoration.bubbleLogoBackground ?? fallback?.bubbleLogoBackground ?? '',
   updatedAt: decoration.updatedAt ?? fallback?.updatedAt ?? new Date().toISOString(),
 })
 
@@ -1232,6 +1244,10 @@ const rowToMerchantBrandDecoration = (row: Record<string, unknown>): MerchantBra
   serviceImageScale: clampNumber(row.service_image_scale, 1, 0.35, 2.4),
   textLayerStyles: parseMerchantTextLayerStyles(row.text_layer_styles),
   designItems: parseMerchantDesignItems(row.design_items),
+  bubbleColor: String(row.bubble_color ?? ''),
+  bubbleTextColor: String(row.bubble_text_color ?? ''),
+  bubbleMetaColor: String(row.bubble_meta_color ?? ''),
+  bubbleLogoBackground: String(row.bubble_logo_background ?? ''),
   updatedAt: String(row.updated_at ?? ''),
 })
 
@@ -1837,6 +1853,10 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
       service_image_scale REAL NOT NULL DEFAULT 1,
       text_layer_styles TEXT NOT NULL DEFAULT '{}',
       design_items TEXT NOT NULL DEFAULT '[]',
+      bubble_color TEXT NOT NULL DEFAULT '',
+      bubble_text_color TEXT NOT NULL DEFAULT '',
+      bubble_meta_color TEXT NOT NULL DEFAULT '',
+      bubble_logo_background TEXT NOT NULL DEFAULT '',
       updated_at TEXT NOT NULL
     )`,
   ).run()
@@ -1867,6 +1887,10 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
   await ensureColumn(env, 'merchant_brand_decorations', 'service_image_scale', 'service_image_scale REAL NOT NULL DEFAULT 1')
   await ensureColumn(env, 'merchant_brand_decorations', 'text_layer_styles', "text_layer_styles TEXT NOT NULL DEFAULT '{}'")
   await ensureColumn(env, 'merchant_brand_decorations', 'design_items', "design_items TEXT NOT NULL DEFAULT '[]'")
+  await ensureColumn(env, 'merchant_brand_decorations', 'bubble_color', "bubble_color TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'bubble_text_color', "bubble_text_color TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'bubble_meta_color', "bubble_meta_color TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'bubble_logo_background', "bubble_logo_background TEXT NOT NULL DEFAULT ''")
 }
 
 const getMerchantBrandDecorations = async (env: Env) => {
@@ -3295,8 +3319,8 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, bubble_color, bubble_text_color, bubble_meta_color, bubble_logo_background, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -3332,6 +3356,10 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
         service_image_scale = excluded.service_image_scale,
         text_layer_styles = excluded.text_layer_styles,
         design_items = excluded.design_items,
+        bubble_color = excluded.bubble_color,
+        bubble_text_color = excluded.bubble_text_color,
+        bubble_meta_color = excluded.bubble_meta_color,
+        bubble_logo_background = excluded.bubble_logo_background,
         updated_at = excluded.updated_at`,
   )
     .bind(
@@ -3370,6 +3398,10 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
       decoration.serviceImageScale,
       JSON.stringify(decoration.textLayerStyles),
       JSON.stringify(decoration.designItems),
+      decoration.bubbleColor,
+      decoration.bubbleTextColor,
+      decoration.bubbleMetaColor,
+      decoration.bubbleLogoBackground,
       decoration.updatedAt,
     )
     .run()
@@ -3401,8 +3433,8 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, bubble_color, bubble_text_color, bubble_meta_color, bubble_logo_background, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -3438,6 +3470,10 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
         service_image_scale = excluded.service_image_scale,
         text_layer_styles = excluded.text_layer_styles,
         design_items = excluded.design_items,
+        bubble_color = excluded.bubble_color,
+        bubble_text_color = excluded.bubble_text_color,
+        bubble_meta_color = excluded.bubble_meta_color,
+        bubble_logo_background = excluded.bubble_logo_background,
         updated_at = excluded.updated_at`,
   )
     .bind(
@@ -3476,6 +3512,10 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
       decoration.serviceImageScale,
       JSON.stringify(decoration.textLayerStyles),
       JSON.stringify(decoration.designItems),
+      decoration.bubbleColor,
+      decoration.bubbleTextColor,
+      decoration.bubbleMetaColor,
+      decoration.bubbleLogoBackground,
       decoration.updatedAt,
     )
     .run()

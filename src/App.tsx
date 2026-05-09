@@ -984,7 +984,7 @@ const normalizeMerchantBrandDecoration = (
         {
           x: Math.min(800, Math.max(-800, Number.isFinite(Number(style?.x)) ? Number(style?.x) : 0)),
           y: Math.min(800, Math.max(-800, Number.isFinite(Number(style?.y)) ? Number(style?.y) : 0)),
-          z: Math.min(120, Math.max(1, Number.isFinite(Number(style?.z)) ? Number(style?.z) : 20)),
+          z: Math.min(120, Math.max(1, Number.isFinite(Number(style?.z)) ? Number(style?.z) : 60)),
           fontSize: Math.min(120, Math.max(0, Number.isFinite(Number(style?.fontSize)) ? Number(style?.fontSize) : 0)),
           color: typeof style?.color === 'string' ? style.color : '',
         },
@@ -6417,7 +6417,7 @@ function App() {
   const getTextLayerState = (
     decoration: MerchantBrandDecoration | undefined,
     field: MerchantEditableTextField,
-  ): MerchantTextLayerStyle => decoration?.textLayerStyles?.[field] ?? { x: 0, y: 0, z: 20, fontSize: 0, color: '' }
+  ): MerchantTextLayerStyle => decoration?.textLayerStyles?.[field] ?? { x: 0, y: 0, z: 60, fontSize: 0, color: '' }
   const getTextLayerStyle = (
     decoration: MerchantBrandDecoration | undefined,
     field: MerchantEditableTextField,
@@ -7484,6 +7484,18 @@ function App() {
     return element && field ? { element, field } : null
   }
 
+  const maybeStartPartnerShowcaseTextLayerFromPoint = (
+    item: MerchantDesignItem,
+    event: PointerEvent<HTMLElement>,
+  ) => {
+    const textLayer = findPartnerShowcaseTextLayerAtPoint(event.clientX, event.clientY)
+    if (!textLayer) return false
+    const textZ = getTextLayerState(activePartnerMerchantDecorationDraft, textLayer.field).z
+    if (textZ < item.z) return false
+    startPartnerShowcaseTextLayerDrag(textLayer.field, event)
+    return true
+  }
+
   const startPartnerShowcaseDesignItemDrag = (
     item: MerchantDesignItem,
     mode: 'move' | 'resize',
@@ -7698,7 +7710,14 @@ function App() {
               {editable && (
                 <div
                   className={`merchant-design-hitbox ${selected ? 'is-selected' : ''}`}
-                  style={{ ...itemStyle, background: 'transparent', color: undefined, fontSize: undefined, opacity: 1, zIndex: 190 }}
+                  style={{
+                    ...itemStyle,
+                    background: 'transparent',
+                    color: undefined,
+                    fontSize: undefined,
+                    opacity: 1,
+                    zIndex: selected ? 220 : Math.max(1, item.z + 1),
+                  }}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
@@ -8049,10 +8068,12 @@ function App() {
           </label>
           <button
             type="button"
-            onClick={() => {
-              setActivePartnerShowcaseTextEditor(null)
-              setPartnerShowcaseTextPopoverAnchor(null)
-              savePartnerShowcaseDecoration(false)
+            onClick={async () => {
+              const saved = await savePartnerShowcaseDecoration(false)
+              if (saved) {
+                setActivePartnerShowcaseTextEditor(null)
+                setPartnerShowcaseTextPopoverAnchor(null)
+              }
             }}
           >
             完成
@@ -8113,7 +8134,7 @@ function App() {
               {editable && (
                 <div
                   className={`partner-showcase-design-hitbox ${selected ? 'is-selected' : ''}`}
-                  style={{ ...itemStyle, opacity: 1, zIndex: 190 }}
+                  style={{ ...itemStyle, opacity: 1, zIndex: selected ? 220 : Math.max(1, item.z + 1) }}
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
@@ -8136,6 +8157,7 @@ function App() {
                         return
                       }
                     }
+                    if (maybeStartPartnerShowcaseTextLayerFromPoint(item, event)) return
                     startPartnerShowcaseDesignItemDrag(item, 'move', event)
                   }}
                   onPointerMove={(event) => movePartnerShowcaseDesignItemDrag(event)}
@@ -8541,15 +8563,15 @@ function App() {
     )
   }
 
-  const saveMerchantDecoration = async () => {
+  const saveMerchantDecoration = async (): Promise<boolean> => {
     if (!currentUser) {
       setAuthMode('login')
       setMerchantDecorationNotice('请先登录商家账号。')
-      return
+      return false
     }
     if (!canManageActivePartnerBrand) {
       setMerchantDecorationNotice('当前账号还没有这个品牌详情页的装饰权限。')
-      return
+      return false
     }
     const nextDecoration = normalizeMerchantBrandDecoration({
       ...activeMerchantDecorationDraft,
@@ -8565,6 +8587,7 @@ function App() {
       ]),
     }))
 
+    setMerchantDecorationNotice('正在保存品牌详情页...')
     try {
       const response = await fetch(`/api/merchant-brand-decorations/${encodeURIComponent(nextDecoration.brandId)}`, {
         body: JSON.stringify({ userId: currentUser.id, decoration: nextDecoration }),
@@ -8582,24 +8605,29 @@ function App() {
         merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? [data.merchantBrandDecoration ?? nextDecoration]),
       }))
       setMerchantDecorationDrafts((drafts) => {
-        const { [nextDecoration.brandId]: _saved, ...rest } = drafts
-        return rest
+        const nextDrafts = { ...drafts }
+        delete nextDrafts[nextDecoration.brandId]
+        return nextDrafts
       })
       setMerchantDecorationNotice('品牌详情页装饰已保存。')
+      setMessage('品牌详情页装饰已保存。')
+      return true
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+      setMessage(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+      return false
     }
   }
 
-  const savePartnerShowcaseDecoration = async (closeEditor = true) => {
+  const savePartnerShowcaseDecoration = async (closeEditor = true): Promise<boolean> => {
     if (!currentUser) {
       setAuthMode('login')
       setMerchantDecorationNotice('请先登录商家账号。')
-      return
+      return false
     }
     if (!canManageActivePartnerMerchant) {
       setMerchantDecorationNotice('当前账号还没有这个商家展示卡的编辑权限。')
-      return
+      return false
     }
     const nextDecoration = normalizeMerchantBrandDecoration({
       ...activePartnerMerchantDecorationDraft,
@@ -8634,13 +8662,18 @@ function App() {
         merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? [data.merchantBrandDecoration ?? nextDecoration]),
       }))
       setMerchantDecorationDrafts((drafts) => {
-        const { [nextDecoration.brandId]: _saved, ...rest } = drafts
-        return rest
+        const nextDrafts = { ...drafts }
+        delete nextDrafts[nextDecoration.brandId]
+        return nextDrafts
       })
       if (closeEditor) setPartnerShowcaseEditMode(false)
       setMerchantDecorationNotice('商家展示卡已保存。')
+      setMessage('商家展示卡已保存。')
+      return true
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+      setMessage(error instanceof Error && error.message ? error.message : '保存失败，请稍后重试。')
+      return false
     } finally {
       setPartnerShowcaseSaving(false)
     }
@@ -12532,9 +12565,12 @@ function App() {
                   disabled={partnerShowcaseSaving}
                   onClick={async () => {
                     if (partnerShowcaseEditMode) {
-                      await savePartnerShowcaseDecoration(true)
-                      setActivePartnerShowcaseTextEditor(null)
-                      setActivePartnerShowcaseDesignItemId(null)
+                      const saved = await savePartnerShowcaseDecoration(true)
+                      if (saved) {
+                        setActivePartnerShowcaseTextEditor(null)
+                        setPartnerShowcaseTextPopoverAnchor(null)
+                        setActivePartnerShowcaseDesignItemId(null)
+                      }
                       return
                     }
                     setPartnerShowcaseEditMode(true)
@@ -12557,6 +12593,9 @@ function App() {
                       onChange={addPartnerShowcaseImage}
                     />
                   </>
+                )}
+                {partnerShowcaseEditMode && merchantDecorationNotice && (
+                  <span className="partner-showcase-save-notice">{merchantDecorationNotice}</span>
                 )}
               </div>
             )}
