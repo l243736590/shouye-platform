@@ -5380,11 +5380,22 @@ function App() {
   const [partnerCategoryDragging, setPartnerCategoryDragging] = useState(false)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
+  const [adminUserSettingDrafts, setAdminUserSettingDrafts] = useState<
+    Record<
+      string,
+      {
+        status?: UserStatus
+        verificationStatus?: VerificationStatus
+        managedBrandId?: string
+        managedBrandLevel?: MerchantLevel
+      }
+    >
+  >({})
   const [openVerificationBubbleUserId, setOpenVerificationBubbleUserId] = useState<string | null>(null)
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [reportTarget, setReportTarget] = useState<{ contentType: string; contentId: string; title: string } | null>(null)
   const [reportForm, setReportForm] = useState({ reason: '违法违规内容', description: '', contact: '' })
-  const [, setMessage] = useState('')
+  const [message, setMessage] = useState('')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
   const [authNotice, setAuthNotice] = useState('')
   const [openJourneyDetail, setOpenJourneyDetail] = useState<{ slug?: string; title: string } | null>(null)
@@ -5491,6 +5502,12 @@ function App() {
     school: currentUser?.school ?? '',
     documents: [] as CredentialDocument[],
   })
+
+  useEffect(() => {
+    if (!message) return
+    const timer = window.setTimeout(() => setMessage(''), 2800)
+    return () => window.clearTimeout(timer)
+  }, [message])
 
   const handleMerchantStudioMediaInput = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = Array.from(event.target.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
@@ -5925,6 +5942,21 @@ function App() {
     name: entry.merchant.name,
     type: entry.showcase.type,
   }))
+  const selectedAdminUserSettingDraft = selectedAdminUser ? adminUserSettingDrafts[selectedAdminUser.id] : undefined
+  const selectedAdminUserControlSettings = selectedAdminUser
+    ? {
+        status: selectedAdminUserSettingDraft?.status ?? selectedAdminUser.status,
+        verificationStatus: selectedAdminUserSettingDraft?.verificationStatus ?? selectedAdminUser.verificationStatus,
+        managedBrandId: selectedAdminUserSettingDraft?.managedBrandId ?? selectedAdminUserBioSettings.managedBrandId ?? '',
+        managedBrandLevel:
+          selectedAdminUserSettingDraft?.managedBrandLevel ?? selectedAdminUserBioSettings.managedBrandLevel ?? 'normal',
+      }
+    : null
+  const selectedAdminUserControlBrand = selectedAdminUserControlSettings
+    ? manageablePartnerBrands.find((brand) => brand.id === selectedAdminUserControlSettings.managedBrandId)
+    : undefined
+  const selectedAdminUserControlBrandName =
+    selectedAdminUserControlBrand?.name ?? selectedAdminUserBioSettings.managedBrandName ?? ''
   const selectedPartnerShowcase =
     partnerShowcasesWithApproved.find((partner) => partner.type === selectedPartnerType) ?? partnerShowcasesWithApproved[0]
   const selectedPartnerMerchantCount = selectedPartnerShowcase.merchants.length
@@ -6517,7 +6549,14 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('积分更新失败，请稍后重试。'))
+      })
+        .then(async (response) => {
+          const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
+          if (!response.ok) throw new Error(data?.error ?? '积分更新失败，请稍后重试。')
+          if (data?.users) setAppState((state) => ({ ...state, users: data.users! }))
+          setMessage('积分已保存。')
+        })
+        .catch((error) => setMessage(error instanceof Error ? error.message : '积分更新失败，请稍后重试。'))
     }
   }
 
@@ -6538,25 +6577,90 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('可提现积分更新失败，请稍后重试。'))
+      })
+        .then(async (response) => {
+          const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
+          if (!response.ok) throw new Error(data?.error ?? '可提现积分更新失败，请稍后重试。')
+          if (data?.users) setAppState((state) => ({ ...state, users: data.users! }))
+          setMessage('可提现积分已保存。')
+        })
+        .catch((error) => setMessage(error instanceof Error ? error.message : '可提现积分更新失败，请稍后重试。'))
     }
   }
 
-  const updateUserAccount = (userId: string, patch: Partial<User>) => {
+  const updateUserAccount = async (userId: string, patch: Partial<User>, successMessage = '账号设置已保存。') => {
     setAppState((state) => ({
       ...state,
       users: state.users.map((user) => (user.id === userId ? { ...user, ...patch } : user)),
       currentUserId: patch.status === 'banned' && state.currentUserId === userId ? null : state.currentUserId,
     }))
-    if (adminToken) {
-      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+    if (!adminToken) {
+      setMessage(successMessage)
+      return true
+    }
+    try {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
         body: JSON.stringify(patch),
         headers: {
           authorization: `Bearer ${adminToken}`,
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('账号状态更新失败，请稍后重试。'))
+      })
+      const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
+      if (!response.ok) throw new Error(data?.error ?? '账号设置保存失败，请稍后重试。')
+      if (data?.users) {
+        setAppState((state) => ({ ...state, users: data.users! }))
+      }
+      setMessage(successMessage)
+      return true
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '账号设置保存失败，请稍后重试。')
+      return false
+    }
+  }
+
+  const updateSelectedAdminUserSettingDraft = (
+    userId: string,
+    patch: {
+      status?: UserStatus
+      verificationStatus?: VerificationStatus
+      managedBrandId?: string
+      managedBrandLevel?: MerchantLevel
+    },
+  ) => {
+    setAdminUserSettingDrafts((drafts) => ({
+      ...drafts,
+      [userId]: {
+        ...drafts[userId],
+        ...patch,
+      },
+    }))
+  }
+
+  const saveSelectedAdminUserSettings = async () => {
+    if (!selectedAdminUser || !selectedAdminUserControlSettings) return
+    const brand = manageablePartnerBrands.find((item) => item.id === selectedAdminUserControlSettings.managedBrandId)
+    const saved = await updateUserAccount(
+      selectedAdminUser.id,
+      {
+        status: selectedAdminUserControlSettings.status,
+        verificationStatus: selectedAdminUserControlSettings.verificationStatus,
+        bio: serializeUserBrandAccess(
+          selectedAdminUser.bio,
+          brand?.id ?? '',
+          brand?.name ?? '',
+          selectedAdminUserControlSettings.managedBrandLevel,
+        ),
+      },
+      '商家状态和品牌权限已保存。',
+    )
+    if (saved) {
+      setAdminUserSettingDrafts((drafts) => {
+        const nextDrafts = { ...drafts }
+        delete nextDrafts[selectedAdminUser.id]
+        return nextDrafts
+      })
     }
   }
 
@@ -6589,7 +6693,14 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('材料审核状态更新失败，请稍后重试。'))
+      })
+        .then(async (response) => {
+          const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
+          if (!response.ok) throw new Error(data?.error ?? '材料审核状态更新失败，请稍后重试。')
+          if (data?.users) setAppState((state) => ({ ...state, users: data.users! }))
+          setMessage('材料审核状态已保存。')
+        })
+        .catch((error) => setMessage(error instanceof Error ? error.message : '材料审核状态更新失败，请稍后重试。'))
     }
   }
 
@@ -6731,6 +6842,7 @@ function App() {
               partnerApplications: data.partnerApplications!.map(normalizePartnerApplication),
             }))
           }
+          setMessage('合作申请设置已保存。')
         })
         .catch((error) => setMessage(error instanceof Error ? error.message : '商家审核状态保存失败，请稍后重试。'))
     }
@@ -6768,7 +6880,14 @@ function App() {
           'content-type': 'application/json',
         },
         method: 'PATCH',
-      }).catch(() => setMessage('咨询线索状态保存失败，请稍后重试。'))
+      })
+        .then(async (response) => {
+          const data = (await response.json().catch(() => null)) as { merchantLeads?: MerchantLead[]; error?: string } | null
+          if (!response.ok) throw new Error(data?.error ?? '咨询线索状态保存失败，请稍后重试。')
+          if (data?.merchantLeads) setAppState((state) => ({ ...state, merchantLeads: data.merchantLeads! }))
+          setMessage('咨询线索已保存。')
+        })
+        .catch((error) => setMessage(error instanceof Error ? error.message : '咨询线索状态保存失败，请稍后重试。'))
     }
   }
 
@@ -9691,6 +9810,11 @@ function App() {
 
   return (
     <main className={mainClassName}>
+      {message && (
+        <div className="app-toast" role="status" aria-live="polite">
+          {message}
+        </div>
+      )}
       <header className="site-header" aria-label="Main navigation">
         <a
           className="brand"
@@ -13237,9 +13361,11 @@ function App() {
                         <label>
                           账号状态
                           <select
-                            value={selectedAdminUser.status}
+                            value={selectedAdminUserControlSettings?.status ?? selectedAdminUser.status}
                             onChange={(event) =>
-                              updateUserAccount(selectedAdminUser.id, { status: event.target.value as UserStatus })
+                              updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
+                                status: event.target.value as UserStatus,
+                              })
                             }
                           >
                             <option value="active">正常</option>
@@ -13250,9 +13376,9 @@ function App() {
                         <label>
                           认证状态
                           <select
-                            value={selectedAdminUser.verificationStatus}
+                            value={selectedAdminUserControlSettings?.verificationStatus ?? selectedAdminUser.verificationStatus}
                             onChange={(event) =>
-                              updateUserAccount(selectedAdminUser.id, {
+                              updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
                                 verificationStatus: event.target.value as VerificationStatus,
                               })
                             }
@@ -13267,16 +13393,10 @@ function App() {
                         <label>
                           商家品牌装饰权限
                           <select
-                            value={selectedAdminUserBioSettings.managedBrandId ?? ''}
+                            value={selectedAdminUserControlSettings?.managedBrandId ?? ''}
                             onChange={(event) => {
-                              const brand = manageablePartnerBrands.find((item) => item.id === event.target.value)
-                              updateUserAccount(selectedAdminUser.id, {
-                                bio: serializeUserBrandAccess(
-                                  selectedAdminUser.bio,
-                                  brand?.id ?? '',
-                                  brand?.name ?? '',
-                                  selectedAdminUserBioSettings.managedBrandLevel ?? 'normal',
-                                ),
+                              updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
+                                managedBrandId: event.target.value,
                               })
                             }}
                           >
@@ -13291,18 +13411,13 @@ function App() {
                         <label>
                           商家级别
                           <select
-                            value={selectedAdminUserBioSettings.managedBrandLevel ?? 'normal'}
+                            value={selectedAdminUserControlSettings?.managedBrandLevel ?? 'normal'}
                             onChange={(event) => {
-                              updateUserAccount(selectedAdminUser.id, {
-                                bio: serializeUserBrandAccess(
-                                  selectedAdminUser.bio,
-                                  selectedAdminUserBioSettings.managedBrandId ?? '',
-                                  selectedAdminUserBioSettings.managedBrandName ?? '',
-                                  event.target.value as MerchantLevel,
-                                ),
+                              updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
+                                managedBrandLevel: event.target.value as MerchantLevel,
                               })
                             }}
-                            disabled={!selectedAdminUserBioSettings.managedBrandId}
+                            disabled={!selectedAdminUserControlSettings?.managedBrandId}
                           >
                             <option value="normal">普通</option>
                             <option value="pinned">置顶</option>
@@ -13311,9 +13426,9 @@ function App() {
                         <div className="admin-brand-access-note">
                           <span>当前权限</span>
                           <strong>
-                            {selectedAdminUserBioSettings.managedBrandName
-                              ? `${selectedAdminUserBioSettings.managedBrandName}品牌的管理商家 · ${
-                                  selectedAdminUserBioSettings.managedBrandLevel === 'pinned' ? '置顶商家' : '普通商家'
+                            {selectedAdminUserControlBrandName
+                              ? `${selectedAdminUserControlBrandName}品牌的管理商家 · ${
+                                  selectedAdminUserControlSettings?.managedBrandLevel === 'pinned' ? '置顶商家' : '普通商家'
                                 }`
                               : '未分配'}
                           </strong>
@@ -13321,6 +13436,11 @@ function App() {
                             账号认证状态为“已通过”后，商家才能在对应详情页装饰自己的品牌；置顶商家会优先显示。
                           </small>
                         </div>
+                      </div>
+                      <div className="admin-actions detail-actions">
+                        <button type="button" onClick={saveSelectedAdminUserSettings}>
+                          保存商家状态
+                        </button>
                       </div>
                       <div className="credential-panel">
                         <div className="credential-panel-head">
