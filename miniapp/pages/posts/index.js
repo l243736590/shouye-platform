@@ -1,17 +1,19 @@
 const { fetchPosts, recordLike, searchItems } = require('../../utils/api')
 const { feedImages, skillCategories } = require('../../utils/content')
 
-const cats = ['推荐', '经验干货', '入学', '签证', '找房', '技能服务', '生活']
+const cats = ['推荐', '免费', '经验干货', '入学', '签证', '找房', '技能服务', '生活']
 
 function makePostCard(item, index) {
   const isSkill = skillCategories.includes(item.category)
+  const isFreePost = !isSkill && Number(item.price || item.points || 0) <= 0
   const author = item.author || (isSkill ? '技能服务者' : '经验分享者')
   return {
     ...item,
     isSkill,
+    isFreePost,
     className: index % 4 === 0 ? 'tall' : index % 4 === 2 ? 'short' : '',
     image: feedImages[(index + 4) % feedImages.length],
-    coverText: isSkill ? '我能做' : (item.hot || '经验'),
+    coverText: isSkill ? '我能做' : isFreePost ? '免费经验' : (item.hot || '经验'),
     author,
     avatar: author.slice(0, 1),
     likes: Math.max(24, Number(item.price || 0) * 8 + index * 37 + 80),
@@ -21,6 +23,7 @@ function makePostCard(item, index) {
 
 function matchesCat(item, cat) {
   if (cat === '推荐') return true
+  if (cat === '免费') return !item.isSkill && Number(item.price || item.points || 0) <= 0
   if (cat === '技能服务') return item.isSkill
   if (cat === '经验干货') return !item.isSkill
   return `${item.category || ''} ${item.title || ''} ${item.excerpt || ''}`.includes(cat)
@@ -149,7 +152,7 @@ Page({
 
   openPublish() {
     wx.setStorageSync('pendingPublishMode', 'experience')
-    wx.switchTab({ url: '/pages/publish/index' })
+    wx.navigateTo({ url: '/pages/publish/index?mode=experience' })
   },
 
   openPartners() {

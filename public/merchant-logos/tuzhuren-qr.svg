@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="土著人咨询二维码示意">
+  <rect width="240" height="240" fill="#fff"/>
+  <g fill="#111">
+    <rect x="12" y="12" width="64" height="64"/>
+    <rect x="28" y="28" width="32" height="32" fill="#fff"/>
+    <rect x="36" y="36" width="16" height="16"/>
+    <rect x="164" y="12" width="64" height="64"/>
+    <rect x="180" y="28" width="32" height="32" fill="#fff"/>
+    <rect x="188" y="36" width="16" height="16"/>
+    <rect x="12" y="164" width="64" height="64"/>
+    <rect x="28" y="180" width="32" height="32" fill="#fff"/>
+    <rect x="36" y="188" width="16" height="16"/>
+    <rect x="96" y="16" width="12" height="12"/>
+    <rect x="124" y="16" width="24" height="12"/>
+    <rect x="88" y="40" width="36" height="12"/>
+    <rect x="136" y="40" width="12" height="24"/>
+    <rect x="96" y="72" width="12" height="24"/>
+    <rect x="120" y="84" width="48" height="12"/>
+    <rect x="84" y="108" width="24" height="12"/>
+    <rect x="120" y="108" width="12" height="36"/>
+    <rect x="144" y="108" width="24" height="12"/>
+    <rect x="192" y="96" width="12" height="36"/>
+    <rect x="216" y="92" width="12" height="12"/>
+    <rect x="88" y="140" width="24" height="24"/>
+    <rect x="136" y="140" width="12" height="12"/>
+    <rect x="160" y="140" width="36" height="12"/>
+    <rect x="208" y="144" width="20" height="20"/>
+    <rect x="96" y="180" width="12" height="48"/>
+    <rect x="120" y="176" width="36" height="12"/>
+    <rect x="144" y="200" width="12" height="28"/>
+    <rect x="172" y="172" width="12" height="12"/>
+    <rect x="196" y="180" width="32" height="12"/>
+    <rect x="180" y="204" width="12" height="24"/>
+    <rect x="204" y="212" width="24" height="16"/>
+  </g>
+  <circle cx="120" cy="120" r="31" fill="#fff"/>
+  <g fill="#111">
+    <ellipse cx="111" cy="117" rx="20" ry="16"/>
+    <ellipse cx="134" cy="126" rx="18" ry="14"/>
+    <circle cx="104" cy="114" r="2.5" fill="#fff"/>
+    <circle cx="116" cy="114" r="2.5" fill="#fff"/>
+    <circle cx="128" cy="124" r="2.3" fill="#fff"/>
+    <circle cx="138" cy="124" r="2.3" fill="#fff"/>
+    <path d="M98 130l-7 9 14-5z"/>
+    <path d="M145 137l8 8-13-4z"/>
+  </g>
+</svg>

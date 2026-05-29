@@ -74,6 +74,12 @@ Page({
   },
 
   onShow() {
+    wx.showTabBar()
+    const tabBar = typeof this.getTabBar === 'function' && this.getTabBar()
+    if (tabBar) {
+      if (typeof tabBar.setMode === 'function') tabBar.setMode('helper')
+      tabBar.setData({ selected: 2, visible: true })
+    }
     wx.setNavigationBarColor({
       frontColor: '#000000',
       backgroundColor: '#fffdf7'
@@ -189,12 +195,12 @@ Page({
       return
     }
     wx.setStorageSync('activeQuestionDetail', item)
-    wx.navigateTo({ url: `/pages/question-detail/index?id=${encodeURIComponent(item.id)}` })
+    wx.navigateTo({ url: `/pages/question-detail/index?id=${encodeURIComponent(item.id)}&role=helper` })
   },
 
   openPublish() {
     wx.setStorageSync('pendingPublishMode', 'skill')
-    wx.switchTab({ url: '/pages/publish/index' })
+    wx.navigateTo({ url: '/pages/publish/index?mode=skill' })
   },
 
   openPartners() {

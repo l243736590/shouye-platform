@@ -1,21 +1,69 @@
-<view class="feed-page" wx:if="{{post}}">
-  <view class="note-card">
-    <view class="note-body">
-      <text class="note-title">{{post.title}}</text>
-      <text class="note-desc">{{post.summary || post.excerpt}}</text>
-      <view class="note-meta-row">
-        <view class="note-author">
-          <text class="note-avatar">{{post.avatar || '售'}}</text>
-          <text class="note-author-name">{{post.author || '售业'}}</text>
-        </view>
-        <text class="note-author-name">{{post.updatedAt || post.createdAt}}</text>
+<view class="post-detail-page" wx:if="{{post}}">
+  <view class="detail-hero">
+    <image class="detail-hero-image" src="{{heroImage}}" mode="aspectFill" />
+    <view class="detail-hero-shade"></view>
+    <view class="detail-hero-content">
+      <view class="detail-chip-row">
+        <text class="detail-chip {{isFreePost ? 'free' : 'paid'}}">{{isFreePost ? '免费经验' : '积分内容'}}</text>
+        <text class="detail-chip ghost">{{post.category}}</text>
       </view>
+      <text class="detail-title">{{post.title}}</text>
+      <text class="detail-summary">{{summaryText}}</text>
     </view>
   </view>
 
-  <view class="note-card">
-    <view class="note-body">
-      <text class="note-desc" selectable="true">{{bodyText}}</text>
+  <view class="detail-body">
+    <view class="author-panel">
+      <view class="author-main">
+        <text class="author-avatar">{{post.avatar || '售'}}</text>
+        <view class="author-copy">
+          <text class="author-name">{{post.author || '售业用户'}}</text>
+          <text class="author-sub">{{post.school || '韩国留学'}} · {{dateText}}</text>
+        </view>
+      </view>
+      <view class="author-stat">
+        <text class="author-stat-count">{{post.likes || 0}}</text>
+        <text>点赞</text>
+      </view>
+    </view>
+
+    <view class="meta-grid">
+      <view class="meta-item" wx:for="{{metaItems}}" wx:key="label">
+        <text class="meta-label">{{item.label}}</text>
+        <text class="meta-value">{{item.value}}</text>
+      </view>
+    </view>
+
+    <view class="tag-row" wx:if="{{tagItems.length}}">
+      <text class="tag-pill" wx:for="{{tagItems}}" wx:key="*this">{{item}}</text>
+    </view>
+
+    <view class="free-note" wx:if="{{isFreePost}}">
+      <text>作者已设置为免费可见。觉得有帮助可以点赞，点赞会为作者累计经验成长。</text>
+    </view>
+
+    <view class="unlock-panel" wx:if="{{isPaidPost && !contentUnlocked}}">
+      <text class="section-kicker">预览</text>
+      <text class="section-title">{{isPaidPost ? '积分看帖' : '免费看帖'}}</text>
+      <text class="article-p" wx:for="{{previewParagraphs}}" wx:key="*this">{{item}}</text>
+      <button class="primary-button unlock-button" bindtap="unlockPost">{{accessLabel}}</button>
+    </view>
+
+    <view class="article-section" wx:if="{{contentUnlocked}}">
+      <text class="section-kicker">正文</text>
+      <text class="section-title">先把关键点拆开看</text>
+      <text class="article-p" wx:for="{{bodyParagraphs}}" wx:key="*this" selectable="true">{{item}}</text>
+    </view>
+
+    <view class="guide-section" wx:if="{{contentUnlocked}}">
+      <text class="section-kicker">阅读要点</text>
+      <view class="guide-card" wx:for="{{guideBlocks}}" wx:key="title">
+        <text class="guide-index">0{{index + 1}}</text>
+        <view class="guide-copy">
+          <text class="guide-title">{{item.title}}</text>
+          <text class="guide-text">{{item.text}}</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>

@@ -36,8 +36,8 @@
         "text": "提问"
       },
       {
-        "pagePath": "pages/publish/index",
-        "text": "发帖"
+        "pagePath": "pages/solve/index",
+        "text": "助人"
       },
       {
         "pagePath": "pages/posts/index",

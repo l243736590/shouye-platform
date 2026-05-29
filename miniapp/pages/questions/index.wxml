@@ -20,11 +20,35 @@
     <input value="{{searchValue}}" bindinput="onSearchInput" placeholder="搜：中央大找房、艺术类入学、D-10..." />
   </view>
 
+  <view class="need-mode-card">
+    <view class="need-mode-row">
+      <button class="need-mode {{needMode === 'know' ? 'active' : ''}}" data-mode="know" bindtap="switchNeedMode">
+        <text>我想知道</text>
+        <text>找知识分享贴</text>
+      </button>
+      <button class="need-mode {{needMode === 'help' ? 'active' : ''}}" data-mode="help" bindtap="switchNeedMode">
+        <text>我需要帮助</text>
+        <text>匹配 I CAN 挂单</text>
+      </button>
+    </view>
+    <view class="quick-match-mini" wx:if="{{needMode === 'help'}}">
+      <input value="{{matchValue}}" bindinput="onMatchInput" placeholder="输入需要帮助的类型，例如喂猫、陪同、跑腿" />
+      <button bindtap="runQuickMatch">快速匹配</button>
+      <view class="match-result" wx:for="{{matchResults}}" wx:key="id" data-id="{{item.id}}" bindtap="helloMatch">
+        <text>{{item.title}}</text>
+        <text>{{item.category}} · {{item.author}}</text>
+      </view>
+      <view class="match-empty" wx:if="{{matchTouched && matchResults.length === 0}}">
+        没有对应挂单时，将优先匹配在线验证用户并发起站内打招呼。
+      </view>
+    </view>
+  </view>
+
   <view class="feed-grid">
-    <view class="note-card {{item.className}} {{item.type === 'ad' ? 'ad-card' : ''}}" wx:for="{{feedItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openFeedCard">
+    <view class="note-card {{item.className}} {{item.type === 'ad' ? 'ad-card' : ''}} {{item.type === 'question' ? 'question-card' : ''}}" wx:for="{{feedItems}}" wx:key="id" data-id="{{item.id}}" bindtap="openFeedCard">
       <view class="note-cover-wrap">
         <text class="ad-label" wx:if="{{item.type === 'ad'}}">商家福利</text>
-        <text class="ad-label" wx:if="{{item.type === 'info'}}">常识信息</text>
+        <text class="ad-label" wx:if="{{item.type === 'info'}}">{{item.isFreePost ? '免费经验' : '常识信息'}}</text>
         <image class="note-cover" src="{{item.image}}" mode="aspectFill" lazy-load="true" />
         <view class="note-cover-mask">
           <text class="note-cover-text">{{item.coverText}}</text>

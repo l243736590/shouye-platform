@@ -2,10 +2,13 @@ const { fetchPosts, fetchQuestions, normalizeDate, recordLike, searchItems } = r
 const { feedImages } = require('../../utils/content')
 const { merchantCards } = require('../../utils/merchant')
 
-const baseCats = ['推荐', '签证', '找房', '入学', '打工', '论文', '生活', '商家福利']
+const baseCats = ['推荐', '免费', '签证', '找房', '入学', '打工', '论文', '生活', '商家福利']
+const skillCategories = ['宠物照看/遛狗喂猫', '跑腿/排队/代办', '地陪/陪同/翻译', '学习辅导/资料整理', '搬家/取送/寄件', '同校生活帮忙', '其他技能服务']
+const matchTerms = ['宠物', '喂猫', '遛狗', '跑腿', '排队', '代办', '陪同', '翻译', '医院', '出入境', '学习', '资料', '搬家', '取送', '同校', '新生']
 
 function categoryMatch(item, cat) {
   if (cat === '推荐') return true
+  if (cat === '免费') return item.type === 'info' && Number(item.price || item.points || 0) <= 0
   if (cat === '商家福利') return item.type === 'ad'
   const content = `${item.category || ''} ${item.title || ''} ${(item.tags || []).join(' ')}`
   return content.includes(cat)
@@ -40,12 +43,14 @@ function makeAdCard(item, index) {
 
 function makeInfoCard(item, index) {
   const author = item.author || '常识信息'
+  const isFreePost = Number(item.price || item.points || 0) <= 0
   return {
     ...item,
     type: 'info',
+    isFreePost,
     className: index % 2 ? 'short' : '',
     image: feedImages[(index + 5) % feedImages.length],
-    coverText: '常识信息',
+    coverText: isFreePost ? '免费经验' : '常识信息',
     subtitle: item.summary || item.excerpt || '',
     avatar: '知',
     author,
@@ -63,6 +68,10 @@ Page({
     questions: [],
     infoCards: [],
     feedItems: [],
+    needMode: 'know',
+    matchValue: '',
+    matchResults: [],
+    matchTouched: false,
     loading: true,
     showLeftCatCue: false,
     catScrollLeft: 0
@@ -76,7 +85,10 @@ Page({
   onShow() {
     wx.showTabBar()
     const tabBar = typeof this.getTabBar === 'function' && this.getTabBar()
-    if (tabBar) tabBar.setData({ selected: 1, visible: true })
+    if (tabBar) {
+      if (typeof tabBar.setMode === 'function') tabBar.setMode('ask')
+      tabBar.setData({ selected: 2, visible: true })
+    }
     wx.setNavigationBarColor({
       frontColor: '#000000',
       backgroundColor: '#fffdf7'
@@ -143,6 +155,43 @@ Page({
     this.setData({ searchValue: event.detail.value }, () => this.applyFilters())
   },
 
+  switchNeedMode(event) {
+    this.setData({ needMode: event.currentTarget.dataset.mode })
+  },
+
+  onMatchInput(event) {
+    this.setData({ matchValue: event.detail.value, matchTouched: false })
+  },
+
+  runQuickMatch() {
+    const value = String(this.data.matchValue || '').replace(/\s+/g, '').toLowerCase()
+    if (!value) {
+      wx.showToast({ title: '先输入需要帮助的类型', icon: 'none' })
+      return
+    }
+    const matchResults = this.data.infoCards
+      .filter((item) => item.contentType === '技能服务' || skillCategories.includes(item.category))
+      .map((item) => {
+        const text = `${item.title || ''} ${item.category || ''} ${item.school || ''} ${item.subtitle || ''} ${item.body || ''}`.toLowerCase()
+        const score = (text.replace(/\s+/g, '').includes(value) ? 80 : 0) + matchTerms.reduce((sum, term) => sum + (value.includes(term) && text.includes(term) ? 12 : 0), 0)
+        return { ...item, score }
+      })
+      .filter((item) => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+    this.setData({ matchResults, matchTouched: true })
+  },
+
+  helloMatch(event) {
+    const id = event.currentTarget.dataset.id
+    const item = this.data.matchResults.find((card) => card.id === id)
+    wx.showModal({
+      title: '站内打招呼',
+      content: `已向 ${item?.author || '帮助者'} 发送需求。帮助者可在对话框报价，求助人可接受或议价。`,
+      showCancel: false
+    })
+  },
+
   openSideMenu() {
     wx.navigateTo({ url: '/pages/toolbox/index?type=menu' })
   },
@@ -174,6 +223,8 @@ Page({
     let merged = []
     if (this.data.activeCategory === '商家福利') {
       merged = adCards
+    } else if (this.data.activeCategory === '免费') {
+      merged = infoCards.filter((item) => categoryMatch(item, '免费'))
     } else {
       infoCards = infoCards.filter((item) => categoryMatch(item, this.data.activeCategory)).slice(0, 4)
       questionCards.forEach((item, index) => {
@@ -225,13 +276,13 @@ Page({
     }
     if (item.type === 'question') {
       wx.setStorageSync('activeQuestionDetail', item)
-      wx.navigateTo({ url: `/pages/question-detail/index?id=${encodeURIComponent(item.id)}` })
+      wx.navigateTo({ url: `/pages/question-detail/index?id=${encodeURIComponent(item.id)}&role=reader` })
     }
   },
 
   openPublish() {
     wx.setStorageSync('pendingPublishMode', 'question')
-    wx.switchTab({ url: '/pages/publish/index' })
+    wx.navigateTo({ url: '/pages/publish/index?mode=question' })
   },
 
   openPartners() {

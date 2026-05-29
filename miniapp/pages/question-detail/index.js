@@ -70,12 +70,17 @@ Page({
     answerText: '',
     disputeText: '',
     settled: false,
-    settledPoints: 0
+    settledPoints: 0,
+    role: 'reader',
+    isHelperMode: false,
+    isReaderMode: true,
+    isAskerMode: false
   },
 
   async onLoad(options = {}) {
     const stored = wx.getStorageSync('activeQuestionDetail')
     const questionId = options.id ? decodeURIComponent(options.id) : stored && stored.id
+    const role = options.role === 'helper' ? 'helper' : options.role === 'asker' ? 'asker' : 'reader'
     let question = stored || fallbackQuestions.find((item) => item.id === questionId)
     let answers = questionId ? (wx.getStorageSync(answerStorageKey(questionId)) || []) : []
 
@@ -95,7 +100,14 @@ Page({
     }
 
     if (!answers.length) answers = seedAnswers(question)
-    this.setData({ question, answers: answers.map(normalizeAnswer) })
+    this.setData({
+      question,
+      answers: answers.map(normalizeAnswer),
+      role,
+      isHelperMode: role === 'helper',
+      isReaderMode: role === 'reader',
+      isAskerMode: role === 'asker'
+    })
     wx.setNavigationBarTitle({ title: question.title || '求助详情' })
   },
 
@@ -117,6 +129,7 @@ Page({
   },
 
   async submitAnswer() {
+    if (!this.data.isHelperMode) return
     const content = String(this.data.answerText || '').trim()
     if (content.length < 20) {
       wx.showToast({ title: '至少写 20 个字，说明实际步骤', icon: 'none' })
@@ -160,6 +173,7 @@ Page({
   },
 
   async acceptAnswer(event) {
+    if (!this.data.isAskerMode) return
     const id = event.currentTarget.dataset.id
     const question = this.data.question
     if (!question) return
@@ -193,6 +207,7 @@ Page({
   },
 
   async requestRefund() {
+    if (!this.data.isAskerMode) return
     const question = this.data.question
     if (!question) return
     const app = getApp()
@@ -207,6 +222,7 @@ Page({
   },
 
   async submitDispute() {
+    if (!this.data.isAskerMode) return
     const question = this.data.question
     const detail = String(this.data.disputeText || '').trim()
     if (!question) return
@@ -227,5 +243,10 @@ Page({
     } catch (error) {
       wx.showToast({ title: (error.message || '提交失败').slice(0, 18), icon: 'none' })
     }
+  },
+
+  openAskPublish() {
+    wx.setStorageSync('pendingPublishMode', 'question')
+    wx.navigateTo({ url: '/pages/publish/index?mode=question' })
   }
 })

@@ -11,7 +11,7 @@ const modeConfig = {
     categories: questionCategories
   },
   experience: {
-    eyebrow: '我知道',
+    eyebrow: 'I KNOW 我知道',
     title: '发布可检索、可审核、可加精的留学经验',
     submitText: '保存并发布经验',
     titlePlaceholder: '例如：庆熙大学传媒研究生真实体验',
@@ -19,7 +19,7 @@ const modeConfig = {
     categories: postCategories
   },
   skill: {
-    eyebrow: '我能做',
+    eyebrow: 'I CAN 我能做',
     title: '发布你能提供的技能服务',
     submitText: '发布技能服务',
     titlePlaceholder: '例如：弘大附近可帮忙排队/跑腿/喂猫',

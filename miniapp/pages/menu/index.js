@@ -32,12 +32,12 @@ Page({
 
   goQuestionDraft() {
     wx.setStorageSync('pendingPublishMode', 'question')
-    wx.switchTab({ url: '/pages/publish/index' })
+    wx.navigateTo({ url: '/pages/publish/index?mode=question' })
   },
 
   goPostDraft() {
     wx.setStorageSync('pendingPublishMode', 'experience')
-    wx.switchTab({ url: '/pages/publish/index' })
+    wx.navigateTo({ url: '/pages/publish/index?mode=experience' })
   },
 
   showTodo(event) {

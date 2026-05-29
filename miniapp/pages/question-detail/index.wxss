@@ -1,0 +1,14 @@
+.reader-action-card {
+  border: 2rpx solid rgba(227, 76, 91, 0.14);
+}
+
+.note-card .note-desc {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+}
+
+.red-button {
+  background: #e34c5b;
+  box-shadow: 0 14rpx 30rpx rgba(227, 76, 91, 0.24);
+}

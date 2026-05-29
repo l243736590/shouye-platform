@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "售业",
+    "slug": "shouye-mobile",
+    "scheme": "shouye",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/app-icon.png",
+    "userInterfaceStyle": "light",
+    "platforms": [
+      "android"
+    ],
+    "android": {
+      "icon": "./assets/app-icon.png",
+      "package": "fun.shouye.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/app-icon-foreground.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "extra": {
+      "apiBase": "https://shouye.fun"
+    },
+    "plugins": [
+      "expo-video"
+    ]
+  }
+}

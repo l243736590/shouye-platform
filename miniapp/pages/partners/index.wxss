@@ -1,26 +1,103 @@
 .partner-feed {
   background: #f3f5f1;
+  min-height: 100vh;
+}
+
+.partner-cat-shell {
+  position: relative;
+  z-index: 12;
+  margin: 0;
+  border-bottom: 0;
+  background: #fffdf7;
+  box-shadow: 0 8rpx 18rpx rgba(31, 37, 39, 0.05);
+}
+
+.partner-cat-shell .feed-cats {
+  padding: 8rpx 42rpx 8rpx;
+}
+
+.partner-cat-shell .feed-cat {
+  width: auto;
+  min-width: 118rpx;
+  max-width: 148rpx;
+  min-height: 44rpx;
+  margin-right: 8rpx;
+  padding: 0 14rpx;
+  line-height: 44rpx;
+  font-size: 22rpx;
+  font-weight: 800;
+}
+
+.partner-cat-shell .feed-cat.active {
+  background: #fffdf7;
+  color: #1f2527;
+  font-weight: 900;
+  box-shadow: inset 0 -4rpx 0 #df2f43;
 }
 
 .merchant-fishbowl {
   position: relative;
-  height: 520rpx;
-  margin: 18rpx 14rpx 22rpx;
+  height: calc(100vh - 154rpx);
+  min-height: 980rpx;
+  margin: 0 10rpx 24rpx;
   overflow: hidden;
   border: 2rpx solid rgba(203, 151, 72, 0.65);
   border-radius: 28rpx;
-  background: linear-gradient(180deg, #6db8db 0%, #0f4774 48%, #092f55 100%);
-  box-shadow: inset 0 2rpx 0 rgba(255, 255, 255, 0.35), 0 24rpx 60rpx rgba(9, 39, 70, 0.18);
+  background:
+    radial-gradient(circle at 16% 18%, rgba(149, 220, 255, 0.38), transparent 30%),
+    radial-gradient(circle at 84% 72%, rgba(76, 160, 219, 0.28), transparent 34%),
+    linear-gradient(180deg, #80c9e8 0%, #1b6796 42%, #0a3a66 78%, #062d52 100%);
+  box-shadow:
+    inset 0 4rpx 0 rgba(255, 255, 255, 0.42),
+    inset 0 -10rpx 28rpx rgba(2, 24, 48, 0.36),
+    0 28rpx 70rpx rgba(9, 39, 70, 0.2);
+}
+
+.merchant-fishbowl::before,
+.merchant-fishbowl::after {
+  content: "";
+  position: absolute;
+  left: -20%;
+  right: -20%;
+  pointer-events: none;
+}
+
+.merchant-fishbowl::before {
+  top: -32rpx;
+  height: 160rpx;
+  background:
+    radial-gradient(ellipse at 12% 100%, rgba(255,255,255,.46) 0 28rpx, transparent 30rpx),
+    radial-gradient(ellipse at 38% 100%, rgba(255,255,255,.24) 0 34rpx, transparent 36rpx),
+    radial-gradient(ellipse at 64% 100%, rgba(255,255,255,.32) 0 30rpx, transparent 32rpx),
+    radial-gradient(ellipse at 88% 100%, rgba(255,255,255,.22) 0 26rpx, transparent 28rpx);
+  opacity: .72;
+  animation: waterSurface 9s ease-in-out infinite alternate;
+}
+
+.merchant-fishbowl::after {
+  bottom: 0;
+  height: 72rpx;
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.18) 0 3rpx, transparent 3rpx 10rpx),
+    linear-gradient(180deg, transparent, rgba(1, 19, 38, .38));
+  opacity: .56;
 }
 
 .fishbowl-water {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle, rgba(255, 255, 255, 0.25) 0 3rpx, transparent 5rpx) 6% 18% / 90rpx 84rpx,
-    radial-gradient(circle, rgba(255, 255, 255, 0.18) 0 2rpx, transparent 5rpx) 58% 10% / 120rpx 112rpx,
-    linear-gradient(180deg, rgba(255,255,255,.22), transparent 30%, rgba(0,16,36,.18));
-  opacity: 0.72;
+    radial-gradient(circle, rgba(255, 255, 255, 0.34) 0 3rpx, transparent 6rpx) 6% 18% / 88rpx 96rpx,
+    radial-gradient(circle, rgba(255, 255, 255, 0.22) 0 2rpx, transparent 5rpx) 58% 10% / 132rpx 124rpx,
+    radial-gradient(circle, rgba(210, 244, 255, 0.16) 0 4rpx, transparent 7rpx) 84% 34% / 110rpx 140rpx,
+    linear-gradient(112deg, transparent 0 18%, rgba(255,255,255,.12) 23%, transparent 30% 55%, rgba(255,255,255,.08) 64%, transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,.24), transparent 34%, rgba(0,16,36,.2));
+  opacity: 0.82;
+  animation: waterDrift 13s ease-in-out infinite alternate;
+}
+
+.merchant-fishbowl.is-calendar-mode .fishbowl-water {
+  opacity: 0.66;
 }
 
 .fishbowl-copy {
@@ -30,6 +107,7 @@
   z-index: 2;
   width: 360rpx;
   pointer-events: none;
+  display: none;
 }
 
 .fishbowl-kicker {
@@ -130,12 +208,12 @@
   font-weight: 900;
 }
 
-.float-1 { left: 36rpx; top: 260rpx; animation-name: swimOne; }
-.float-2 { left: 330rpx; top: 70rpx; animation-name: swimTwo; }
-.float-3 { left: 80rpx; top: 390rpx; animation-name: swimThree; }
-.float-4 { left: 380rpx; top: 320rpx; animation-name: swimFour; }
-.float-5 { left: 170rpx; top: 160rpx; animation-name: swimFive; }
-.float-6 { left: 500rpx; top: 210rpx; animation-name: swimSix; }
+.float-1 { left: 5%; top: 18%; animation-name: swimOne; }
+.float-2 { left: 46%; top: 8%; animation-name: swimTwo; }
+.float-3 { left: 12%; top: 66%; animation-name: swimThree; }
+.float-4 { left: 50%; top: 46%; animation-name: swimFour; }
+.float-5 { left: 24%; top: 34%; animation-name: swimFive; }
+.float-6 { left: 62%; top: 74%; animation-name: swimSix; }
 
 @keyframes swimOne {
   0%, 100% { transform: translate(0, 0); }
@@ -174,17 +252,27 @@
 }
 
 .fish-category-row {
-  position: absolute;
-  left: 24rpx;
-  right: 24rpx;
-  bottom: 22rpx;
-  z-index: 24;
+  position: relative;
+  z-index: 8;
   display: flex;
-  flex-wrap: wrap;
-  gap: 10rpx;
+  flex-wrap: nowrap;
+  gap: 8rpx;
+  width: auto;
+  margin: 12rpx 14rpx 0;
+  padding: 10rpx 10rpx;
+  overflow-x: auto;
+  border-radius: 999rpx;
+  background: rgba(255, 253, 247, 0.9);
+  box-shadow: inset 0 0 0 1rpx rgba(36, 43, 46, 0.06), 0 8rpx 24rpx rgba(36, 43, 46, 0.08);
+  white-space: nowrap;
+}
+
+.merchant-fishbowl > .fish-category-row {
+  display: none;
 }
 
 .fish-category-row button {
+  flex: 0 0 auto;
   min-height: 54rpx;
   padding: 0 18rpx;
   border-radius: 999rpx;
@@ -192,6 +280,230 @@
   color: #12345a;
   font-size: 22rpx;
   font-weight: 900;
+}
+
+.fish-calendar-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fish-calendar-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 112rpx 46rpx 58rpx;
+  overflow: visible;
+  border: 0;
+  border-radius: 26rpx;
+  background:
+    radial-gradient(circle at 82% 18%, rgba(255,255,255,.86), transparent 30%),
+    radial-gradient(circle at 12% 86%, rgba(255, 228, 168, .18), transparent 32%),
+    linear-gradient(180deg, rgba(255,253,247,.98), rgba(255,247,229,.95) 72%, rgba(255,239,199,.92));
+  box-shadow:
+    inset 0 2rpx 0 rgba(255,255,255,.9),
+    inset 0 -14rpx 34rpx rgba(15, 49, 88, .1),
+    inset 0 2rpx 0 rgba(255,255,255,.9);
+}
+
+.fish-calendar-card::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 156rpx;
+  background: linear-gradient(112deg, #0d3762 0 62%, #123f6c 62% 100%);
+  z-index: 0;
+}
+
+.fish-calendar-card.pinned {
+  box-shadow:
+    inset 0 0 0 5rpx rgba(255, 218, 124, 0.46),
+    inset 0 -14rpx 34rpx rgba(15, 49, 88, .1),
+    0 0 58rpx rgba(255, 218, 124, 0.3);
+}
+
+.calendar-ring-row {
+  position: absolute;
+  top: -34rpx;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 56rpx;
+  pointer-events: none;
+}
+
+.calendar-ring-row view {
+  position: relative;
+  width: 58rpx;
+  height: 118rpx;
+}
+
+.calendar-ring-row view::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 62rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 999rpx;
+  background: #050505;
+  box-shadow: 0 0 0 8rpx rgba(221, 170, 84, .35);
+  transform: translateX(-50%);
+}
+
+.calendar-ring-row text {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 30rpx;
+  height: 100rpx;
+  border-radius: 999rpx;
+  background: linear-gradient(90deg, #8b5b1d, #ffd491 45%, #7a4a16);
+  box-shadow: 0 10rpx 22rpx rgba(49, 31, 8, .36);
+  transform: translateX(-50%);
+}
+
+.calendar-brand-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin-bottom: 46rpx;
+}
+
+.calendar-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150rpx;
+  height: 150rpx;
+  overflow: hidden;
+  border-radius: 32rpx;
+  background: #102b4a;
+  color: #fffdf7;
+  font-size: 34rpx;
+  font-weight: 950;
+  box-shadow: 0 18rpx 42rpx rgba(15, 49, 88, 0.2);
+}
+
+.calendar-logo image {
+  width: 100%;
+  height: 100%;
+}
+
+.calendar-type {
+  display: block;
+  color: #ef5a3c;
+  font-size: 25rpx;
+  font-weight: 950;
+}
+
+.calendar-name {
+  display: block;
+  margin-top: 6rpx;
+  color: #12345a;
+  font-size: 60rpx;
+  font-weight: 950;
+  line-height: 1.05;
+}
+
+.calendar-title {
+  position: relative;
+  z-index: 1;
+  display: block;
+  color: #12345a;
+  font-size: 62rpx;
+  font-weight: 950;
+  line-height: 1.14;
+}
+
+.calendar-subtitle {
+  position: relative;
+  z-index: 1;
+  display: block;
+  margin-top: 36rpx;
+  color: #4f5c61;
+  font-size: 32rpx;
+  font-weight: 850;
+  line-height: 1.62;
+}
+
+.calendar-tags {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+  margin-top: 48rpx;
+}
+
+.calendar-tags text {
+  padding: 12rpx 20rpx;
+  border-radius: 999rpx;
+  background: rgba(18, 52, 90, 0.08);
+  color: #12345a;
+  font-size: 24rpx;
+  font-weight: 900;
+}
+
+.calendar-footer {
+  position: absolute;
+  left: 50rpx;
+  right: 50rpx;
+  bottom: 38rpx;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #ffe1a2;
+  font-size: 30rpx;
+  font-weight: 950;
+}
+
+.fish-calendar-controls {
+  position: absolute;
+  right: 18rpx;
+  top: 50%;
+  z-index: 24;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+  transform: translateY(-50%);
+}
+
+.fish-calendar-controls button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 74rpx;
+  height: 74rpx;
+  padding: 0;
+  border-radius: 999rpx;
+  background: #1f2527;
+  color: #fffdf7;
+  font-size: 34rpx;
+  font-weight: 950;
+  box-shadow: 0 14rpx 34rpx rgba(0, 20, 43, 0.28);
+}
+
+@keyframes waterSurface {
+  from { transform: translateX(-18rpx) translateY(0); }
+  to { transform: translateX(28rpx) translateY(8rpx); }
+}
+
+@keyframes waterDrift {
+  from { transform: translate3d(-12rpx, -8rpx, 0) scale(1.01); }
+  to { transform: translate3d(18rpx, 14rpx, 0) scale(1.03); }
 }
 
 .merchant-tags {

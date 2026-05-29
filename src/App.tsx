@@ -3,6 +3,9 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { createPortal, flushSync } from 'react-dom'
 import { motion } from 'framer-motion'
 import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ArrowRight,
   BadgeCheck,
   Building2,
@@ -13,6 +16,7 @@ import {
   CircleDollarSign,
   Coins,
   GraduationCap,
+  Globe2,
   LockKeyhole,
   LogIn,
   MapPin,
@@ -40,15 +44,56 @@ type VerificationStatus = 'pending' | 'approved' | 'rejected'
 type AuthUserType = 'student' | 'merchant'
 type StudentStage = 'preparing' | 'admitted' | 'language_school' | 'undergraduate' | 'graduate' | 'graduated'
 type PublishMode = 'knowledge' | 'skill'
+type HelpIntentMode = 'knowledge' | 'service'
 type MerchantLevel = 'normal' | 'pinned'
+type HelperQualificationMode = 'online' | 'offline'
 
 type CredentialDocument = {
   id: string
   name: string
   type: string
   status: VerificationStatus
+  reviewNote?: string
   uploadedAt: string
   dataUrl?: string
+}
+
+const helperQualificationDocumentType = '帮助者资格/个人身份材料'
+const onlineHelperQualificationDocumentType = '帮助者资格/线上经验证明材料'
+const offlineHelperQualificationDocumentType = '帮助者资格/线下面见身份材料'
+
+const isHelperQualificationDocument = (document: CredentialDocument) =>
+  document.type === helperQualificationDocumentType || document.type.startsWith('帮助者资格')
+
+const getDocumentVerificationStatus = (documents: CredentialDocument[]): VerificationStatus | 'none' => {
+  if (documents.some((document) => document.status === 'pending')) return 'pending'
+  if (documents.some((document) => document.status === 'approved')) return 'approved'
+  if (documents.some((document) => document.status === 'rejected')) return 'rejected'
+  return 'none'
+}
+
+const helperProviderSafeguardClauses = [
+  '第一条（分级审查目的）：平台按照最小必要原则区分线上解答与线下帮助。仅提供线上解答的用户，原则上只需提交学生证、在韩学习/生活经历或其他能够证明相关经验的材料；涉及线下面见、陪同办理、跑腿代办、宠物照看、搬家、找房等实质性帮助的用户，应提交更完整的身份信息。',
+  '第二条（线下面见资料）：为保障双方面见活动安全，申请线下帮助资格的用户应填写真实姓名、联系方式、身份说明和可提供帮助范围，并上传外国人登录证正反面、学生证、护照或其他足以核验身份与在韩状态的证明材料。',
+  '第三条（真实性承诺）：申请人应保证提交资料真实、合法、有效、完整，不得冒用他人身份、伪造材料或隐瞒可能影响安全对接的重要信息；因虚假资料或不实承诺造成损害的，由申请人依法承担相应责任。',
+  '第四条（保密与最小必要）：平台仅在资格审核、风险控制、投诉举报、争议处理和依法配合有关机关时处理上述资料；未经本人同意，平台不会向普通用户公开展示身份材料。',
+  '第五条（服务边界）：通过资格筛查仅代表申请人已完成平台要求的基础资料核验，不构成平台对服务效果、人身安全或线下履约结果的担保。',
+]
+
+const helpSeekerSafeguardClauses = [
+  '第一条（帮助者筛查）：平台按照线上解答与线下帮助分级审查提供帮助资格。仅提供线上解答的用户，平台要求其提交学生证或能够证明在韩学习、生活、办理经验的材料；涉及线下面见、陪同办理、跑腿代办、宠物照看、找房、搬家等实质性帮助的用户，平台会要求其填写真实姓名、联系方式、身份说明、可提供帮助范围，并上传外国人登录证正反面、学生证、护照或其他足以核验身份与在韩状态的材料。',
+  '第二条（谨慎义务）：求助人仍应谨慎选择见面地点、时间和沟通方式，避免透露与本次求助无关的敏感信息，必要时可选择公开场所或请同伴陪同。',
+  '第三条（平台保障边界）：平台对线下帮助资格进行基础资料筛查，并要求帮助者承诺信息真实；该筛查不构成对人身安全、服务结果或线下履约的绝对保证。平台仅围绕本次平台内求助对接、记录留痕、投诉举报和争议处理提供辅助保障；与求助事项无关的私下行为、线下延伸关系或额外约定，由相关当事人自行承担责任。',
+  '第四条（私下结算风险）：双方绕开平台记录、评价或结算体系进行私下结算、私下交易或擅自变更服务内容的，由双方自行承担因此产生的风险和责任，平台不承担担保、赔付或履约责任。',
+]
+
+type GrowthCoupon = {
+  id: string
+  type: 'merchant_discount' | 'bounty_discount' | 'platform_event' | 'school_zone'
+  title: string
+  description: string
+  valueLabel: string
+  source: string
 }
 
 type User = {
@@ -66,14 +111,27 @@ type User = {
   avatarUrl: string
   bio: string
   documents: CredentialDocument[]
+  userLevel?: number
+  userTitle?: string
+  userReputation?: number
+  userPoints?: number
+  userCoupons?: GrowthCoupon[]
+  taskCompletedCount?: number
+  acceptedAnswerCount?: number
+  merchantOrdersCount?: number
+  reputationScore?: number
+  positiveRate?: number
 }
 
 type UserBioSettings = {
   userType?: AuthUserType
   businessName?: string
   businessCategory?: string
+  businessCategories?: string[]
+  businessScopeLevels?: Record<string, MerchantLevel>
   country?: string
   city?: string
+  displayBio?: string
   managedBrandId?: string
   managedBrandName?: string
   managedBrandLevel?: MerchantLevel
@@ -126,6 +184,14 @@ type PartnerShowcase = {
   merchants: PartnerMerchant[]
 }
 
+type ManagedMerchant = PartnerMerchant & {
+  id: string
+  category: string
+  status: 'active' | 'hidden'
+  createdAt: string
+  updatedAt: string
+}
+
 type MerchantLead = {
   id: string
   merchantId: string
@@ -143,11 +209,13 @@ type MerchantLead = {
 }
 
 type MerchantDesignZone = 'hero' | 'service' | 'showcase'
+type MerchantTextAlign = 'left' | 'center' | 'right'
+type PartnerShowcaseTemplateItem = 'logo'
 type MerchantStageLayerId = `text:${MerchantEditableTextField}` | `media:${'hero' | 'service'}` | `design:${string}`
 type MerchantDesignItem = {
   id: string
   zone: MerchantDesignZone
-  kind: 'bubble' | 'media'
+  kind: 'bubble' | 'media' | 'panel'
   text: string
   mediaUrl: string
   mediaKind: 'image' | 'video'
@@ -160,6 +228,8 @@ type MerchantDesignItem = {
   fontSize: number
   color: string
   background: string
+  textAlign?: MerchantTextAlign
+  lineHeight?: number
 }
 
 type MerchantTextLayerStyle = {
@@ -168,6 +238,8 @@ type MerchantTextLayerStyle = {
   z: number
   fontSize: number
   color: string
+  textAlign?: MerchantTextAlign
+  lineHeight?: number
 }
 
 type TextPopoverAnchor = {
@@ -175,9 +247,41 @@ type TextPopoverAnchor = {
   top: number
   width: number
   fontSize: number
+  textAlign: MerchantTextAlign
+  lineHeight?: number
 }
 
 const MERCHANT_TEXT_FONT_SIZE_OPTIONS = [0, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 56, 64, 72, 84, 96, 108, 120]
+const MERCHANT_TEXT_ALIGN_OPTIONS: { value: MerchantTextAlign; label: string }[] = [
+  { value: 'left', label: '靠左' },
+  { value: 'center', label: '居中' },
+  { value: 'right', label: '靠右' },
+]
+const MERCHANT_TEXT_LINE_HEIGHT_OPTIONS = [
+  { value: 0, label: '默认行距' },
+  { value: 1.5, label: '1.5倍' },
+  { value: 2, label: '2倍' },
+]
+const MERCHANT_HERO_BACKGROUND_ITEM_ID = 'merchant-hero-background'
+
+const isMerchantHeroBackgroundItem = (item: Partial<MerchantDesignItem>) =>
+  item.id === MERCHANT_HERO_BACKGROUND_ITEM_ID || String(item.id ?? '').startsWith('merchant-hero-bg-panel')
+
+const getMerchantHeroBackgroundImage = (decoration?: MerchantBrandDecoration) =>
+  (decoration?.designItems ?? []).find((item) => isMerchantHeroBackgroundItem(item) && item.mediaUrl)?.mediaUrl ?? ''
+
+const normalizeMerchantTextAlign = (value: unknown): MerchantTextAlign | undefined => {
+  if (value === 'left' || value === 'center' || value === 'right') return value
+  if (value === 'start') return 'left'
+  if (value === 'end') return 'right'
+  return undefined
+}
+
+const normalizeMerchantLineHeight = (value: unknown): number | undefined => {
+  const numericValue = Number(value)
+  if (numericValue === 1.5 || numericValue === 2) return numericValue
+  return undefined
+}
 
 type MerchantBrandDecoration = {
   brandId: string
@@ -196,6 +300,17 @@ type MerchantBrandDecoration = {
   sectionThreeText: string
   caseOne: string
   caseTwo: string
+  serviceHeadingTitle: string
+  showcaseCategory: string
+  showcaseMerchantName: string
+  showcaseServiceTitle: string
+  showcaseServiceSubtitle: string
+  showcaseTagOne: string
+  showcaseTagTwo: string
+  showcaseTagThree: string
+  showcaseTagFour: string
+  showcaseTagFive: string
+  showcaseTagSix: string
   showcaseArtTitle: string
   showcaseArtSubtitle: string
   logoImage: string
@@ -277,6 +392,19 @@ type WithdrawalRequest = {
   createdAt: string
   updatedAt: string
   paidAt?: string
+}
+
+type RenameRequest = {
+  id: string
+  userId: string
+  oldName: string
+  requestedName: string
+  costEarningPoints: number
+  status: 'pending' | 'approved' | 'rejected'
+  reason: string
+  adminNote: string
+  createdAt: string
+  reviewedAt?: string
 }
 
 type PointLedger = {
@@ -366,6 +494,323 @@ type QuestionAnswer = {
   createdAt: string
 }
 
+type HelpMatchCandidate =
+  | {
+      type: 'skill-post'
+      id: string
+      title: string
+      providerName: string
+      providerUserId?: string
+      category: string
+      school: string
+      excerpt: string
+      score: number
+      keywords: string[]
+      post: Post
+    }
+  | {
+      type: 'verified-user'
+      id: string
+      title: string
+      providerName: string
+      providerUserId: string
+      category: string
+      school: string
+      excerpt: string
+      score: number
+      keywords: string[]
+      user: User
+    }
+
+type HelpConversationMessage = {
+  id: string
+  sender: 'seeker' | 'provider' | 'system'
+  text: string
+  createdAt: string
+  quotePoints?: number
+  quoteStatus?: 'pending' | 'accepted' | 'negotiating'
+}
+
+type HelpConversation = {
+  id: string
+  needText: string
+  providerName: string
+  providerUserId?: string
+  providerType: HelpMatchCandidate['type']
+  title: string
+  messages: HelpConversationMessage[]
+}
+
+type GrowthProfile = {
+  userLevel: number
+  levelName: string
+  userTitle: string
+  userReputation: number
+  userPoints: number
+  userCoupons: GrowthCoupon[]
+  taskCompletedCount: number
+  acceptedAnswerCount: number
+  merchantOrdersCount: number
+  reputationScore: number
+  positiveRate: number
+  helpedCount: number
+  rewardMultiplier: number
+  schoolRankLabel: string
+  nextLevelName: string
+  nextLevelProgress: number
+}
+
+type SchoolLeaderboard = {
+  id: string
+  title: string
+  metric: string
+  reward: string
+  entries: { name: string; score: number; title: string }[]
+}
+
+const userLevelRules = [
+  { level: 10, name: '售业大师', points: 8000, accepted: 80, tasks: 120, reputation: 500 },
+  { level: 9, name: '留学生之光', points: 6000, accepted: 60, tasks: 90, reputation: 380 },
+  { level: 8, name: '校园王者', points: 4500, accepted: 45, tasks: 70, reputation: 280 },
+  { level: 7, name: '学校传奇', points: 3200, accepted: 32, tasks: 52, reputation: 200 },
+  { level: 6, name: '留学导师', points: 2200, accepted: 22, tasks: 36, reputation: 145 },
+  { level: 5, name: '攻略作者', points: 1500, accepted: 14, tasks: 24, reputation: 95 },
+  { level: 4, name: '校园前辈', points: 900, accepted: 8, tasks: 16, reputation: 55 },
+  { level: 3, name: '校园达人', points: 450, accepted: 4, tasks: 9, reputation: 28 },
+  { level: 2, name: '留学生', points: 150, accepted: 1, tasks: 3, reputation: 8 },
+  { level: 1, name: '新人', points: 0, accepted: 0, tasks: 0, reputation: 0 },
+]
+
+const merchantLevelNames = [
+  '新商家',
+  '校园服务者',
+  '靠谱商家',
+  '热门服务商',
+  '学生推荐商家',
+  '校园金牌商家',
+  '首尔优选商家',
+  '官方认证商家',
+]
+
+const studentTitlePool = [
+  '新人留学生',
+  '租房避坑达人',
+  '签证专家',
+  '校园情报员',
+  '建大传奇',
+  '中央大学活地图',
+  '高丽大学生存王',
+  '延世攻略大师',
+  '首尔生活专家',
+  '留学生之光',
+]
+
+const rewardMultiplierByLevel = (level: number) => {
+  if (level >= 10) return 130
+  if (level >= 7) return 120
+  if (level >= 5) return 110
+  if (level >= 3) return 105
+  return 100
+}
+
+const normalizeGrowthSchool = (school: string) => {
+  if (/建国|건국|Konkuk/i.test(school)) return '建国大学'
+  if (/中央|중앙|Chung-Ang/i.test(school)) return '中央大学'
+  if (/高丽|고려|Korea University/i.test(school)) return '高丽大学'
+  if (/延世|연세|Yonsei/i.test(school)) return '延世大学'
+  return school.split(' · ').pop() || school || '韩国留学'
+}
+
+const getGrowthLevel = (points: number, accepted: number, tasks: number, reputation: number) =>
+  userLevelRules.find(
+    (rule) =>
+      points >= rule.points &&
+      accepted >= rule.accepted &&
+      tasks >= rule.tasks &&
+      reputation >= rule.reputation,
+  ) ?? userLevelRules[userLevelRules.length - 1]
+
+const getGrowthCoupons = (
+  user: User,
+  level: number,
+  schoolLabel: string,
+  acceptedAnswerCount: number,
+  questionCount: number,
+): GrowthCoupon[] => {
+  const coupons: GrowthCoupon[] = [
+    {
+      id: 'daily-active',
+      type: 'platform_event',
+      title: '连续活跃奖励',
+      description: '连续签到和完成每日回答任务后可领取平台活动券。',
+      valueLabel: '+5 积分',
+      source: '连续签到',
+    },
+  ]
+  if (questionCount > 0) {
+    coupons.push({
+      id: 'quality-question',
+      type: 'bounty_discount',
+      title: '优质问题券',
+      description: '发布清晰问题并补充学校、时间线和材料背景后，可获得悬赏减免券。',
+      valueLabel: '悬赏减免',
+      source: '发布问题',
+    })
+  }
+  if (acceptedAnswerCount > 0 || level >= 3) {
+    coupons.push({
+      id: 'merchant-service',
+      type: 'merchant_discount',
+      title: '商家服务 95 折券',
+      description: '完成评价或回答被采纳后，可用于参与合作的认证商家服务。',
+      valueLabel: '95 折',
+      source: '采纳/评价',
+    })
+  }
+  if (schoolLabel && schoolLabel !== '韩国留学') {
+    coupons.push({
+      id: 'school-zone',
+      type: 'school_zone',
+      title: `${schoolLabel}专区券`,
+      description: '学校专区内提问、评价或浏览高质量内容后，可获得该学校相关服务券。',
+      valueLabel: '专区权益',
+      source: '学校活跃',
+    })
+  }
+  return user.userCoupons?.length ? user.userCoupons : coupons.slice(0, 4)
+}
+
+const calculateGrowthProfile = (
+  user: User,
+  posts: Post[],
+  questions: CommunityQuestion[],
+  answers: QuestionAnswer[],
+  isMerchant: boolean,
+): GrowthProfile => {
+  const userPosts = posts.filter((post) => post.authorId === user.id || post.author === user.name)
+  const userQuestions = questions.filter((question) => question.author === user.name)
+  const userAnswers = answers.filter((answer) => answer.author === user.name)
+  const acceptedAnswerCount = user.acceptedAnswerCount ?? userAnswers.filter((answer) => answer.accepted).length
+  const featuredCount = userPosts.filter((post) => post.featured || post.isFeatured).length
+  const totalLikes = userPosts.reduce((sum, post) => sum + (post.likes ?? 0), 0) + userAnswers.reduce((sum, answer) => sum + answer.likes, 0)
+  const totalBookmarks = userPosts.reduce((sum, post) => sum + (post.bookmarks ?? 0), 0)
+  const merchantOrdersCount = user.merchantOrdersCount ?? (isMerchant ? Math.max(0, Math.floor((user.earningPoints ?? 0) / 120)) : 0)
+  const taskCompletedCount =
+    user.taskCompletedCount ??
+    acceptedAnswerCount +
+      featuredCount +
+      Math.floor(totalLikes / 20) +
+      Math.floor(totalBookmarks / 10) +
+      merchantOrdersCount
+  const reputationScore =
+    user.reputationScore ??
+    acceptedAnswerCount * 8 +
+      featuredCount * 10 +
+      merchantOrdersCount * 12 +
+      Math.floor(totalLikes / 10) +
+      Math.floor(totalBookmarks / 5) +
+      (user.verificationStatus === 'approved' ? 15 : 0)
+  const userPoints =
+    user.userPoints ??
+    user.points +
+      user.earningPoints +
+      acceptedAnswerCount * 80 +
+      featuredCount * 120 +
+      Math.floor(totalLikes / 20) * 10 +
+      Math.floor(totalBookmarks / 10) * 20
+  const levelRule = getGrowthLevel(user.userLevel ? Number.MAX_SAFE_INTEGER : userPoints, acceptedAnswerCount, taskCompletedCount, reputationScore)
+  const level = user.userLevel ?? levelRule.level
+  const schoolLabel = normalizeGrowthSchool(user.school)
+  const positiveRate =
+    user.positiveRate ??
+    Math.min(99, Math.max(86, 88 + acceptedAnswerCount + featuredCount + Math.floor(reputationScore / 80)))
+  const title = user.userTitle ?? (isMerchant
+    ? merchantLevelNames[Math.min(merchantLevelNames.length - 1, Math.max(0, level - 1))]
+    : schoolLabel.includes('建国')
+      ? '建大传奇'
+      : schoolLabel.includes('中央')
+        ? '中央大学活地图'
+        : schoolLabel.includes('高丽')
+          ? '高丽大学生存王'
+          : schoolLabel.includes('延世')
+            ? '延世攻略大师'
+            : studentTitlePool[Math.min(studentTitlePool.length - 1, Math.max(0, level - 1))])
+  const nextLevel = [...userLevelRules].reverse().find((rule) => rule.level === Math.min(10, level + 1)) ?? levelRule
+  const nextLevelProgress = nextLevel.level === level
+    ? 100
+    : Math.min(
+        99,
+        Math.round(
+          ((userPoints / Math.max(nextLevel.points, 1)) +
+            (acceptedAnswerCount / Math.max(nextLevel.accepted, 1)) +
+            (taskCompletedCount / Math.max(nextLevel.tasks, 1)) +
+            (reputationScore / Math.max(nextLevel.reputation, 1))) *
+            25,
+        ),
+      )
+  return {
+    userLevel: level,
+    levelName: levelRule.name,
+    userTitle: title,
+    userReputation: user.userReputation ?? reputationScore,
+    userPoints,
+    userCoupons: getGrowthCoupons(user, level, schoolLabel, acceptedAnswerCount, userQuestions.length),
+    taskCompletedCount,
+    acceptedAnswerCount,
+    merchantOrdersCount,
+    reputationScore,
+    positiveRate,
+    helpedCount: acceptedAnswerCount * 3 + userAnswers.length + merchantOrdersCount * 5,
+    rewardMultiplier: rewardMultiplierByLevel(level),
+    schoolRankLabel: `${schoolLabel}贡献榜 ${reputationScore >= 80 ? 'TOP3' : reputationScore >= 30 ? 'TOP10' : '成长中'}`,
+    nextLevelName: nextLevel.name,
+    nextLevelProgress,
+  }
+}
+
+const buildSchoolLeaderboards = (
+  users: User[],
+  posts: Post[],
+  questions: CommunityQuestion[],
+  answers: QuestionAnswer[],
+): SchoolLeaderboard[] => {
+  const configs = [
+    { id: 'konkuk', title: '建国大学本周活跃榜', metric: '建大问题、回答和收藏综合', reward: '建大传奇称号 + 专区曝光', matcher: /建国|건국|Konkuk/i },
+    { id: 'chungang', title: '中央大学攻略榜', metric: '黑石洞、安城校区和选课攻略贡献', reward: '中央大学活地图称号 + 优惠券', matcher: /中央|중앙|Chung-Ang/i },
+    { id: 'korea', title: '高丽大学回答榜', metric: '安岩租房、考试院和大学院回答', reward: '高丽大学生存王称号 + 头像框', matcher: /高丽|고려|Korea University/i },
+    { id: 'yonsei', title: '延世大学热心榜', metric: '新村、语学院和国际学生帮助数', reward: '延世攻略大师称号 + 平台曝光', matcher: /延世|연세|Yonsei/i },
+  ]
+  return configs.map((config) => {
+    const entries = users
+      .map((user) => {
+        const userPosts = posts.filter((post) => (post.authorId === user.id || post.author === user.name) && config.matcher.test(post.school))
+        const userQuestions = questions.filter((question) => question.author === user.name && config.matcher.test(question.school))
+        const acceptedAnswers = answers.filter((answer) => answer.author === user.name && answer.accepted)
+        const score =
+          userPosts.reduce((sum, post) => sum + (post.likes ?? 0) + (post.bookmarks ?? 0) * 2, 0) +
+          userQuestions.reduce((sum, question) => sum + question.answersCount + Math.floor(question.views / 200), 0) +
+          acceptedAnswers.length * 30
+        return { name: user.name, score, title: score >= 80 ? '本周榜首候选' : score >= 30 ? '热心贡献者' : '成长用户' }
+      })
+      .filter((entry) => entry.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+    return {
+      id: config.id,
+      title: config.title,
+      metric: config.metric,
+      reward: config.reward,
+      entries: entries.length ? entries : [{ name: '等待真实用户冲榜', score: 0, title: '榜单开放中' }],
+    }
+  })
+}
+
+const contactInfoPattern =
+  /((微信|vx|wechat|카톡|kakao|手机|电话|tel|phone|LINE|line)[:：]?\s*[A-Za-z0-9_.@-]{4,}|1[3-9]\d{9}|010[-\s]?\d{4}[-\s]?\d{4})/gi
+
+const foldContactInfo = (text: string, isLoggedIn: boolean) =>
+  isLoggedIn ? text : text.replace(contactInfoPattern, '【登录后查看联系方式】')
+
 type OfflineBountyTask = {
   id: string
   title: string
@@ -408,6 +853,9 @@ const officialLinks = {
   studyInKoreaVisaStay: 'https://www.studyinkorea.go.kr/en_US/plan/visaAndStay.do',
   studyInKoreaResidenceStay: 'https://www.studyinkorea.go.kr/eng/life/residenceAndStayInfo.do',
   koreaVisaPortal: 'https://www.visa.go.kr',
+  immigrationVisaNavigator: 'https://www.immigration.go.kr/bbs/immigration_eng/230/454086/download.do',
+  easyLawPermanentResidency:
+    'https://m.easylaw.go.kr/MOM/SubCsmOvRetrieve.laf?ccfNo=1&cciNo=1&cnpClsNo=1&csmSeq=2805&langCd=700101',
   seoulHousing: 'https://housing.seoul.go.kr',
   nhisEnglish: 'https://www.nhis.or.kr/english/',
 }
@@ -419,6 +867,581 @@ const materialLinks = {
   arcAddressChecklist: '/resources/hikorea-arc-address-change-checklist.txt',
   partTimeWorkChecklist: '/resources/korea-part-time-work-permit-checklist.txt',
   d10JobSeekingChecklist: '/resources/korea-d10-job-seeking-plan-checklist.txt',
+}
+
+const legalMarkdownFiles = import.meta.glob('../legal/*.md', {
+  eager: true,
+  import: 'default',
+  query: '?raw',
+}) as Record<string, string>
+
+type LegalDocumentCategory = 'user' | 'merchant' | 'creator' | 'campus' | 'internal'
+type LegalRequiredAt =
+  | 'register'
+  | 'content-publish'
+  | 'points-center'
+  | 'reward-qa'
+  | 'report-complaint'
+  | 'merchant-onboarding'
+  | 'merchant-verification'
+  | 'advertising'
+  | 'creator'
+  | 'campus-ambassador'
+  | 'internal'
+
+type LegalDocument = {
+  id: string
+  titleZh: string
+  filename: string
+  route: string
+  category: LegalDocumentCategory[]
+  audience: string
+  requiredAt: LegalRequiredAt[]
+  isPublic: boolean
+  summary: string
+  content: string
+  version: string
+}
+
+type LegalConsentRecord = {
+  id: string
+  userId: string
+  documentId: string
+  filename: string
+  version: string
+  titleZh: string
+  confirmedAt: string
+  entry: string
+  deviceInfo: string
+  ipAddress: string
+}
+
+const legalDocumentDraftVersion = '2026-05-12-draft'
+
+const extractLegalVersion = (content: string) => {
+  const matched = content.match(/(?:版本|Version|version)\s*[:：]\s*([^\n\r]+)/)
+  return matched?.[1]?.trim() || legalDocumentDraftVersion
+}
+
+const getLegalMarkdownContent = (filename: string) => legalMarkdownFiles[`../legal/${filename}`] ?? ''
+
+const publicLegalOperator = {
+  companyName: '滨州售业网络科技有限公司',
+  creditCode: '91371602MAKEPCG8U2Y',
+  address: '山东省滨州市滨城区彭李街道黄河十二路657号圣世嘉园B1号楼02号',
+  contact: '平台站内客服与举报入口',
+  disputeVenue: '滨州市滨城区有管辖权的人民法院',
+  effectiveDate: '2026年05月19日',
+}
+
+const publicLegalPlatformName = `${publicLegalOperator.companyName}（shouye.fun / 售业）`
+const publicLegalOperatorLine = `主体信息：${publicLegalOperator.companyName}｜统一社会信用代码 ${publicLegalOperator.creditCode}｜${publicLegalOperator.address}｜${publicLegalOperator.contact}｜${publicLegalOperator.disputeVenue}｜${publicLegalOperator.effectiveDate}`
+const publicContactEntryTitle = '平台联系与投诉举报'
+
+type PublicJoinPage = {
+  slug: string
+  eyebrow: string
+  title: string
+  lead: string
+  intro: string
+  highlights: string[]
+  sections: Array<{ title: string; copy: string; items: string[] }>
+  process: string[]
+  primaryLabel: string
+  primaryPath: string
+  secondaryLabel: string
+  secondaryPath: string
+}
+
+const publicJoinPages: PublicJoinPage[] = [
+  {
+    slug: 'creator-program',
+    eyebrow: '内容创作者计划',
+    title: '把真实留学经验整理成能帮到人的内容。',
+    lead: '面向愿意分享签证、租房、入学、论文、打工、就业和韩国生活经验的留学生、毕业生与创作者。',
+    intro:
+      '售业不鼓励流水账和搬运内容。我们更需要能解释清楚“发生了什么、怎么处理、要准备什么、哪里容易踩坑”的经验帖，让后来的人能搜索、对照和执行。',
+    highlights: ['精华帖奖励', '原创署名', '专题收录', '长期曝光'],
+    sections: [
+      {
+        title: '适合谁加入',
+        copy: '有真实经历、愿意把过程讲清楚，并能接受平台基础审核的用户。',
+        items: ['在韩留学生、准留学生、毕业生', '办过签证、租房、银行卡、保险或毕业手续的人', '愿意持续更新学校、专业、生活经验的创作者'],
+      },
+      {
+        title: '重点内容方向',
+        copy: '优先收录能解决具体问题的长内容，而不是泛泛而谈。',
+        items: ['签证续签、F-2/F-5、外国人登录证', '租房保证金、搬家、银行卡、手机卡、保险', '学校申请、语学院、本科、大学院、论文和就业'],
+      },
+      {
+        title: '平台支持',
+        copy: '平台会通过分类、学校专题、精华帖和积分体系给好内容更多位置。',
+        items: ['进入精华经验页和学校专题', '按质量获得积分或后续合作机会', '保留原创署名和内容归属说明'],
+      },
+    ],
+    process: ['发布经验帖或提交选题', '平台审核真实性、完整度和合规风险', '进入分类/学校专题/精华池', '根据阅读、收藏、采纳和质量进入奖励体系'],
+    primaryLabel: '发布经验',
+    primaryPath: '/posts',
+    secondaryLabel: '查看内容规则',
+    secondaryPath: '/legal/community-rules',
+  },
+  {
+    slug: 'helper-program',
+    eyebrow: '答主与助人计划',
+    title: '用你的经验，回答一个正在卡住的问题。',
+    lead: '面向愿意在平台回答问题、参与悬赏、提供线上经验帮助或线下辅助服务的用户。',
+    intro:
+      '答主与助人计划强调“能力边界清楚、证据留痕、风险可控”。线上回答看经验质量，线下帮助需要更严格的身份和材料审核。',
+    highlights: ['悬赏回答', '采纳奖励', '助人等级', '线下资格审核'],
+    sections: [
+      {
+        title: '可以做什么',
+        copy: '先从线上回答开始，逐步建立可信记录。',
+        items: ['回答签证、租房、入学、生活和就业问题', '参与悬赏问答并获得采纳奖励', '申请线下陪同、跑腿、翻译等帮助资格'],
+      },
+      {
+        title: '平台要求',
+        copy: '不能把助人变成私下引流、虚假承诺或高风险交易。',
+        items: ['不承诺包过、包办、包录取、包结果', '不提供代写、代考、伪造材料等违规服务', '线下帮助需提交真实身份材料并接受审核'],
+      },
+      {
+        title: '成长机制',
+        copy: '平台会把采纳、好评、完成任务和违规记录计入成长体系。',
+        items: ['积分、等级、称号和好评记录', '优质答主获得更高曝光和专题推荐', '违规回答会被折叠、扣分或限制收益'],
+      },
+    ],
+    process: ['选择你能回答的问题', '提交清楚、可执行、有边界的回答', '被采纳后进入积分或悬赏结算', '申请更高等级或线下帮助资格'],
+    primaryLabel: '我来解决问题',
+    primaryPath: '/solve',
+    secondaryLabel: '查看收益规则',
+    secondaryPath: '/rewards',
+  },
+  {
+    slug: 'campus-ambassador',
+    eyebrow: '校园合伙人计划',
+    title: '把一所学校的信息，整理成后来者能直接使用的入口。',
+    lead: '面向熟悉某所韩国院校、语学院、专业方向或周边生活的在校生、毕业生和学生组织成员。',
+    intro:
+      '校园合伙人不是简单拉新。平台更看重学校信息维护、真实经验收集、商家线索核验和同学问题反馈，让学校页长期有用。',
+    highlights: ['学校专题维护', '校园反馈', '内容共建', '合作奖励'],
+    sections: [
+      {
+        title: '工作内容',
+        copy: '围绕学校页和同学真实需求做信息维护。',
+        items: ['补充学校申请、选课、宿舍、租房和毕业信息', '收集常见问题和真实经验帖', '协助识别周边可靠/高风险商家线索'],
+      },
+      {
+        title: '适合人群',
+        copy: '适合愿意长期维护某个学校信息的人。',
+        items: ['韩国高校在校生、毕业生、语学院学生', '学生会、社团、同乡群管理员', '愿意做校园内容整理和反馈的人'],
+      },
+      {
+        title: '合作边界',
+        copy: '校园合伙人不代表学校官方，也不代表平台对线下交易担保。',
+        items: ['不得冒充学校、机构或官方身份', '不得售卖学生个人信息或群成员信息', '涉及奖励、保密和身份边界以协议为准'],
+      },
+    ],
+    process: ['提交学校、身份和可维护方向', '平台核对基础信息和合作边界', '开通学校专题维护或线索反馈权限', '按内容质量、线索有效性和长期维护结算奖励'],
+    primaryLabel: '提交合作意向',
+    primaryPath: '/contact',
+    secondaryLabel: '查看校园合伙人协议',
+    secondaryPath: '/legal/campus-ambassador-agreement',
+  },
+  {
+    slug: 'merchant-onboarding',
+    eyebrow: '商家入驻合作',
+    title: '让留学生先看清服务边界，再决定是否咨询。',
+    lead: '面向为在韩留学生提供留学申请、论文、搬家、通信、住宿、翻译、家政、餐饮等服务的商家。',
+    intro:
+      '售业商家展示强调真实资质、服务范围、价格边界、售后规则和用户评价。平台提供展示位置，不替代用户自行判断，也不为商家服务结果做绝对担保。',
+    highlights: ['商家展示页', '分类曝光', '资质审核', '鱼缸气泡展示'],
+    sections: [
+      {
+        title: '入驻后能展示什么',
+        copy: '商家可以按类别展示服务，不用和不相关业务混在一起。',
+        items: ['商家名称、头像/Logo、服务类别和经营范围', '服务说明、标签、咨询提示和展示页', '普通/置顶展示、鱼缸气泡和分类页曝光'],
+      },
+      {
+        title: '平台审核重点',
+        copy: '审核目的不是替用户背书，而是降低明显虚假和高风险信息。',
+        items: ['主体信息、联系人、服务范围是否清楚', '是否存在违规承诺、虚假宣传或诱导私下交易', '是否愿意接受投诉处理和信息更新'],
+      },
+      {
+        title: '不接受的服务',
+        copy: '涉及违法违规或伤害留学生权益的业务不进入平台。',
+        items: ['代写代考、替课作弊、伪造材料', '非法换汇、跑分洗钱、诈骗引流', '色情低俗、侵犯隐私和虚假资质包装'],
+      },
+    ],
+    process: ['提交商家入驻资料', '后台审核主体、范围和展示文案', '分配商家类别、权限和展示等级', '上线展示并接受用户咨询、反馈和投诉处理'],
+    primaryLabel: '提交入驻申请',
+    primaryPath: '/contact',
+    secondaryLabel: '查看商家入驻协议',
+    secondaryPath: '/legal/merchant-onboarding-agreement',
+  },
+  {
+    slug: 'brand-cooperation',
+    eyebrow: '广告与品牌合作',
+    title: '广告可以出现，但必须让用户看得懂是谁在推广。',
+    lead: '面向希望触达留学生群体的品牌、服务商、校园活动方和长期合作伙伴。',
+    intro:
+      '售业的广告与品牌合作会优先围绕真实需求场景展示，例如开学季、租房季、签证季、毕业季和生活服务。广告内容必须标识清楚，不能伪装成普通经验。',
+    highlights: ['场景广告', '品牌专题', '置顶展示', '合规标识'],
+    sections: [
+      {
+        title: '合作形式',
+        copy: '根据服务类型和预算选择更合适的展示方式。',
+        items: ['首页或分类页广告位', '商家置顶、鱼缸气泡和服务专题', '学校页周边服务推荐和活动曝光'],
+      },
+      {
+        title: '内容要求',
+        copy: '广告可以商业化，但不能牺牲用户信任。',
+        items: ['明确标注商家或广告身份', '服务范围、价格、时效和限制条件说清楚', '不得夸大承诺、诱导私聊或隐藏收费'],
+      },
+      {
+        title: '优先合作方向',
+        copy: '优先接入能解决留学生实际问题的服务。',
+        items: ['通信、搬家、住宿、保险、餐饮、家政', '留学材料、论文流程、就业求职、语言培训', '校园活动、品牌福利和生活服务优惠'],
+      },
+    ],
+    process: ['提交品牌、服务类别和预算方向', '平台评估展示位置、合规风险和用户匹配度', '确认物料、标识、周期和投放规则', '上线后根据曝光、咨询和反馈复盘'],
+    primaryLabel: '联系品牌合作',
+    primaryPath: '/contact',
+    secondaryLabel: '查看广告投放规则',
+    secondaryPath: '/legal/advertising-agreement',
+  },
+  {
+    slug: 'feedback',
+    eyebrow: '反馈与联系',
+    title: '把问题说清楚，平台才处理得快。',
+    lead: '用于平台建议、账号问题、内容投诉、隐私请求、商家纠纷、材料删除和合作咨询。',
+    intro:
+      '售业第一版仍在快速补齐流程。为了避免信息丢失，涉及具体内容的问题请尽量带上链接、截图、账号、时间和联系方式。',
+    highlights: ['平台建议', '账号申诉', '隐私请求', '投诉举报'],
+    sections: [
+      {
+        title: '你可以反馈什么',
+        copy: '平台会优先处理影响账号、安全、隐私和交易判断的问题。',
+        items: ['账号登录、找回、封禁、禁言和资料审核问题', '内容侵权、隐私泄露、虚假商家和诈骗引流', '功能建议、学校信息补充和商家合作咨询'],
+      },
+      {
+        title: '建议提供的信息',
+        copy: '材料越完整，后台越容易定位。',
+        items: ['问题页面链接或截图', '相关账号、商家名、帖子标题或订单线索', '发生时间、简要经过和可联系到你的方式'],
+      },
+      {
+        title: '处理说明',
+        copy: '平台会按风险程度处理，不承诺每个结果都符合单方期待。',
+        items: ['明显违法违规内容优先限制展示', '商家纠纷会记录双方说明和证据', '涉及司法、行政、仲裁事项，用户仍需走法定渠道'],
+      },
+    ],
+    process: ['提交反馈或举报', '平台按类型进入后台待办', '必要时补充材料或联系相关方', '根据规则处理并保留必要记录'],
+    primaryLabel: '提交反馈',
+    primaryPath: '/contact',
+    secondaryLabel: '查看投诉举报规则',
+    secondaryPath: '/legal/report-complaint-rules',
+  },
+]
+
+const publicJoinPagesBySlug = Object.fromEntries(publicJoinPages.map((page) => [page.slug, page])) as Record<
+  string,
+  PublicJoinPage
+>
+
+const sanitizePublicLegalContent = (content: string) =>
+  content
+    .replace(/版本：V0\.1 草案/g, '版本：V1.0')
+    .replace(/主体信息：.*(?:\r?\n){2}/g, `${publicLegalOperatorLine}\n\n`)
+    .replace(/占位信息：.*(?:\r?\n){2}/g, `${publicLegalOperatorLine}\n\n`)
+    .replace(/\[公司名称\]/g, publicLegalPlatformName)
+    .replace(/\[注册地址\]/g, publicLegalOperator.address)
+    .replace(/\[联系邮箱\]/g, publicLegalOperator.contact)
+    .replace(/\[争议解决地\]/g, publicLegalOperator.disputeVenue)
+    .replace(/\[生效日期\]/g, publicLegalOperator.effectiveDate)
+    .replace(
+      /本文件为平台内部草案，正式使用前应由中国执业律师根据公司注册地、业务模式和实际运营情况审阅。/g,
+      '本文件为平台公开规则文本。平台将根据运营主体、业务范围、产品功能和法律法规变化适时更新，并通过页面公示或站内提示告知用户。',
+    )
+    .replace(
+      /本文件为早期内部草案，平台正式上线前应结合实际功能、技术架构、第三方服务、服务器所在地、跨境数据安排和合规要求进一步完善。/g,
+      '本政策将结合平台实际功能、技术架构、第三方服务、服务器所在地和合规要求持续更新。',
+    )
+    .replace(/本规则仅作为平台内部草案和合作模板。/g, '本规则作为平台公开合作规则说明。')
+
+const formatLegalVersionForDisplay = (version: string) => version.replace(/\s*草案\s*/g, '').trim() || 'V1.0'
+
+const getLegalCategoryLabel = (categories: LegalDocumentCategory[]) =>
+  categories
+    .filter((category) => category !== 'internal')
+    .map((category) => {
+      if (category === 'user') return '用户协议'
+      if (category === 'merchant') return '商家协议'
+      if (category === 'creator') return '创作者协议'
+      if (category === 'campus') return '校园合伙人协议'
+      return '内部文件'
+    })
+    .join(' / ')
+
+const legalDocumentDefinitions = [
+  {
+    id: 'user-agreement',
+    titleZh: '用户服务协议',
+    filename: 'USER_AGREEMENT.md',
+    category: ['user'],
+    audience: '普通用户、商家、创作者',
+    requiredAt: ['register'],
+    isPublic: true,
+    summary: '平台账号注册、登录、使用问答、经验、积分和商家信息服务的基础协议。',
+  },
+  {
+    id: 'privacy-policy',
+    titleZh: '隐私政策',
+    filename: 'PRIVACY_POLICY.md',
+    category: ['user', 'merchant'],
+    audience: '所有注册用户',
+    requiredAt: ['register', 'merchant-verification'],
+    isPublic: true,
+    summary: '说明平台如何收集、使用、保存和保护个人信息与认证资料。',
+  },
+  {
+    id: 'community-rules',
+    titleZh: '社区内容规范',
+    filename: 'COMMUNITY_RULES.md',
+    category: ['user'],
+    audience: '发帖、评论、回答用户',
+    requiredAt: ['content-publish'],
+    isPublic: true,
+    summary: '规定问答、评论、经验帖和商家内容的发布边界。',
+  },
+  {
+    id: 'content-license-agreement',
+    titleZh: '内容授权协议',
+    filename: 'CONTENT_LICENSE_AGREEMENT.md',
+    category: ['creator', 'user'],
+    audience: '内容发布者',
+    requiredAt: ['content-publish', 'creator'],
+    isPublic: true,
+    summary: '说明内容展示、分发、推荐、SEO 索引和平台使用授权。',
+  },
+  {
+    id: 'originality-statement',
+    titleZh: '原创声明',
+    filename: 'ORIGINALITY_STATEMENT.md',
+    category: ['creator', 'user'],
+    audience: '内容发布者',
+    requiredAt: ['content-publish', 'creator'],
+    isPublic: true,
+    summary: '要求发布者确认内容原创或已获合法授权。',
+  },
+  {
+    id: 'points-and-levels-rules',
+    titleZh: '积分与等级规则',
+    filename: 'POINTS_AND_LEVELS_RULES.md',
+    category: ['user', 'creator'],
+    audience: '使用积分、等级、任务和成长体系的用户',
+    requiredAt: ['points-center', 'creator'],
+    isPublic: true,
+    summary: '说明积分、等级、称号、权益、扣分和第一版非现金提现定位。',
+  },
+  {
+    id: 'reward-qa-rules',
+    titleZh: '悬赏问答规则',
+    filename: 'REWARD_QA_RULES.md',
+    category: ['user'],
+    audience: '发布悬赏、回答悬赏、采纳回答的用户',
+    requiredAt: ['reward-qa'],
+    isPublic: true,
+    summary: '说明悬赏问题、回答、采纳、争议和高风险内容提示。',
+  },
+  {
+    id: 'report-complaint-rules',
+    titleZh: '投诉举报规则',
+    filename: 'REPORT_COMPLAINT_RULES.md',
+    category: ['user', 'merchant'],
+    audience: '提交举报、投诉或商家纠纷的用户',
+    requiredAt: ['report-complaint'],
+    isPublic: true,
+    summary: '说明平台举报受理范围、处理方式和非司法机关定位。',
+  },
+  {
+    id: 'merchant-onboarding-agreement',
+    titleZh: '商家入驻协议',
+    filename: 'MERCHANT_ONBOARDING_AGREEMENT.md',
+    category: ['merchant'],
+    audience: '商家注册与入驻申请人',
+    requiredAt: ['merchant-onboarding'],
+    isPublic: true,
+    summary: '规定商家入驻、资料真实性、服务履约责任和平台展示边界。',
+  },
+  {
+    id: 'merchant-content-rules',
+    titleZh: '商家服务信息发布规范',
+    filename: 'MERCHANT_CONTENT_RULES.md',
+    category: ['merchant'],
+    audience: '发布商家服务、广告、展示页的商家',
+    requiredAt: ['merchant-onboarding', 'advertising'],
+    isPublic: true,
+    summary: '规定商家广告、服务信息、房源、签证和服务承诺的发布规范。',
+  },
+  {
+    id: 'merchant-violation-rules',
+    titleZh: '商家违规处理规则',
+    filename: 'MERCHANT_VIOLATION_RULES.md',
+    category: ['merchant'],
+    audience: '商家和广告投放方',
+    requiredAt: ['merchant-onboarding', 'advertising'],
+    isPublic: true,
+    summary: '说明虚假宣传、违规服务、冒充官方等行为的处理方式。',
+  },
+  {
+    id: 'merchant-verification-rules',
+    titleZh: '商家认证规则',
+    filename: 'MERCHANT_VERIFICATION_RULES.md',
+    category: ['merchant'],
+    audience: '申请认证的商家',
+    requiredAt: ['merchant-verification'],
+    isPublic: true,
+    summary: '说明认证材料、审核范围、认证不等于平台担保等规则。',
+  },
+  {
+    id: 'advertising-agreement',
+    titleZh: '广告投放协议',
+    filename: 'ADVERTISING_AGREEMENT.md',
+    category: ['merchant'],
+    audience: '购买广告位、申请推荐位或投放合作的商家',
+    requiredAt: ['advertising'],
+    isPublic: true,
+    summary: '说明广告真实性、标注义务、平台不承诺效果和违规下架规则。',
+  },
+  {
+    id: 'creator-agreement',
+    titleZh: '创作者协议',
+    filename: 'CREATOR_AGREEMENT.md',
+    category: ['creator'],
+    audience: '申请创作者权益、加精或内容奖励的用户',
+    requiredAt: ['creator'],
+    isPublic: true,
+    summary: '说明创作者身份、内容质量、奖励、分发和责任边界。',
+  },
+  {
+    id: 'featured-content-buyout-revenue-share',
+    titleZh: '精华内容买断与分成规则',
+    filename: 'FEATURED_CONTENT_BUYOUT_REVENUE_SHARE.md',
+    category: ['creator'],
+    audience: '参与精华内容买断、分成或付费合作的创作者',
+    requiredAt: ['creator'],
+    isPublic: true,
+    summary: '说明精华内容买断、奖励、分成须以平台确认或单独协议为准。',
+  },
+  {
+    id: 'campus-ambassador-agreement',
+    titleZh: '校园合伙人合作协议',
+    filename: 'CAMPUS_AMBASSADOR_AGREEMENT.md',
+    category: ['campus'],
+    audience: '校园合伙人申请人',
+    requiredAt: ['campus-ambassador'],
+    isPublic: true,
+    summary: '说明校园合伙人的合作边界、行为义务和非员工定位。',
+  },
+  {
+    id: 'nda',
+    titleZh: '保密协议',
+    filename: 'NDA.md',
+    category: ['campus', 'internal'],
+    audience: '校园合伙人、外包、顾问和内部合作对象',
+    requiredAt: ['campus-ambassador', 'internal'],
+    isPublic: true,
+    summary: '说明非公开信息、业务资料和合作信息的保密义务。',
+  },
+  {
+    id: 'campus-reward-settlement-rules',
+    titleZh: '校园合伙人奖励结算规则',
+    filename: 'CAMPUS_REWARD_SETTLEMENT_RULES.md',
+    category: ['campus'],
+    audience: '校园合伙人申请人',
+    requiredAt: ['campus-ambassador'],
+    isPublic: true,
+    summary: '说明校园合伙人奖励、结算、审核和违规扣回规则。',
+  },
+  {
+    id: 'non-shareholder-statement',
+    titleZh: '非股东声明',
+    filename: 'NON_SHAREHOLDER_STATEMENT.md',
+    category: ['campus'],
+    audience: '校园合伙人和外部合作申请人',
+    requiredAt: ['campus-ambassador'],
+    isPublic: true,
+    summary: '确认合作不代表取得股权、员工身份、代理权限或对外签约权。',
+  },
+  {
+    id: 'founder-asset-ownership-confirmation',
+    titleZh: '创始人项目资产归属确认书',
+    filename: 'FOUNDER_ASSET_OWNERSHIP_CONFIRMATION.md',
+    category: ['internal'],
+    audience: '公司内部治理',
+    requiredAt: ['internal'],
+    isPublic: false,
+    summary: '内部草案，不对普通用户适用，用于确认项目资产归属。',
+  },
+  {
+    id: 'equity-holding-template',
+    titleZh: '股权代持协议模板',
+    filename: 'EQUITY_HOLDING_TEMPLATE.md',
+    category: ['internal'],
+    audience: '公司内部治理',
+    requiredAt: ['internal'],
+    isPublic: false,
+    summary: '内部模板，不对普通用户适用，正式使用前需律师审阅。',
+  },
+  {
+    id: 'seal-bank-account-control-rules',
+    titleZh: '印章与银行账户管理规则',
+    filename: 'SEAL_BANK_ACCOUNT_CONTROL_RULES.md',
+    category: ['internal'],
+    audience: '公司内部治理',
+    requiredAt: ['internal'],
+    isPublic: false,
+    summary: '内部规则，不对普通用户适用，用于公司印章和银行账户管理。',
+  },
+  {
+    id: 'company-registration-plan',
+    titleZh: '公司注册与股权结构方案',
+    filename: 'COMPANY_REGISTRATION_PLAN.md',
+    category: ['internal'],
+    audience: '公司内部治理',
+    requiredAt: ['internal'],
+    isPublic: false,
+    summary: '内部方案，不对普通用户适用，用于公司注册和股权结构规划。',
+  },
+] satisfies Array<Omit<LegalDocument, 'content' | 'route' | 'version'>>
+
+const legalDocuments: LegalDocument[] = legalDocumentDefinitions.map((document) => {
+  const rawContent = getLegalMarkdownContent(document.filename)
+  const content = document.isPublic ? sanitizePublicLegalContent(rawContent) : ''
+  return {
+    ...document,
+    content,
+    route: `/legal/${document.id}`,
+    version: extractLegalVersion(content || rawContent),
+  }
+})
+
+const legalDocumentsById = Object.fromEntries(legalDocuments.map((document) => [document.id, document])) as Record<
+  string,
+  LegalDocument | undefined
+>
+
+const legalDocumentGroups: { title: string; category: LegalDocumentCategory; description: string }[] = [
+  { title: '用户协议', category: 'user', description: '注册、发帖、问答、积分、投诉和社区使用规则。' },
+  { title: '商家协议', category: 'merchant', description: '入驻、认证、广告投放、服务展示和违规处理规则。' },
+  { title: '创作者协议', category: 'creator', description: '内容授权、原创声明、加精奖励和收益规则。' },
+  { title: '校园合伙人协议', category: 'campus', description: '合作申请、保密义务、奖励结算和身份边界。' },
+]
+
+const legacyLegalRouteMap: Record<LegalPolicyRoute, string> = {
+  terms: 'user-agreement',
+  privacy: 'privacy-policy',
+  'content-rules': 'community-rules',
+  'minor-privacy': 'privacy-policy',
 }
 
 type JourneyTopic = {
@@ -791,12 +1814,15 @@ type StoredState = {
   partnerApplications: PartnerApplication[]
   merchantLeads: MerchantLead[]
   merchantBrandDecorations: MerchantBrandDecoration[]
+  managedMerchants: ManagedMerchant[]
   questionBounties: QuestionBounty[]
   questionDisputes: QuestionDispute[]
   pointOrders: PointOrder[]
   withdrawalRequests: WithdrawalRequest[]
+  renameRequests: RenameRequest[]
   pointLedger: PointLedger[]
   reports: ContentReport[]
+  legalConsents: LegalConsentRecord[]
   currentUserId: string | null
   unlockedPostIds: Record<string, string[]>
   siteContent: SiteContentSettings
@@ -867,9 +1893,8 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
   {
     brandId: 'tuzhuren-thesis',
     badge: '认证商家展示页',
-    heroTitle: '韩国论文流程、毕业审查、韩文发表和延毕节点支持',
-    intro:
-      '土著人面向在韩本科、大学院和毕业阶段学生，展示论文流程说明、毕业材料检查、韩文表达校对和发表准备等合规学业支持服务。',
+    heroTitle: '论文开题、数据、写作到翻译润色、排版定稿的一站式支持',
+    intro: '所有翻译与精修均由母语级老师人工完成，拒绝机翻，反复修改直至导师认可',
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
     panelLabel: '土著人品牌的管理商家',
     panelTitle: '论文流程・毕业审查・韩文发表',
@@ -881,9 +1906,20 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     sectionThreeText: '只展示合规学业支持边界，不提供代写、代投、替考、伪造材料等服务；毕业要求以学校和学院最新通知为准。',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    serviceHeadingTitle: '先看服务边界，再决定是否咨询。',
+    showcaseCategory: '论文与毕业',
+    showcaseMerchantName: '土著人',
+    showcaseServiceTitle: '论文与毕业服务展示',
+    showcaseServiceSubtitle: '土著人',
+    showcaseTagOne: '论文流程',
+    showcaseTagTwo: '毕业审查',
+    showcaseTagThree: '韩文发表',
+    showcaseTagFour: '',
+    showcaseTagFive: '',
+    showcaseTagSix: '',
     showcaseArtTitle: '土著人',
-    showcaseArtSubtitle: '开启世界视野 · 成就未来可能',
-    logoImage: '',
+    showcaseArtSubtitle: '韩国论文一站式辅导',
+    logoImage: '/merchant-logos/native-education.png',
     pendingLogoImage: '',
     logoReviewStatus: 'approved',
     bubbleColor: 'rgba(194, 151, 62, 0.92)',
@@ -891,9 +1927,9 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     bubbleMetaColor: '#ef5a3c',
     bubbleLogoBackground: 'rgba(194, 151, 62, 0.92)',
     fontFamily: '',
-    titleColor: '',
-    bodyColor: '',
-    accentColor: '',
+    titleColor: '#0e315a',
+    bodyColor: '#5f6767',
+    accentColor: '#ef5a3c',
     heroImage: '',
     heroImageX: 50,
     heroImageY: 50,
@@ -902,7 +1938,17 @@ const defaultMerchantBrandDecorations: MerchantBrandDecoration[] = [
     serviceImageX: 50,
     serviceImageY: 50,
     serviceImageScale: 1,
-    textLayerStyles: {},
+    textLayerStyles: {
+      showcaseCategory: { x: 0, y: 0, z: 72, fontSize: 0, color: '#ef5a3c' },
+      showcaseMerchantName: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      badge: { x: 0, y: 0, z: 72, fontSize: 0, color: '#6b7d8f' },
+      heroTitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      intro: { x: 0, y: 0, z: 72, fontSize: 0, color: '#5f6767' },
+      showcaseArtTitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      showcaseArtSubtitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      showcaseServiceTitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#f8d795' },
+      showcaseServiceSubtitle: { x: 0, y: 0, z: 72, fontSize: 0, color: 'rgba(255,253,247,0.88)' },
+    },
     designItems: [],
     updatedAt: '2026-05-07',
   },
@@ -963,7 +2009,7 @@ const normalizeMerchantBrandDecoration = (
       .map((item, index): MerchantDesignItem => ({
         id: typeof item.id === 'string' && item.id ? item.id : createId('merchant-item'),
         zone: item.zone === 'service' ? 'service' : item.zone === 'showcase' ? 'showcase' : 'hero',
-        kind: item.kind === 'media' ? 'media' : 'bubble',
+        kind: item.kind === 'media' ? 'media' : item.kind === 'panel' ? 'panel' : 'bubble',
         text: typeof item.text === 'string' ? item.text : '新内容',
         mediaUrl: typeof item.mediaUrl === 'string' ? item.mediaUrl : '',
         mediaKind: item.mediaKind === 'video' ? 'video' : 'image',
@@ -976,6 +2022,8 @@ const normalizeMerchantBrandDecoration = (
         fontSize: Math.min(72, Math.max(12, Number.isFinite(Number(item.fontSize)) ? Number(item.fontSize) : 18)),
         color: typeof item.color === 'string' && item.color ? item.color : '#10201d',
         background: typeof item.background === 'string' && item.background ? item.background : 'rgba(255, 253, 247, 0.84)',
+        textAlign: normalizeMerchantTextAlign(item.textAlign),
+        lineHeight: normalizeMerchantLineHeight(item.lineHeight),
       }))
       .slice(0, 30)
   }
@@ -993,6 +2041,8 @@ const normalizeMerchantBrandDecoration = (
           z: Math.min(120, Math.max(1, Number.isFinite(Number(style?.z)) ? Number(style?.z) : 60)),
           fontSize: Math.min(120, Math.max(0, Number.isFinite(Number(style?.fontSize)) ? Number(style?.fontSize) : 0)),
           color: typeof style?.color === 'string' ? style.color : '',
+          textAlign: normalizeMerchantTextAlign(style?.textAlign),
+          lineHeight: normalizeMerchantLineHeight(style?.lineHeight),
         },
       ]),
     )
@@ -1004,8 +2054,8 @@ const normalizeMerchantBrandDecoration = (
     heroTitle: decoration.heroTitle ?? fallback?.heroTitle ?? '',
     intro: decoration.intro ?? fallback?.intro ?? '',
     contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
-    panelLabel: decoration.panelLabel || fallback?.panelLabel || '认证商家展示',
-    panelTitle: decoration.panelTitle || fallback?.panelTitle || '',
+    panelLabel: decoration.panelLabel ?? fallback?.panelLabel ?? '认证商家展示',
+    panelTitle: decoration.panelTitle ?? fallback?.panelTitle ?? '',
     sectionOneTitle: decoration.sectionOneTitle ?? fallback?.sectionOneTitle ?? '服务说明',
     sectionOneText: decoration.sectionOneText ?? fallback?.sectionOneText ?? '',
     sectionTwoTitle: decoration.sectionTwoTitle ?? fallback?.sectionTwoTitle ?? '对比建议',
@@ -1014,6 +2064,17 @@ const normalizeMerchantBrandDecoration = (
     sectionThreeText: decoration.sectionThreeText ?? fallback?.sectionThreeText ?? '',
     caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
     caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+    serviceHeadingTitle: decoration.serviceHeadingTitle ?? fallback?.serviceHeadingTitle ?? '先看服务边界，再决定是否咨询。',
+    showcaseCategory: decoration.showcaseCategory ?? fallback?.showcaseCategory ?? '',
+    showcaseMerchantName: decoration.showcaseMerchantName ?? fallback?.showcaseMerchantName ?? '',
+    showcaseServiceTitle: decoration.showcaseServiceTitle ?? fallback?.showcaseServiceTitle ?? '',
+    showcaseServiceSubtitle: decoration.showcaseServiceSubtitle ?? fallback?.showcaseServiceSubtitle ?? '',
+    showcaseTagOne: decoration.showcaseTagOne ?? fallback?.showcaseTagOne ?? '',
+    showcaseTagTwo: decoration.showcaseTagTwo ?? fallback?.showcaseTagTwo ?? '',
+    showcaseTagThree: decoration.showcaseTagThree ?? fallback?.showcaseTagThree ?? '',
+    showcaseTagFour: decoration.showcaseTagFour ?? fallback?.showcaseTagFour ?? '',
+    showcaseTagFive: decoration.showcaseTagFive ?? fallback?.showcaseTagFive ?? '',
+    showcaseTagSix: decoration.showcaseTagSix ?? fallback?.showcaseTagSix ?? '',
     showcaseArtTitle: decoration.showcaseArtTitle ?? fallback?.showcaseArtTitle ?? '',
     showcaseArtSubtitle: decoration.showcaseArtSubtitle ?? fallback?.showcaseArtSubtitle ?? '',
     logoImage: decoration.logoImage ?? fallback?.logoImage ?? '',
@@ -1084,11 +2145,42 @@ const parseUserBioSettings = (bio?: string): UserBioSettings => {
   }
 }
 
+const getUserPublicBio = (bio?: string) => {
+  if (!bio?.trim()) return ''
+  const settings = parseUserBioSettings(bio)
+  if (Object.keys(settings).length) return settings.displayBio ?? ''
+  return bio
+}
+
+const serializeUserPublicBio = (bio: string, publicBio: string) => {
+  const settings = parseUserBioSettings(bio)
+  const nextPublicBio = publicBio.trim()
+  if (!Object.keys(settings).length) return nextPublicBio
+  const nextSettings: UserBioSettings = { ...settings, displayBio: nextPublicBio }
+  if (!nextPublicBio) delete nextSettings.displayBio
+  return JSON.stringify(nextSettings)
+}
+
+const getUserBusinessCategories = (settings: UserBioSettings) => {
+  const sourceCategories =
+    settings.businessCategories && settings.businessCategories.length
+      ? settings.businessCategories
+      : settings.businessCategory
+        ? [settings.businessCategory]
+        : []
+  const categories = sourceCategories
+    .map((category) => normalizeBusinessCategory(category))
+    .filter(Boolean)
+  return Array.from(new Set(categories))
+}
+
 const serializeUserBrandAccess = (
   bio: string,
   brandId: string,
   brandName: string,
   brandLevel: MerchantLevel = 'normal',
+  businessCategories?: string[],
+  businessScopeLevels?: Record<string, MerchantLevel>,
 ) => {
   const settings = parseUserBioSettings(bio)
   if (!brandId) {
@@ -1096,16 +2188,1697 @@ const serializeUserBrandAccess = (
       managedBrandId: _managedBrandId,
       managedBrandName: _managedBrandName,
       managedBrandLevel: _managedBrandLevel,
+      businessCategory: _businessCategory,
+      businessCategories: _businessCategories,
+      businessScopeLevels: _businessScopeLevels,
       ...rest
     } = settings
     return Object.keys(rest).length ? JSON.stringify(rest) : ''
   }
-  return JSON.stringify({ ...settings, managedBrandId: brandId, managedBrandName: brandName, managedBrandLevel: brandLevel })
+  const nextCategories = businessCategories === undefined ? getUserBusinessCategories(settings) : businessCategories
+  const nextScopeLevels = businessScopeLevels ?? settings.businessScopeLevels ?? {}
+  return JSON.stringify({
+    ...settings,
+    businessCategory: nextCategories[0],
+    businessCategories: nextCategories,
+    businessScopeLevels: nextScopeLevels,
+    managedBrandId: brandId,
+    managedBrandName: brandName,
+    managedBrandLevel: brandLevel,
+  })
 }
 
 const storageKey = 'shouye-platform-mvp-v1'
 const adminSessionKey = 'shouye-platform-admin-session'
+const languageStorageKey = 'shouye-language'
 const registerBonusPoints = 30
+type SiteLanguage = 'zh' | 'en' | 'ko'
+const languageOptions: { value: SiteLanguage; label: string; shortLabel: string; htmlLang: string }[] = [
+  { value: 'zh', label: '中', shortLabel: '中', htmlLang: 'zh-CN' },
+  { value: 'en', label: 'English', shortLabel: 'EN', htmlLang: 'en' },
+  { value: 'ko', label: '한국어', shortLabel: 'KR', htmlLang: 'ko' },
+]
+const translationAttributeNames = ['placeholder', 'aria-label', 'title'] as const
+const translationDictionaries: Record<Exclude<SiteLanguage, 'zh'>, Record<string, string>> = {
+  en: {
+    售业: 'Shouye',
+    留学生经验分享与问题解决平台: 'International student experience sharing and problem-solving platform',
+    院校入口: 'Schools',
+    我要提问: 'Ask',
+    '我要提问/发布悬赏': 'Ask / Post a Reward',
+    '我要提问/悬赏': 'Ask / Reward',
+    我来解决问题: 'Solve Requests',
+    经验分享: 'Experience',
+    收益规则: 'Rewards',
+    问题分类: 'Categories',
+    积分充值提现: 'Points',
+    '积分充值/提现': 'Points',
+    个人中心: 'Profile',
+    退出: 'Log out',
+    登录: 'Log in',
+    注册: 'Sign up',
+    选择语言: 'Choose language',
+    首页: 'Home',
+    提问: 'Ask',
+    解决: 'Solve',
+    经验: 'Experience',
+    分类: 'Categories',
+    院校: 'Schools',
+    '你的 一切经验都有机会在这里变现': 'Your experience can become value here',
+    你的一切经验都有机会在这里变现: 'Your experience can become value here',
+    '技能&经验变现平台': 'Skills & Experience\nValue Platform',
+    '你可以在这里提问，也可以分享自己的留学经验，通过高质量回答和经验帖获得收益。':
+      'Ask questions, share study-abroad experience, and earn rewards through useful answers and posts.',
+    搜索: 'Search',
+    '我要提问/求助': 'Ask / Get Help',
+    '我要分享经验/提供帮助赚钱': 'Share / Help',
+    我要找商家要福利: 'Find Deals',
+    商家福利: 'Merchant Deals',
+    '提问/求助': 'Ask / Help',
+    分享与助人: 'Share & Help',
+    收益: 'Rewards',
+    '提出问题寻求帮助，或者直接悬赏解决问题': 'Post questions or reward someone to solve them.',
+    '分享您的经验，或给人提供实质性帮助解决问题': 'Share experience or provide practical help.',
+    '被采纳回答、完成悬赏问答、提供精华攻略、完成悬赏任务都可以获取收入':
+      'Accepted answers, reward tasks, guides, and completed requests can earn platform rewards.',
+    常见问题免费贴: 'Common Free Q&A',
+    '留学生最常遇到的问题。': 'Problems international students often face.',
+    真人真实经验分享: 'Real Student Stories',
+    查看全部: 'View all',
+    发布经验: 'Post Experience',
+    去提问: 'Ask now',
+    发布悬赏: 'Post Reward',
+    保存: 'Save',
+    保存修改: 'Save changes',
+    保存成功: 'Saved',
+    提交成功: 'Submitted',
+    取消: 'Cancel',
+    关闭: 'Close',
+    提交: 'Submit',
+    删除: 'Delete',
+    上传头像: 'Upload avatar',
+    登录账号: 'Log in',
+    创建账号: 'Create account',
+    '继续使用你的积分账户。': 'Continue with your points account.',
+    '注册后即可提问、分享经验并获得积分。': 'Sign up to ask, share, and earn points.',
+    学生: 'Student',
+    商家: 'Merchant',
+    邮箱: 'Email',
+    密码: 'Password',
+    确认密码: 'Confirm password',
+    邮箱验证码: 'Email code',
+    发送验证码: 'Send code',
+    注册并领取初始积分: 'Sign up and claim starter points',
+    '还没有账号？去注册': 'No account? Sign up',
+    '已有账号？去登录': 'Already have an account? Log in',
+    找回账号: 'Recover account',
+    我已阅读并同意: 'I have read and agree to',
+    用户协议: 'User Agreement',
+    隐私政策: 'Privacy Policy',
+    未成年人个人信息保护规则: 'Minor Personal Information Protection Rules',
+    准备申请: 'Preparing',
+    已录取待入学: 'Admitted',
+    语学院: 'Language school',
+    本科: 'Undergraduate',
+    大学院: 'Graduate school',
+    已毕业: 'Graduated',
+    商家名称: 'Merchant name',
+    服务类型: 'Service type',
+    国家: 'Country',
+    城市: 'City',
+    全部: 'All',
+    全部学校: 'All schools',
+    全部城市: 'All cities',
+    全部内容: 'All content',
+    全部状态: 'All status',
+    悬赏最高: 'Highest reward',
+    智能推荐: 'Smart recommendations',
+    学校推荐: 'School recommendations',
+    关联推荐: 'Related recommendations',
+    暂时没有完全匹配的帖子: 'No exact matches yet',
+    先看这些更接近的学校专题和帖子: 'Try these related schools, topics, and posts',
+    '平台声明': 'Platform Notice',
+    '本平台严禁发布换钱、换米相关求助、帮助和广告。私下换汇属于违法行为；用户如因本平台信息媒介自行接洽换汇，均属于个人行为，本平台不承担法律责任。':
+      'Currency exchange requests, help, and ads are prohibited. Private exchange may be illegal; any off-platform exchange is personal conduct and the platform assumes no legal responsibility.',
+    '如何通过分享经验获得收益？': 'How do rewards work?',
+    '平台奖励的是“真实、有用、可验证的经验”，不是单纯发帖数量。':
+      'Rewards are for real, useful, verifiable experience, not post volume.',
+    回答悬赏问题: 'Answer rewarded questions',
+    发布高质量经验帖: 'Publish quality posts',
+    贡献专题攻略: 'Contribute guides',
+    防止垃圾内容: 'Prevent spam',
+    留学咨询: 'Study consulting',
+    论文与毕业: 'Thesis & graduation',
+    韩语培训: 'Korean training',
+    艺术类培训: 'Art training',
+    作品集辅导: 'Portfolio coaching',
+    餐饮相关: 'Food & dining',
+    物流快递: 'Logistics',
+    通信: 'Telecom',
+    家政搬家: 'Home & moving',
+    不动产: 'Real estate',
+    商家申请入驻: 'Merchant application',
+    查看商家鱼缸: 'View merchant tank',
+    进入商家详情页: 'Merchant details',
+    认证商家展示页: 'Verified merchant page',
+    返回商家展示区: 'Back to merchant showcase',
+    完成编辑: 'Finish editing',
+    添加图片: 'Add image',
+    添加文本框: 'Add text box',
+    字号: 'Font size',
+    字色: 'Text color',
+    透明: 'Opacity',
+    图层上移: 'Move layer up',
+    图层下移: 'Move layer down',
+    管理员登录: 'Admin login',
+    后台: 'Admin',
+    注册用户: 'Users',
+    状态: 'Status',
+    认证: 'Verification',
+    操作: 'Actions',
+    审核通过: 'Approve',
+    驳回材料: 'Request materials',
+    禁言: 'Mute',
+    封号: 'Ban',
+    提问标题: 'Question title',
+    问题描述: 'Question details',
+    标题: 'Title',
+    学校: 'School',
+    摘要: 'Summary',
+    正文: 'Body',
+    解锁积分: 'Unlock points',
+    保存并发布: 'Save and publish',
+    我知道: 'I know',
+    我能做: 'I can help',
+    分享经验: 'Share experience',
+    发布技能: 'Post skill',
+    编辑展示页: 'Edit showcase page',
+    韩国主流院校导航: 'Korean School Navigator',
+    按地区进入院校库: 'Browse schools by region',
+    韩国院校地区导航: 'Korean school region navigation',
+    首尔: 'Seoul',
+    '京畿道 / 仁川': 'Gyeonggi / Incheon',
+    '釜山 / 庆南': 'Busan / Gyeongnam',
+    '大邱 / 庆北': 'Daegu / Gyeongbuk',
+    '忠清 / 大田 / 世宗': 'Chungcheong / Daejeon / Sejong',
+    '全罗 / 光州': 'Jeolla / Gwangju',
+    '江原 / 济州': 'Gangwon / Jeju',
+    语学院本科硕博入学相关: 'Admissions',
+    '语学院/本科/硕博入学相关': 'Admissions',
+    在学期间相关: 'Student Life',
+    毕业问题相关: 'Graduation Issues',
+    '毕业后签证/就业相关': 'Post-graduation Visa / Jobs',
+    申请材料: 'Documents',
+    入学流程: 'Admissions process',
+    选课: 'Course registration',
+    学分确认: 'Credit check',
+    签证: 'Visa',
+    租房: 'Housing',
+    打工: 'Part-time work',
+    保险: 'Insurance',
+    银行卡和校园生活: 'Bank card & campus life',
+    论文: 'Thesis',
+    延毕: 'Graduation delay',
+    毕业审查: 'Graduation review',
+    材料节点: 'Document milestones',
+    'D-10、永驻、求职、回国认证、落户和人才政策':
+      'D-10, residency, job search, return verification, settlement and talent policies',
+    学校专题: 'School topic',
+    专项入口: 'Topic entry',
+    重点内容: 'Key points',
+    跳蚤市场: 'Flea market',
+    八卦与吃瓜: 'Campus talk',
+    抱团选课: 'Course buddies',
+    各种吐槽: 'Rants',
+    入学须知: 'Admissions guide',
+    找房与转租: 'Housing & sublets',
+    同好与交友: 'Interests & friends',
+    周边生活攻略: 'Local life guide',
+    找兼职与代兼职: 'Part-time gigs',
+    作业与论文: 'Assignments & thesis',
+    平台如何运转: 'How the platform works',
+    '平台如何运转？': 'How the platform works?',
+    积分规则: 'Points rules',
+    商家入驻: 'Merchant onboarding',
+    商家福利总览: 'Merchant deals overview',
+    先看已入驻商家再按服务分类筛: 'Start with merchants, then filter by service',
+    '先看已入驻商家，再按服务分类筛。': 'Start with verified merchants, then filter by service category.',
+    '点击悬浮气泡可以直接进入商家详情，也可以点分类标签对应类别的商家展示日历':
+      'Click a floating bubble for merchant details, or use category tags to view that service showcase.',
+    学业相关: 'Academic support',
+    机构类型: 'Organization type',
+    '微信 / 电话': 'WeChat / Phone',
+    '预算 / 合作方式': 'Budget / collaboration',
+    方向: 'Direction',
+    联系人: 'Contact person',
+    需求: 'Needs',
+    审核提交: 'Submit review',
+    审核不通过: 'Reject',
+    审核不通过理由: 'Rejection reason',
+    商家级别: 'Merchant tier',
+    普通: 'Normal',
+    置顶: 'Pinned',
+    品牌名称: 'Brand name',
+    上传证件: 'Upload documents',
+    认证材料: 'Verification materials',
+    查看材料: 'View materials',
+    当前权限: 'Current permissions',
+    商家品牌装饰权限: 'Brand page editing permission',
+    编辑模式: 'Edit mode',
+    上传到选中框: 'Upload to selected box',
+    移动: 'Move',
+    吸管: 'Eyedropper',
+    主视觉文本: 'Hero text',
+    服务区文本: 'Service text',
+    调色盘: 'Color palette',
+    图层: 'Layers',
+    身份: 'Identity',
+    昵称: 'Nickname',
+    学生阶段: 'Student stage',
+    '学校 / 目标学校': 'School / Target school',
+    '商家/机构名称': 'Merchant / Organization name',
+    所在国家: 'Country',
+    所在城市: 'City',
+    发送中: 'Sending',
+    秒后重发: 's to resend',
+    请输入: 'Please enter',
+    至少: 'At least',
+    再次输入密码: 'Enter password again',
+    邮箱验证码已通过: 'Email code verified',
+    注册邮箱或账号线索: 'Registered email or account clue',
+    联系方式: 'Contact',
+    补充说明: 'Additional details',
+    提交找回申请: 'Submit recovery request',
+    发布内容: 'Publish content',
+    '你要发布“我知道”，还是“我能做”？': 'Do you want to share knowledge or offer help?',
+    重新选择: 'Choose again',
+    '发布经验、流程、材料清单、避坑攻略和学校生活复盘。':
+      'Share experience, process notes, document lists, tips, and campus recaps.',
+    '发布可接的技能服务：跑腿、排队、地陪、宠物照看、同校辅导等。':
+      'Offer services such as errands, queueing, local help, pet care, and tutoring.',
+    '发布你能提供的技能和帮助。': 'Publish the skills and help you can provide.',
+    '发布可检索、可审核、可加精的留学经验。': 'Publish searchable, reviewable study-abroad experience.',
+    技能标题: 'Skill title',
+    '关联学校/区域': 'Related school / area',
+    技能分类: 'Skill category',
+    '查看/联系积分': 'View / contact points',
+    服务区域: 'Service area',
+    可接时间: 'Available time',
+    韩国生活: 'Korea life',
+    '学习类服务只能发布讲题、资料整理、修改建议和方法辅导；不能发布代写、代考、替课、作弊类服务。':
+      'Study services may only cover explanations, materials, revision suggestions, and learning guidance. Ghostwriting, proxy exams, attendance fraud, and cheating are not allowed.',
+    简介: 'Intro',
+    服务说明: 'Service description',
+    保存并发布技能: 'Save and publish skill',
+    机构合作申请: 'Partner application',
+    '提交机构入驻、内容合作或人才合作需求。': 'Submit merchant onboarding, content cooperation, or talent partnership needs.',
+    '机构 / 公司名称': 'Organization / company name',
+    合作方向: 'Cooperation direction',
+    内容入驻: 'Content onboarding',
+    招生线索合作: 'Admissions lead partnership',
+    '论文 / 课程辅导合作': 'Thesis / course tutoring partnership',
+    留学生人才推荐: 'Student talent recommendation',
+    广告投放: 'Advertising',
+    合作需求说明: 'Partnership needs',
+    提交合作申请: 'Submit application',
+    举报入口: 'Report',
+    举报原因: 'Report reason',
+    违法违规内容: 'Illegal or violating content',
+    '非法换汇/换米': 'Illegal currency exchange',
+    '代写代考/作弊': 'Ghostwriting / proxy exam / cheating',
+    '虚假商家/诈骗': 'Fake merchant / scam',
+    侵犯隐私: 'Privacy violation',
+    垃圾广告: 'Spam ad',
+    其他: 'Other',
+    '联系方式（选填）': 'Contact (optional)',
+    提交举报: 'Submit report',
+    账号状态: 'Account status',
+    认证状态: 'Verification status',
+    正常: 'Normal',
+    待审核: 'Pending review',
+    已通过: 'Approved',
+    已驳回: 'Rejected',
+    未分配: 'Unassigned',
+    保存商家状态: 'Save merchant status',
+    通过: 'Approve',
+    不通过: 'Reject',
+    帖子: 'Posts',
+    价格: 'Price',
+    已加精: 'Featured',
+    未加精: 'Not featured',
+    预览: 'Preview',
+    咨询线索: 'Consultation leads',
+    搜索咨询线索: 'Search leads',
+    负责人: 'Owner',
+    导出: 'Export',
+    类型: 'Type',
+    咨询人: 'Contact person',
+    待联系: 'To contact',
+    已联系: 'Contacted',
+    已关闭: 'Closed',
+    后台备注: 'Admin note',
+    标记已联系: 'Mark contacted',
+    悬赏申诉: 'Reward disputes',
+    退款: 'Refund',
+    申诉: 'Appeal',
+    恶意采纳: 'Abusive acceptance',
+    待处理: 'Pending',
+    处理中: 'Reviewing',
+    已处理: 'Resolved',
+    不成立: 'Rejected',
+    标记处理: 'Mark resolved',
+    删除记录: 'Delete record',
+    充值订单: 'Top-up order',
+    提现申请: 'Withdrawal request',
+    待确认: 'Pending confirmation',
+    已入账: 'Credited',
+    已取消: 'Canceled',
+    已退款: 'Refunded',
+    已打款: 'Paid',
+    审核备注: 'Review note',
+    合作申请: 'Partner applications',
+    机构: 'Organization',
+    审核: 'Review',
+    审核拒绝: 'Review rejected',
+    提交审核: 'Submit review',
+    商家头像审核: 'Merchant avatar review',
+    品牌: 'Brand',
+    待审核头像: 'Pending avatar',
+    说明: 'Note',
+    '审核品牌头像后才对外展示。': 'Brand avatars are displayed only after review.',
+    可视化改网站: 'Visual site editor',
+    首页文案和手机端尺寸: 'Homepage copy and mobile sizes',
+    恢复默认: 'Restore default',
+    保存到网站: 'Save to site',
+    顶部小字: 'Top eyebrow',
+    首页大标题: 'Homepage title',
+    主标题下面的大字: 'Large copy under title',
+    搜索框上方说明: 'Search intro',
+    搜索框提示文字: 'Search placeholder',
+    蓝色按钮: 'Blue button',
+    红色按钮: 'Red button',
+    第一组大字: 'First title',
+    第一组小字: 'First description',
+    第二组大字: 'Second title',
+    第二组小字: 'Second description',
+    第三组大字: 'Third title',
+    第三组小字: 'Third description',
+    瓦剌详情页标识: 'Wala detail badge',
+    瓦剌详情页标题: 'Wala detail title',
+    瓦剌详情页介绍: 'Wala detail intro',
+    咨询前提示: 'Before consultation note',
+    服务展示: 'Service showcase',
+    账户概览: 'Account overview',
+    公开简介: 'Public intro',
+    商家资料: 'Merchant profile',
+    个人头像: 'Profile avatar',
+    保存个人信息: 'Save profile',
+    我的认证材料: 'My verification materials',
+    我的帖子: 'My posts',
+    暂未提交认证材料: 'No verification materials submitted yet.',
+    还没有发布帖子: 'No posts yet.',
+    商家工具: 'Merchant tools',
+    商家展示管理: 'Merchant showcase management',
+    可提现积分: 'withdrawable points',
+    消费积分: 'spending points',
+    '点击上传图片，保存后会展示在个人中心和你发布的内容旁。':
+      'Upload an image; after saving, it will appear in your profile and beside your posts.',
+    '这里只填写公开展示文案；商家权限、品牌 ID 等系统信息不会显示在这里。':
+      'Only public profile text goes here. Merchant permissions and brand IDs are hidden system fields.',
+    '写给其他用户看的简介，例如你的学校、专业、服务范围或可分享经验。':
+      'Write a public intro, such as your school, major, service scope, or experience you can share.',
+    '可直接进入你的品牌详情页或商铺首页展示编辑。':
+      'You can directly edit your brand detail page or shop showcase.',
+    '后台分配品牌权限后，这里会显示编辑入口。':
+      'After admin assigns brand permission, editing links will appear here.',
+    成长体系: 'Growth system',
+    等级: 'Level',
+    称号: 'Title',
+    好评率: 'Positive rate',
+    被帮助人数: 'People helped',
+    累计采纳: 'Accepted answers',
+    奖励系数: 'Reward multiplier',
+    学校贡献榜: 'School contribution ranking',
+    成长中: 'Growing',
+    距离: 'To next level',
+    优惠券: 'Coupons',
+    赚钱方式: 'Ways to earn',
+    '回答、经验帖、专题攻略和任务奖励': 'Answers, posts, topic guides, and task rewards',
+    '回答被提问者采纳后，按问题难度和有效程度获得 +50～200 积分；无效回答、答非所问或无法验证的信息记 0 积分。':
+      'When an answer is accepted, it earns +50 to +200 points depending on difficulty and usefulness. Invalid, off-topic, or unverifiable answers earn 0 points.',
+    '经验帖被审核为精华内容后可获得 +100～500 积分；收藏每满 10 次额外 +20 积分，点赞每满 20 次额外 +10 积分。':
+      'A post marked as featured can earn +100 to +500 points. Every 10 bookmarks adds +20 points; every 20 likes adds +10 points.',
+    '签证、租房、打工、毕业等专题内容进入学校或分类专题库后，可获得额外积分奖励，并优先获得内容曝光。':
+      'Visa, housing, work, and graduation guides that enter school or category libraries can earn bonus points and receive priority exposure.',
+    '完成悬赏任务、商家推广任务或平台活动任务后，按任务规则获得对应积分奖励。':
+      'Completing reward tasks, merchant promotion tasks, or platform campaign tasks grants points according to task rules.',
+    成长制度: 'Growth rules',
+    '等级、称号、奖励系数和学校榜单': 'Levels, titles, reward multipliers, and school rankings',
+    '用户会根据积分、被采纳次数、完成任务数和好评数，从 Lv1 新人成长到 Lv10 售业大师。':
+      'Users grow from Lv1 Newcomer to Lv10 Shouye Master based on points, accepted answers, completed tasks, and positive reviews.',
+    'Lv3 奖励系数 105%，Lv5 为 110%，Lv7 为 120%，Lv10 为 130%，高等级用户会获得更高平台奖励系数。':
+      'Reward multipliers are 105% at Lv3, 110% at Lv5, 120% at Lv7, and 130% at Lv10. Higher levels receive higher platform reward multipliers.',
+    '学生称号包括租房避坑达人、签证专家、校园情报员、学校传奇、留学生之光等。':
+      'Student titles include Housing Pitfall Expert, Visa Specialist, Campus Scout, School Legend, and Light of International Students.',
+    '经常帮助同校用户会进入学校排行榜，获得专属称号、平台曝光、限定头像框或优惠券。':
+      'Users who often help schoolmates may enter school rankings and receive exclusive titles, exposure, avatar frames, or coupons.',
+    优惠券与好评: 'Coupons & reviews',
+    '求助用户也能获得平台权益': 'People asking for help can also earn benefits',
+    '连续签到、发布优质问题、完成评价、首次平台内交易或回答被采纳后，可获得商家折扣券、悬赏减免券、平台活动券和学校专区券。':
+      'Check-ins, quality questions, completed reviews, first in-platform service interactions, or accepted answers can grant merchant discount coupons, reward waivers, activity coupons, and school-zone coupons.',
+    '回答质量、商家服务、经验真实性和是否靠谱都会进入信誉记录。':
+      'Answer quality, merchant service, experience authenticity, and reliability all contribute to reputation records.',
+    '个人主页会展示等级、称号、好评率、被帮助人数、累计采纳和学校标签。':
+      'Profiles show level, title, positive rate, people helped, accepted answers, and school tags.',
+    '平台内沟通、评价和完成服务会留下成长记录；私下交易没有积分、好评、优惠券、排名和曝光收益。':
+      'In-platform communication, reviews, and completed services create growth records. Private deals do not earn points, reviews, coupons, rankings, or exposure.',
+    商家规则: 'Merchant rules',
+    '认证商家、服务评价和曝光权益': 'Verified merchants, service reviews, and exposure benefits',
+    '商家从新商家、校园服务者、靠谱商家成长到官方认证商家。':
+      'Merchants grow from New Merchant and Campus Service Provider to Reliable Merchant and Official Verified Merchant.',
+    '认证状态、好评、完成服务和用户评价会影响学校页推荐、商家排序、官方标识和优惠券合作资格。':
+      'Verification status, positive reviews, completed services, and user ratings affect school-page recommendations, merchant ranking, official badges, and coupon partnership eligibility.',
+    '商家广告帖、软广、带联系方式的合作内容必须标注商家身份；未标注或伪装成普通经验帖的平台可下架。':
+      'Merchant ads, sponsored posts, and contact-based cooperation content must disclose merchant identity. Undisclosed or disguised ads may be removed.',
+    '平台不强制用户走平台支付，但鼓励通过平台沟通、评价和信誉记录完成服务闭环。':
+      'The platform does not force platform payments, but encourages communication, reviews, and reputation records inside the platform.',
+    惩罚规则: 'Penalty rules',
+    '无效回答、广告、抄袭和 AI 水文': 'Invalid answers, ads, plagiarism, and AI spam',
+    '无效回答、答非所问或无法验证的信息不获得积分。':
+      'Invalid, off-topic, or unverifiable answers do not earn points.',
+    'AI 水文、批量搬运、虚假经历或误导性内容会扣 50～200 积分。':
+      'AI spam, bulk reposting, fake experiences, or misleading content may deduct 50 to 200 points.',
+    '恶意广告、未标注商家身份、抄袭或冒充经验内容可被下架、禁言或封号。':
+      'Malicious ads, undisclosed merchant identity, plagiarism, or fake experience content may be removed, muted, or banned.',
+    '举报违规成功可获得 +20 积分，但恶意举报会影响账号信誉。':
+      'Successful violation reports can earn +20 points, while malicious reports harm account reputation.',
+    结算边界: 'Settlement boundaries',
+    'MVP 第一版只做积分激励': 'MVP v1 only provides points incentives',
+    '当前 MVP 第一版优先验证积分激励、人工审核、内容质量和商家服务连接。':
+      'The first MVP focuses on points incentives, manual review, content quality, and merchant service connections.',
+    '第一版不承诺直接现金提现，不做复杂金融系统，也不把平台包装成返利或赚钱项目。':
+      'The first version does not promise direct cash withdrawal, does not build a complex financial system, and is not positioned as a rebate or money-making scheme.',
+    '未登录用户查看联系方式时会优先看到折叠提示；建议优先使用站内沟通与评价体系，保障双方信誉记录。':
+      'Logged-out users will see folded contact information first. We recommend using in-platform communication and reviews to preserve reputation records.',
+    '涉及结算、退款、争议或投诉的内容，以后台审核和平台最新规则为准。':
+      'Settlement, refunds, disputes, and complaints are subject to admin review and the latest platform rules.',
+    学校排行榜: 'School rankings',
+    本周学校贡献与曝光奖励: 'Weekly school contribution and exposure rewards',
+    建国大学本周活跃榜: 'Konkuk weekly activity ranking',
+    中央大学攻略榜: 'Chung-Ang guide ranking',
+    高丽大学回答榜: 'Korea University answer ranking',
+    延世大学热心榜: 'Yonsei helpfulness ranking',
+    '消费积分用来提问和解锁，可提现积分来自真实帮助。':
+      'Spending points are for questions and unlocks; withdrawable points come from real help.',
+    充值积分: 'Top up points',
+    提现沉淀期: 'Withdrawal holding period',
+    提交消费积分充值申请: 'Submit spending points top-up request',
+    申请可提现积分结算: 'Request withdrawable points settlement',
+    充值金额: 'Top-up amount',
+    收款方式备注: 'Payout note',
+    提交充值申请: 'Submit top-up request',
+    登录后充值: 'Log in to top up',
+    提交提现申请: 'Submit withdrawal request',
+    登录后提现: 'Log in to withdraw',
+    提现说明: 'Withdrawal note',
+    '通过悬赏赚取的可提现积分，需要沉淀一周后再申请提现，避免后期纠纷或退款问题。':
+      'Withdrawable points earned from reward tasks must remain pending for one week before withdrawal to reduce disputes and refunds.',
+    '由被认可的回答、悬赏任务和付费内容产生。':
+      'Generated from accepted answers, reward tasks, and paid content.',
+    '用于提问、发布悬赏、解锁干货帖和资料。':
+      'Used to ask questions, post rewards, and unlock guides or materials.',
+    '当前 MVP 先记录充值订单，后台核对收款后入账；接入微信支付后会替换为自动回调入账。':
+      'The MVP records top-up orders first; admins credit points after payment confirmation. WeChat Pay callbacks can replace this later.',
+    '提现申请会先冻结对应可提现积分，经 7 天沉淀、争议检查和人工审核后处理。':
+      'Withdrawal requests freeze the corresponding points and are processed after a 7-day holding period, dispute checks, and manual review.',
+    '用户可以用消费积分解锁深度经验或发布悬赏问题，回答者和经验作者通过被采纳答案、精华内容和专题攻略获得可提现积分。':
+      'Users can spend points to unlock guides or post rewarded questions. Answerers and authors earn withdrawable points from accepted answers, featured content, and topic guides.',
+    '读者解锁深度内容，作者获得可提现积分；无效回答和复制内容不会获得收益。':
+      'Readers unlock in-depth content, while authors earn withdrawable points. Invalid answers and copied content do not earn rewards.',
+    '注册送分、活动分和充值分不能提现，只有内容收益产生的可提现积分可以申请提现。':
+      'Registration, activity, and top-up points cannot be withdrawn. Only withdrawable points generated by content rewards can be requested for settlement.',
+    '发布悬赏的人确认满意后，积分先进入可提现积分余额；悬赏类收益进入 7 天沉淀期，期满且无争议后再开放提现申请。':
+      'After the requester confirms satisfaction, points enter the withdrawable balance. Reward-task earnings enter a 7-day holding period before withdrawal is available if there is no dispute.',
+    '把留学问题讲清楚，让有经验的人来解决。': 'Explain study-abroad problems clearly and let experienced people help.',
+    '签证、租房、入学、打工、保险、毕业和就业问题都可以在这里提问。先按分类找到相近问题，再补充自己的学校、时间线和材料背景。':
+      'Ask about visa, housing, admissions, part-time work, insurance, graduation, and jobs. Start with a category, then add your school, timeline, and materials background.',
+    我要悬赏: 'Post a reward',
+    按分类找问题: 'Find questions by category',
+    待回答: 'Awaiting answers',
+    已解决: 'Solved',
+    回答问题: 'Answer question',
+    回答列表: 'Answers',
+    已采纳答案优先展示: 'Accepted answers are shown first',
+    '已采纳答案优先展示。': 'Accepted answers are shown first.',
+    '等待更多同校或同城经验。': 'Waiting for more schoolmate or local experience.',
+    回答前请确认: 'Before answering',
+    回答内容: 'Answer content',
+    提交回答并获得: 'Submit answer and earn',
+    登录后回答: 'Log in to answer',
+    '平台奖励真实、有用、可验证的经验。请尽量写清材料、地点、时间线和你亲身经历的边界，政策类内容以官方最新公告为准。':
+      'The platform rewards real, useful, verifiable experience. Please clarify materials, locations, timelines, and the limits of your own experience. For policy matters, always follow the latest official notices.',
+    '平台奖励真实、有用、可验证的经验。':
+      'The platform rewards real, useful, and verifiable experience.',
+    '真实经验帖': 'Real experience posts',
+    '集中浏览签证、租房、入学、打工、保险、毕业和就业经验，优先展示能解决具体问题的内容。':
+      'Browse visa, housing, admissions, work, insurance, graduation, and job experience. Content that solves concrete problems is prioritized.',
+    搜索学校: 'Search schools',
+    精华: 'Featured',
+    只看精华: 'Featured only',
+    免费: 'Free',
+    已解锁: 'Unlocked',
+    积分解锁: 'Unlock with points',
+    查看全文: 'Read full post',
+    经验帖详情: 'Post details',
+    阅读: 'views',
+    点赞: 'likes',
+    收藏: 'bookmarks',
+    举报: 'Report',
+    内容质量提示: 'Content quality note',
+    '内容围绕真实留学问题，提供可执行步骤、材料提醒和亲身经历边界。平台会优先奖励被收藏、点赞、加精和能解决问题的经验帖，抄袭和无效内容不奖励。':
+      'Content should focus on real study-abroad problems, actionable steps, material reminders, and personal experience boundaries. The platform prioritizes posts that are bookmarked, liked, featured, and useful; plagiarism and invalid content are not rewarded.',
+    '按留学问题场景查找经验。': 'Find experience by study-abroad scenario.',
+    '从签证到就业，从租房到医院，把零散经验整理成可检索的问题分类。':
+      'From visas to jobs and housing to hospitals, scattered experience is organized into searchable categories.',
+    平台介绍: 'Platform introduction',
+    '留学生的第一站，真实经验帮你少走弯路。这里不是普通论坛，而是把签证、入学、租房、打工、生活和就业经验沉淀成可搜索、可验证、可解决问题的社区。':
+      'A first stop for international students. Real experience helps you avoid detours. This is not just a forum, but a searchable, verifiable problem-solving community for visas, admissions, housing, work, life, and jobs.',
+    先解决真实问题: 'Solve real problems first',
+    保护分享者隐私: 'Protect contributors’ privacy',
+    让有用经验获得回报: 'Reward useful experience',
+    商业闭环: 'Business loop',
+    '这是留学生问题解决社区 + 商家服务连接平台，第一版先验证真实问题、内容沉淀和供需连接。':
+      'This is an international-student problem-solving community plus a merchant-service connection platform. The first version validates real problems, content accumulation, and supply-demand matching.',
+    学生使用: 'Student use',
+    内容供给: 'Content supply',
+    商家连接: 'Merchant connection',
+    收入来源: 'Revenue sources',
+    第一版边界: 'Version-one boundary',
+    '留学生可以提问、查攻略、浏览学校专题，先找到同场景问题，再看完整经验和可执行清单。':
+      'Students can ask questions, read guides, and browse school topics. Find similar scenarios first, then read complete experience and actionable checklists.',
+    '创作者通过回答问题、发布经验帖、获得采纳和加精来积累积分，平台优先奖励真实、有用、可验证内容。':
+      'Creators earn points by answering questions, publishing experience posts, and receiving accepted or featured status. The platform prioritizes real, useful, verifiable content.',
+    '商家以认证身份提供租房、搬家、手机卡、保险、翻译、生活服务等信息，广告和服务内容必须标注商家身份。':
+      'Merchants provide housing, moving, SIM cards, insurance, translation, and life-service information as verified merchants. Ads and service content must disclose merchant identity.',
+    '未来收入包括商家入驻、广告展示、悬赏问答服务费、会员权益和精选服务推荐，不把平台包装成返利或赚钱项目。':
+      'Future revenue may include merchant onboarding, ad display, reward Q&A service fees, membership benefits, and curated service recommendations. The platform is not framed as a rebate or money-making project.',
+    '管理个人资料、认证材料和已发布帖子。': 'Manage your profile, verification materials, and published posts.',
+    '请先登录后进入个人中心。': 'Please log in to access your profile.',
+    营业范围: 'Business scope',
+    主营业务: 'Main business',
+    所在地: 'Location',
+    '认证后，后台可按每个营业范围单独设置普通或置顶展示。':
+      'After verification, admins can set normal or pinned display for each business scope.',
+    '已分配品牌': 'Assigned brand',
+    '后台分配品牌权限后，可在这里进入商家展示页编辑。':
+      'After admin assigns brand permission, you can enter merchant showcase editing here.',
+    登录后工作台: 'Signed-in dashboard',
+    '从这里开始处理你的售业事务。': 'start managing your Shouye work here.',
+    '登录后从这里开始：提问、助人、找商家和管理权益。':
+      'After logging in, start here: ask questions, help others, find merchants, and manage benefits.',
+    '这不是内容页，而是一个快捷导航区。你可以直接进入提问、解决别人的求助、发布经验、查看商家福利、管理积分和商家展示页。':
+      'This is a shortcut dashboard, not a content page. You can go straight to asking questions, solving requests, posting experience, viewing merchant benefits, managing points, and editing merchant showcases.',
+    我的工作台: 'My dashboard',
+    账号资料: 'Account profile',
+    我的提问: 'My questions',
+    经验发布: 'Experience posting',
+    积分账户: 'Points account',
+    '01 · 账号': '01 · Account',
+    我的账号与积分: 'My account and points',
+    先创建账号: 'Create an account first',
+    '02 · 内容': '02 · Content',
+    我要提问或帮助别人: 'Ask questions or help others',
+    '有问题就去提问/发布悬赏；有经验就发帖；想赚积分就去解决别人发布的求助。':
+      'Ask or post a reward when you need help; publish experience when you know something; solve other people’s requests to earn points.',
+    '03 · 商家': '03 · Merchants',
+    找商家或管理商家页: 'Find merchants or manage merchant pages',
+    '已认证商家可以进入展示页、商铺页和鱼缸曝光区，管理自己的对外展示。':
+      'Verified merchants can enter showcase pages, shop pages, and fish-tank exposure to manage public presentation.',
+    '普通用户可以先看商家鱼缸找服务；机构或个人服务者可以申请入驻。':
+      'Users can browse the merchant fish tank for services; institutions and individual providers can apply to join.',
+    '04 · 成长': '04 · Growth',
+    '积分、等级和优惠券': 'Points, levels, and coupons',
+    '在平台内提问、回答、发布经验、评价商家，会累积等级、称号、好评和优惠券。':
+      'Asking, answering, posting experience, and reviewing merchants builds levels, titles, positive reviews, and coupons.',
+    '售业工作台。': 'Shouye dashboard.',
+    '先选入口，再进入对应的信息流。': 'Choose an entry first, then enter the matching feed.',
+    '把提问、助人、商家福利和账号权益放在同一个入口里，用户不用往页面深处找功能。':
+      'Questions, helping, merchant benefits, and account rewards are gathered in one entry so users do not have to dig through the page.',
+    账号总览: 'Account overview',
+    '提问/悬赏': 'Ask / reward',
+    '分享/助人': 'Share / help',
+    商家服务: 'Merchant services',
+    申请商家入驻: 'Apply as merchant',
+    商铺页面编辑: 'Edit shop page',
+    积分与成长: 'Points and growth',
+    账号概况: 'Account snapshot',
+    创建售业账号: 'Create a Shouye account',
+    '登录后可以管理提问、经验、收藏、认证材料和商家权限。':
+      'After logging in, you can manage questions, posts, bookmarks, verification materials, and merchant permissions.',
+    注册账号: 'Register account',
+    内容入口: 'Content entry',
+    '把问题发出来找人帮，也可以分享自己知道的经验或接别人的求助。':
+      'Post questions to get help, share what you know, or pick up requests from others.',
+    我来解决: 'Solve requests',
+    商家与合作: 'Merchants and partnerships',
+    '商家账号可以查看鱼缸曝光、进入展示页，并在后台认证后装饰自己的商家页面。':
+      'Merchant accounts can view fish-tank exposure, enter showcase pages, and decorate their own merchant pages after admin verification.',
+    '留学咨询、论文毕业、韩语培训、搬家通信等服务可以申请入驻展示。':
+      'Study consulting, thesis and graduation, Korean training, moving, and telecom services can apply for showcase placement.',
+    商家鱼缸: 'Merchant fish tank',
+    入驻申请: 'Application',
+    我的展示页: 'My showcase',
+    成长与权益: 'Growth and benefits',
+    '回答被采纳、经验被收藏、完成评价和商家服务都会进入等级、称号、好评和优惠券体系。':
+      'Accepted answers, bookmarked posts, completed reviews, and merchant services all feed into levels, titles, reviews, and coupons.',
+    等级成长: 'Level growth',
+    学校榜单: 'School ranking',
+    查看收益规则: 'View rewards rules',
+    '按地区浏览院校，选择学校进入专属内容页。':
+      'Browse schools by region and open dedicated school pages.',
+    '所院校 · 按 QS 2026 与申请热度排序': 'schools · sorted by QS 2026 and application demand',
+    '按 QS 2026 与申请热度排序': 'sorted by QS 2026 and application demand',
+    '优先展示 QS 2026 排名前列院校，并覆盖艺术、女子大学、理工类和高频申请院校。':
+      'Prioritizes highly ranked QS 2026 schools while also covering art schools, women’s universities, engineering schools, and frequently applied-to universities.',
+    '首都圈通勤范围，工科、医学、产业合作项目选择多。':
+      'Within the Seoul metro commute range, with many choices in engineering, medicine, and industry-linked programs.',
+    '海港城市、生活成本相对低，国立大学与地方强校适合做备选。':
+      'Port-city options with relatively lower living costs; national and strong regional universities are good backup choices.',
+    '地方国立与产业城市组合，适合看奖学金、就业和生活成本。':
+      'A mix of regional national universities and industrial cities, useful for comparing scholarships, jobs, and living costs.',
+    '研究型城市和中部交通节点，适合理工、科研和性价比选择。':
+      'Research-oriented cities and central transport hubs, suitable for engineering, research, and value-focused choices.',
+    '韩国国立大学代表，研究资源强，理工、人文社科、经营、国际大学院都适合重点关注。':
+      'A leading national university in Korea with strong research resources; engineering, humanities and social sciences, business, and international graduate programs are all worth close attention.',
+    '韩国国立大学代表，研究资源强，理工、人文社科、经营、国际 Graduate school都适合重点关注。':
+      'A leading national university in Korea with strong research resources; engineering, humanities and social sciences, business, and international graduate programs are all worth close attention.',
+    '理工、人文社科、经营、国际大学院都适合重点关注。':
+      'Engineering, humanities and social sciences, business, and international graduate programs are all worth close attention.',
+    '冠岳校区正门与主轴线': 'Gwanak main gate and central axis',
+    '冠岳校区正门与主轴线官网': 'Gwanak main gate and central axis site',
+    '语学院入口': 'Language school entry',
+    'Language school入口': 'Language school entry',
+    '获取外国人招生简章（모집요강）': 'Foreign admissions guide (모집요강)',
+    国际大学院: 'International graduate school',
+    '国际Graduate school': 'International graduate school',
+    '国际 Graduate school': 'International graduate school',
+    人文社科: 'Humanities and social sciences',
+    国立旗舰: 'National flagship',
+    研究资源强: 'Strong research resources',
+    申请竞争高: 'Competitive admissions',
+    '分享这所学校的经验': 'Share experience about this school',
+    '获取这所学校的经验': 'Get experience about this school',
+    背景图来源: 'Image source',
+    '首尔大学专题贴': 'Seoul National University topic posts',
+    学校经验库: 'School experience library',
+    入驻商家: 'Partner merchants',
+    '入驻商家 +': 'Partner application +',
+    '把留学常用商家列举在此，方便货比三家。':
+      'Common student services are listed here so you can compare providers before contacting them.',
+    '按服务类型查看广告、资质、优惠和联系方式，先比较再咨询。':
+      'Browse ads, credentials, offers, and contact info by service type; compare first, then consult.',
+    '按Service type查看广告、资质、优惠和Contact，先比较再咨询。':
+      'Browse ads, credentials, offers, and contact info by service type; compare first, then consult.',
+    网页编辑模式: 'Website edit mode',
+    管理员工具: 'Admin tools',
+    '直接点首页文字修改，改完点保存。': 'Click homepage text to edit, then save.',
+    '可以在当前页面直接改首页内容。': 'Edit homepage content directly on this page.',
+    进入编辑模式: 'Enter edit mode',
+    最近更新的留学经验和问题记录: 'Recently updated study-abroad posts and questions',
+    '最近更新的留学经验和问题记录。': 'Recently updated study-abroad posts and questions.',
+    进入帖子页: 'Open posts',
+    已解决问题: 'Solved questions',
+    '先看被采纳的回答，再决定要不要继续提问。':
+      'Read accepted answers first, then decide whether to ask more.',
+    问题悬赏: 'Rewarded questions',
+    '不是发帖就赚钱，而是帮助别人解决真实问题才有收益。':
+      'Rewards come from solving real problems, not simply posting.',
+    '平台以积分模拟内容激励闭环：用户发布问题时可以设置悬赏，被采纳的回答者获得积分奖励。积分用于站内身份、内容激励和创作者等级，不承诺现金提现。':
+      'The platform uses points to model a content-incentive loop: users can attach rewards to questions, and accepted answerers receive points. Points support identity, content incentives, and creator levels; cash withdrawal is not promised.',
+    查看悬赏问题: 'View rewarded questions',
+    提问者设置悬赏: 'Askers set rewards',
+    '把问题、学校、时间线和材料背景写清楚。':
+      'Clearly describe the question, school, timeline, and document background.',
+    回答者给出解决方案: 'Answerers provide solutions',
+    '回答要可执行，尽量附流程、材料、窗口和注意事项。':
+      'Answers should be actionable and include procedures, documents, offices, and cautions where possible.',
+    答案被采纳后结算: 'Settlement after acceptance',
+    '收益进入创作者积分账户，用于站内等级、内容权益和后续合作激励；当前不做真实支付和提现。':
+      'Rewards enter the creator points account for platform levels, content benefits, and future cooperation incentives; real payments and withdrawals are not enabled yet.',
+    分享赚钱: 'Earn by sharing',
+    被采纳回答获得悬赏收益: 'Accepted answers earn rewards',
+    '解决提问者的具体问题后，收益归入创作者账户。':
+      'After solving the asker’s concrete problem, rewards go to the creator account.',
+    高质量经验帖获得平台奖励: 'Quality experience posts receive platform rewards',
+    '被收藏、点赞、加精的内容会获得更多曝光和激励。':
+      'Bookmarked, liked, and featured content receives more exposure and incentives.',
+    精华攻略可分成或买断: 'Featured guides may receive revenue share or buyout rewards',
+    '签证、租房、打工、毕业等专题内容可以进入平台专题库。':
+      'Topics such as visas, housing, part-time work, and graduation can enter the platform topic library.',
+    '作者等级越高，曝光越高': 'Higher creator levels receive higher exposure',
+    '持续贡献有效答案和真实经验，会提升内容推荐权重。':
+      'Consistently contributing useful answers and real experience improves recommendation weight.',
+    分类导航: 'Category navigation',
+    '按问题场景进入，不用在群聊里反复翻记录。':
+      'Enter by problem scenario instead of digging through chat history.',
+    城市与学校攻略: 'City and school guides',
+    '把生活落地、学校周边和常用流程整理成可复用清单。':
+      'Turn local life, school surroundings, and common procedures into reusable checklists.',
+    发布留学问题: 'Post a study-abroad question',
+    问题标题: 'Question title',
+    问题详情: 'Question details',
+    发布问题: 'Post question',
+    浏览最多: 'Most viewed',
+    最新发布: 'Newest',
+    平台提示: 'Platform note',
+    内容审核: 'Content review',
+    '这条问题还在等待更完整的回答。回答需要给出材料、时间线、办理地点和注意事项，复制内容和无效回答不会获得积分。':
+      'This question is still waiting for a more complete answer. Answers should include documents, timelines, locations, and cautions; copied or invalid answers do not earn points.',
+    官方入口和材料下载: 'Official links and downloads',
+    回答者获得: 'Answerer receives',
+    赞: 'likes',
+    '接悬赏问答和线下求助任务。': 'Take rewarded Q&A and offline help tasks.',
+    '这里集中展示别人用充值积分发布的悬赏问题，以及需要线下协助解决的任务。左侧看问题和要求，右侧直接看悬赏金额。':
+      'This page gathers rewarded questions posted with points and tasks that need offline help. Read the request on the left and the reward on the right.',
+    线上悬赏: 'Online rewards',
+    线下任务: 'Offline tasks',
+    最高悬赏: 'Highest reward',
+    悬赏金额: 'Reward amount',
+    线下任务折算: 'Offline task estimate',
+    拖入图片视频到主视觉区: 'Drag image/video into the hero area',
+    '拖入图片/视频到主视觉区': 'Drag image/video into the hero area',
+    '先看服务边界，再决定是否咨询。': 'Review service boundaries before consulting.',
+    '你可以编辑这个商家详情页的标题、介绍、咨询提示、字体颜色和图片展示，保存后只影响当前品牌。':
+      'You can edit this merchant detail page’s title, intro, consultation note, font colors, and images. Saved changes affect only this brand.',
+    品牌头像: 'Brand avatar',
+    '点击上传头像，保存后进入后台审核；审核通过后才会展示在商家详情页。建议使用正方形头像或品牌 LOGO。':
+      'Upload an avatar; after saving, it enters admin review and appears on the merchant page only after approval. A square avatar or brand logo is recommended.',
+    当前有头像正在等待平台审核: 'An avatar is currently waiting for platform review',
+    '当前有头像正在等待平台审核。': 'An avatar is currently waiting for platform review.',
+    '上次头像未通过审核，可以重新上传': 'The previous avatar was rejected; you can upload again',
+    '上次头像未通过审核，可以重新上传。': 'The previous avatar was rejected; you can upload again.',
+    关闭编辑模式: 'Close edit mode',
+    开启编辑模式: 'Open edit mode',
+    '编辑模式只对当前品牌管理账号显示。': 'Edit mode is shown only to the current brand manager account.',
+    跟随平台默认: 'Use platform default',
+    现代黑体: 'Modern sans',
+    '宋体/衬线': 'Song / Serif',
+    标题字颜色: 'Title color',
+    正文字颜色: 'Body color',
+    重点字颜色: 'Accent color',
+    集体展示气泡样式: 'Collective tank bubble style',
+    '这里控制“我要找商家要福利”水箱页里当前品牌气泡的底色、LOGO 背景和文字颜色。':
+      'This controls the current brand bubble color, logo background, and text colors in the merchant tank page.',
+    气泡底色: 'Bubble background',
+    '例如 rgba': 'Example rgba',
+    LOGO背景色: 'Logo background',
+    'LOGO 背景色': 'Logo background',
+    气泡主文字色: 'Bubble main text color',
+    分类小字色: 'Category text color',
+    主视觉图片区: 'Hero image area',
+    服务展示图片区: 'Service image area',
+    '泡泡框和素材框': 'Bubble and media boxes',
+    '在展示区点击泡泡框后，可拖动、拉伸、调透明度、调层级或删除；也可以直接把图片/视频拖进泡泡框。':
+      'Click a bubble box in the showcase to drag, resize, adjust opacity, change layers, or delete it. You can also drag images/videos directly into the box.',
+    添加主视觉泡泡: 'Add hero bubble',
+    添加服务区泡泡: 'Add service bubble',
+    还没有选中泡泡框: 'No bubble box selected',
+    '还没有选中泡泡框。点击展示区里的泡泡框后，这里会显示调节项。':
+      'No bubble box is selected. Click a bubble box in the showcase to show controls here.',
+    页面标识: 'Page label',
+    详情页标题: 'Detail page title',
+    品牌介绍: 'Brand introduction',
+    '服务展示 1': 'Service display 1',
+    '服务展示 2': 'Service display 2',
+    保存品牌详情页装饰: 'Save brand page decoration',
+    '为留学生设计清晰的提问、分享和认证入口。':
+      'Clear entry points for international students to ask, share, and verify.',
+    '为留学生和机构建立可信连接。': 'Build trusted connections between students and service providers.',
+    '学生完成认证后，可提问、回答悬赏问题、匿名分享经验，并通过高质量内容获得收益。':
+      'After verification, students can ask questions, answer rewarded requests, share experience anonymously, and earn rewards through quality contributions.',
+    '留学机构、语学院、论文辅导、政府部门和职业规划机构可提交合作表单，由后台统一跟进。':
+      'Study-abroad agencies, language schools, thesis support providers, public-sector groups, and career services can submit partnership forms for admin follow-up.',
+    查看机构合作: 'View partnerships',
+    '认证用户积累后，可为教育机构、跨境企业和韩企提供实习、招聘与校园服务入口。':
+      'As verified users accumulate, the platform can provide internships, recruitment, and campus-service entry points for schools, cross-border companies, and Korean employers.',
+    '每篇经验都对应真实的择校、申请和服务转化场景。':
+      'Every post maps to a real school-choice, application, or service-conversion scenario.',
+    '真实、匿名、可验证，是留学生敢分享的前提。':
+      'Real, anonymous, and verifiable is the foundation for students to share safely.',
+    '平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和人工审核，让内容可信，也让提问者和分享者更安全。':
+      'The platform combines backend verification, front-facing anonymity, document review, same-school cross-checks, small-sample protection, and human moderation to make content trustworthy and safer for both askers and contributors.',
+    '学校邮箱、Offer、在读和毕业材料认证': 'School email, offer, enrollment, and graduation-material verification',
+    '付费加精内容审核后展示': 'Paid featured content is shown only after review',
+    '匿名展示与小样本保护，降低身份暴露风险':
+      'Anonymous display and small-sample protection reduce identity exposure risk',
+    '欢迎能解决留学生真实问题的机构和服务方申请合作。':
+      'Service providers that can solve real international-student problems are welcome to apply.',
+    '申请成为首批合作方': 'Apply to become an early partner',
+    '欢迎能解决留学生真实问题的机构和服务方申请合作':
+      'Service providers that solve real student problems are welcome to apply',
+    '申请成为首批合作方 +': 'Apply to become an early partner +',
+    '真实、匿名、可验证，是留学生敢分享的前提':
+      'Real, anonymous, and verifiable are what make students willing to share',
+  },
+  ko: {
+    售业: '쇼우예',
+    留学生经验分享与问题解决平台: '유학생 경험 공유와 문제 해결 플랫폼',
+    院校入口: '학교',
+    我要提问: '질문하기',
+    '我要提问/发布悬赏': '질문/보상 등록',
+    '我要提问/悬赏': '질문/보상',
+    我来解决问题: '도움 주기',
+    经验分享: '경험 공유',
+    收益规则: '보상 규칙',
+    问题分类: '문제 분류',
+    积分充值提现: '포인트',
+    '积分充值/提现': '포인트',
+    个人中心: '마이페이지',
+    退出: '로그아웃',
+    登录: '로그인',
+    注册: '가입',
+    选择语言: '언어 선택',
+    首页: '홈',
+    提问: '질문',
+    解决: '해결',
+    经验: '경험',
+    分类: '분류',
+    院校: '학교',
+    '你的 一切经验都有机会在这里变现': '당신의 경험이 가치가 되는 곳',
+    '技能&经验变现平台': '스킬과 경험 수익화 플랫폼',
+    '你可以在这里提问，也可以分享自己的留学经验，通过高质量回答和经验帖获得收益。':
+      '질문하고 유학 경험을 공유하며, 유용한 답변과 글로 보상을 받을 수 있습니다.',
+    搜索: '검색',
+    '我要提问/求助': '질문/도움 요청',
+    '我要分享经验/提供帮助赚钱': '공유/도움 주기',
+    我要找商家要福利: '상점 혜택 찾기',
+    商家福利: '상점 혜택',
+    '提问/求助': '질문/도움',
+    分享与助人: '공유와 도움',
+    收益: '보상',
+    '提出问题寻求帮助，或者直接悬赏解决问题': '질문을 올리거나 보상으로 해결을 요청하세요.',
+    '分享您的经验，或给人提供实质性帮助解决问题': '경험을 공유하거나 실질적인 도움을 제공하세요.',
+    '被采纳回答、完成悬赏问答、提供精华攻略、完成悬赏任务都可以获取收入':
+      '채택 답변, 보상 질문, 핵심 가이드, 도움 과제를 통해 플랫폼 보상을 받을 수 있습니다.',
+    常见问题免费贴: '자주 묻는 무료 질문',
+    '留学生最常遇到的问题。': '유학생이 자주 겪는 문제입니다.',
+    真人真实经验分享: '실제 학생 경험담',
+    查看全部: '전체 보기',
+    发布经验: '경험 올리기',
+    去提问: '질문하기',
+    发布悬赏: '보상 등록',
+    保存: '저장',
+    保存修改: '수정 저장',
+    保存成功: '저장 완료',
+    提交成功: '제출 완료',
+    取消: '취소',
+    关闭: '닫기',
+    提交: '제출',
+    删除: '삭제',
+    上传头像: '프로필 업로드',
+    登录账号: '로그인',
+    创建账号: '계정 만들기',
+    '继续使用你的积分账户。': '포인트 계정으로 계속 이용하세요.',
+    '注册后即可提问、分享经验并获得积分。': '가입 후 질문, 경험 공유, 포인트 적립이 가능합니다.',
+    学生: '학생',
+    商家: '상점',
+    邮箱: '이메일',
+    密码: '비밀번호',
+    确认密码: '비밀번호 확인',
+    邮箱验证码: '이메일 인증코드',
+    发送验证码: '인증코드 발송',
+    注册并领取初始积分: '가입하고 시작 포인트 받기',
+    '还没有账号？去注册': '계정이 없나요? 가입하기',
+    '已有账号？去登录': '이미 계정이 있나요? 로그인',
+    找回账号: '계정 찾기',
+    我已阅读并同意: '다음을 읽고 동의합니다',
+    用户协议: '이용약관',
+    隐私政策: '개인정보 처리방침',
+    未成年人个人信息保护规则: '미성년자 개인정보 보호 규칙',
+    准备申请: '지원 준비',
+    已录取待入学: '합격 후 입학 대기',
+    语学院: '어학당',
+    本科: '학부',
+    大学院: '대학원',
+    已毕业: '졸업',
+    商家名称: '상점명',
+    服务类型: '서비스 유형',
+    国家: '국가',
+    城市: '도시',
+    全部: '전체',
+    全部学校: '전체 학교',
+    全部城市: '전체 도시',
+    全部内容: '전체 콘텐츠',
+    全部状态: '전체 상태',
+    悬赏最高: '보상 높은 순',
+    智能推荐: '스마트 추천',
+    学校推荐: '학교 추천',
+    关联推荐: '연관 추천',
+    暂时没有完全匹配的帖子: '아직 정확히 일치하는 글이 없습니다',
+    先看这些更接近的学校专题和帖子: '먼저 관련 학교, 주제, 글을 확인해 보세요',
+    平台声明: '플랫폼 안내',
+    '本平台严禁发布换钱、换米相关求助、帮助和广告。私下换汇属于违法行为；用户如因本平台信息媒介自行接洽换汇，均属于个人行为，本平台不承担法律责任。':
+      '환전 관련 요청, 도움, 광고는 금지됩니다. 사적 환전은 위법 소지가 있으며, 플랫폼 정보를 통해 개인적으로 진행한 행위에 대해 플랫폼은 법적 책임을 지지 않습니다.',
+    '如何通过分享经验获得收益？': '경험 공유 보상은 어떻게 받나요?',
+    '平台奖励的是“真实、有用、可验证的经验”，不是单纯发帖数量。':
+      '보상은 단순 글 수가 아니라 실제적이고 유용하며 검증 가능한 경험에 지급됩니다.',
+    回答悬赏问题: '보상 질문 답변',
+    发布高质量经验帖: '고품질 경험 글 작성',
+    贡献专题攻略: '주제별 가이드 기여',
+    防止垃圾内容: '스팸 방지',
+    留学咨询: '유학 상담',
+    论文与毕业: '논문/졸업',
+    韩语培训: '한국어 교육',
+    艺术类培训: '예술 교육',
+    作品集辅导: '포트폴리오 지도',
+    餐饮相关: '외식',
+    物流快递: '물류/택배',
+    通信: '통신',
+    家政搬家: '가사/이사',
+    不动产: '부동산',
+    商家申请入驻: '상점 입점 신청',
+    查看商家鱼缸: '상점 어항 보기',
+    进入商家详情页: '상점 상세 보기',
+    认证商家展示页: '인증 상점 페이지',
+    返回商家展示区: '상점 전시로 돌아가기',
+    完成编辑: '편집 완료',
+    添加图片: '이미지 추가',
+    添加文本框: '텍스트 추가',
+    字号: '글자 크기',
+    字色: '글자색',
+    透明: '투명도',
+    图层上移: '레이어 올리기',
+    图层下移: '레이어 내리기',
+    管理员登录: '관리자 로그인',
+    后台: '관리자',
+    注册用户: '가입 사용자',
+    状态: '상태',
+    认证: '인증',
+    操作: '작업',
+    审核通过: '승인',
+    驳回材料: '자료 보완',
+    禁言: '발언 제한',
+    封号: '계정 정지',
+    提问标题: '질문 제목',
+    问题描述: '질문 내용',
+    标题: '제목',
+    学校: '학교',
+    摘要: '요약',
+    正文: '본문',
+    解锁积分: '잠금 해제 포인트',
+    保存并发布: '저장 후 게시',
+    我知道: '알고 있어요',
+    我能做: '도울 수 있어요',
+    分享经验: '경험 공유',
+    发布技能: '스킬 등록',
+    编辑展示页: '전시 페이지 편집',
+    你的一切经验都有机会在这里变现: '당신의 경험이 가치가 되는 곳',
+    韩国主流院校导航: '한국 주요 대학 안내',
+    按地区进入院校库: '지역별 학교 보기',
+    韩国院校地区导航: '한국 학교 지역 안내',
+    首尔: '서울',
+    '京畿道 / 仁川': '경기도 / 인천',
+    '釜山 / 庆南': '부산 / 경남',
+    '大邱 / 庆北': '대구 / 경북',
+    '忠清 / 大田 / 世宗': '충청 / 대전 / 세종',
+    '全罗 / 光州': '전라 / 광주',
+    '江原 / 济州': '강원 / 제주',
+    语学院本科硕博入学相关: '입학 관련',
+    '语学院/本科/硕博入学相关': '입학 관련',
+    在学期间相关: '재학 생활',
+    毕业问题相关: '졸업 문제',
+    '毕业后签证/就业相关': '졸업 후 비자/취업',
+    申请材料: '신청 서류',
+    入学流程: '입학 절차',
+    选课: '수강 신청',
+    学分确认: '학점 확인',
+    签证: '비자',
+    租房: '집 구하기',
+    打工: '아르바이트',
+    保险: '보험',
+    银行卡和校园生活: '은행카드와 학교생활',
+    论文: '논문',
+    延毕: '졸업 유예',
+    毕业审查: '졸업 심사',
+    材料节点: '서류 일정',
+    'D-10、永驻、求职、回国认证、落户和人才政策': 'D-10, 영주, 구직, 귀국 인증, 정착 및 인재 정책',
+    学校专题: '학교 특집',
+    专项入口: '주제 입구',
+    重点内容: '핵심 내용',
+    跳蚤市场: '중고 장터',
+    八卦与吃瓜: '캠퍼스 이야기',
+    抱团选课: '수강 신청 모임',
+    各种吐槽: '자유 토크',
+    入学须知: '입학 안내',
+    找房与转租: '집 구하기/전대',
+    同好与交友: '취미와 친구',
+    周边生活攻略: '주변 생활 가이드',
+    找兼职与代兼职: '아르바이트 찾기',
+    作业与论文: '과제와 논문',
+    平台如何运转: '플랫폼 운영 방식',
+    '平台如何运转？': '플랫폼은 어떻게 운영되나요?',
+    积分规则: '포인트 규칙',
+    商家入驻: '상점 입점',
+    商家福利总览: '상점 혜택 모아보기',
+    先看已入驻商家再按服务分类筛: '입점 상점을 먼저 보고 서비스별로 필터링',
+    '先看已入驻商家，再按服务分类筛。': '입점 상점을 먼저 확인한 뒤 서비스 유형별로 비교하세요.',
+    '点击悬浮气泡可以直接进入商家详情，也可以点分类标签对应类别的商家展示日历':
+      '떠 있는 버블을 누르면 상점 상세로 이동하고, 분류 태그로 해당 서비스 전시를 볼 수 있습니다.',
+    学业相关: '학업 지원',
+    机构类型: '기관 유형',
+    '微信 / 电话': '위챗 / 전화',
+    '预算 / 合作方式': '예산 / 협력 방식',
+    方向: '방향',
+    联系人: '담당자',
+    需求: '요청 사항',
+    审核提交: '심사 제출',
+    审核不通过: '심사 반려',
+    审核不通过理由: '반려 사유',
+    商家级别: '상점 등급',
+    普通: '일반',
+    置顶: '상단 노출',
+    品牌名称: '브랜드명',
+    上传证件: '서류 업로드',
+    认证材料: '인증 자료',
+    查看材料: '자료 보기',
+    当前权限: '현재 권한',
+    商家品牌装饰权限: '브랜드 페이지 편집 권한',
+    编辑模式: '편집 모드',
+    上传到选中框: '선택 영역에 업로드',
+    移动: '이동',
+    吸管: '스포이드',
+    主视觉文本: '메인 비주얼 텍스트',
+    服务区文本: '서비스 영역 텍스트',
+    调色盘: '색상 팔레트',
+    图层: '레이어',
+    身份: '신분',
+    昵称: '닉네임',
+    学生阶段: '학생 단계',
+    '学校 / 目标学校': '학교 / 목표 학교',
+    '商家/机构名称': '상점 / 기관명',
+    所在国家: '소재 국가',
+    所在城市: '소재 도시',
+    发送中: '발송 중',
+    秒后重发: '초 후 재발송',
+    请输入: '입력해 주세요',
+    至少: '최소',
+    再次输入密码: '비밀번호 재입력',
+    邮箱验证码已通过: '이메일 인증 완료',
+    注册邮箱或账号线索: '가입 이메일 또는 계정 단서',
+    联系方式: '연락처',
+    补充说明: '추가 설명',
+    提交找回申请: '계정 찾기 신청',
+    发布内容: '콘텐츠 등록',
+    '你要发布“我知道”，还是“我能做”？': '경험을 공유할까요, 도움을 제공할까요?',
+    重新选择: '다시 선택',
+    '发布经验、流程、材料清单、避坑攻略和学校生活复盘。': '경험, 절차, 서류 목록, 주의점, 학교생활 후기를 공유합니다.',
+    '发布可接的技能服务：跑腿、排队、地陪、宠物照看、同校辅导等。':
+      '심부름, 줄서기, 현지 동행, 반려동물 돌봄, 같은 학교 튜터링 등 가능한 서비스를 등록합니다.',
+    '发布你能提供的技能和帮助。': '제공할 수 있는 스킬과 도움을 등록하세요.',
+    '发布可检索、可审核、可加精的留学经验。': '검색 가능하고 심사와 추천이 가능한 유학 경험을 올리세요.',
+    技能标题: '스킬 제목',
+    '关联学校/区域': '관련 학교 / 지역',
+    技能分类: '스킬 분류',
+    '查看/联系积分': '보기 / 연락 포인트',
+    服务区域: '서비스 지역',
+    可接时间: '가능 시간',
+    韩国生活: '한국 생활',
+    '学习类服务只能发布讲题、资料整理、修改建议和方法辅导；不能发布代写、代考、替课、作弊类服务。':
+      '학습 서비스는 문제 설명, 자료 정리, 수정 제안, 학습 방법 지도만 가능하며 대필, 대리시험, 대리출석, 부정행위는 금지됩니다.',
+    简介: '소개',
+    服务说明: '서비스 설명',
+    保存并发布技能: '스킬 저장 후 게시',
+    机构合作申请: '기관 협력 신청',
+    '提交机构入驻、内容合作或人才合作需求。': '기관 입점, 콘텐츠 협력 또는 인재 협력 요청을 제출하세요.',
+    '机构 / 公司名称': '기관 / 회사명',
+    合作方向: '협력 방향',
+    内容入驻: '콘텐츠 입점',
+    招生线索合作: '학생 모집 리드 협력',
+    '论文 / 课程辅导合作': '논문 / 수업 지도 협력',
+    留学生人才推荐: '유학생 인재 추천',
+    广告投放: '광고 집행',
+    合作需求说明: '협력 요청 설명',
+    提交合作申请: '협력 신청 제출',
+    举报入口: '신고',
+    举报原因: '신고 사유',
+    违法违规内容: '불법/위반 콘텐츠',
+    '非法换汇/换米': '불법 환전',
+    '代写代考/作弊': '대필/대리시험/부정행위',
+    '虚假商家/诈骗': '허위 상점/사기',
+    侵犯隐私: '개인정보 침해',
+    垃圾广告: '스팸 광고',
+    其他: '기타',
+    '联系方式（选填）': '연락처(선택)',
+    提交举报: '신고 제출',
+    账号状态: '계정 상태',
+    认证状态: '인증 상태',
+    正常: '정상',
+    待审核: '심사 대기',
+    已通过: '승인됨',
+    已驳回: '반려됨',
+    未分配: '미배정',
+    保存商家状态: '상점 상태 저장',
+    通过: '승인',
+    不通过: '반려',
+    帖子: '게시글',
+    价格: '가격',
+    已加精: '추천됨',
+    未加精: '미추천',
+    预览: '미리보기',
+    咨询线索: '상담 리드',
+    搜索咨询线索: '상담 리드 검색',
+    负责人: '담당자',
+    导出: '내보내기',
+    类型: '유형',
+    咨询人: '상담자',
+    待联系: '연락 대기',
+    已联系: '연락 완료',
+    已关闭: '종료됨',
+    后台备注: '관리자 메모',
+    标记已联系: '연락 완료 표시',
+    悬赏申诉: '보상 분쟁',
+    退款: '환불',
+    申诉: '이의 제기',
+    恶意采纳: '악의적 채택',
+    待处理: '처리 대기',
+    处理中: '처리 중',
+    已处理: '처리 완료',
+    不成立: '불인정',
+    标记处理: '처리 완료 표시',
+    删除记录: '기록 삭제',
+    充值订单: '충전 주문',
+    提现申请: '출금 신청',
+    待确认: '확인 대기',
+    已入账: '입금 완료',
+    已取消: '취소됨',
+    已退款: '환불됨',
+    已打款: '송금 완료',
+    审核备注: '심사 메모',
+    合作申请: '협력 신청',
+    机构: '기관',
+    审核: '심사',
+    审核拒绝: '심사 거절',
+    提交审核: '심사 제출',
+    商家头像审核: '상점 아바타 심사',
+    品牌: '브랜드',
+    待审核头像: '심사 대기 아바타',
+    说明: '설명',
+    '审核品牌头像后才对外展示。': '브랜드 아바타는 심사 후 외부에 표시됩니다.',
+    可视化改网站: '시각적 사이트 편집',
+    首页文案和手机端尺寸: '홈페이지 문구와 모바일 크기',
+    恢复默认: '기본값 복원',
+    保存到网站: '사이트에 저장',
+    顶部小字: '상단 작은 문구',
+    首页大标题: '홈페이지 큰 제목',
+    主标题下面的大字: '제목 아래 큰 문구',
+    搜索框上方说明: '검색창 위 설명',
+    搜索框提示文字: '검색창 안내 문구',
+    蓝色按钮: '파란 버튼',
+    红色按钮: '빨간 버튼',
+    第一组大字: '첫 번째 제목',
+    第一组小字: '첫 번째 설명',
+    第二组大字: '두 번째 제목',
+    第二组小字: '두 번째 설명',
+    第三组大字: '세 번째 제목',
+    第三组小字: '세 번째 설명',
+    瓦剌详情页标识: 'Wala 상세 배지',
+    瓦剌详情页标题: 'Wala 상세 제목',
+    瓦剌详情页介绍: 'Wala 상세 소개',
+    咨询前提示: '상담 전 안내',
+    账户概览: '계정 개요',
+    公开简介: '공개 소개',
+    商家资料: '상점 정보',
+    个人头像: '프로필 이미지',
+    保存个人信息: '프로필 저장',
+    我的认证材料: '내 인증 자료',
+    我的帖子: '내 게시글',
+    暂未提交认证材料: '아직 제출한 인증 자료가 없습니다.',
+    还没有发布帖子: '아직 게시글이 없습니다.',
+    商家工具: '상점 도구',
+    商家展示管理: '상점 전시 관리',
+    可提现积分: '출금 가능 포인트',
+    消费积分: '사용 포인트',
+    '点击上传图片，保存后会展示在个人中心和你发布的内容旁。':
+      '이미지를 업로드하고 저장하면 프로필과 게시글 옆에 표시됩니다.',
+    '这里只填写公开展示文案；商家权限、品牌 ID 等系统信息不会显示在这里。':
+      '여기에는 공개 소개만 입력합니다. 상점 권한과 브랜드 ID 같은 시스템 정보는 표시되지 않습니다.',
+    '写给其他用户看的简介，例如你的学校、专业、服务范围或可分享经验。':
+      '다른 사용자에게 보일 학교, 전공, 서비스 범위 또는 공유 가능한 경험을 작성하세요.',
+    '可直接进入你的品牌详情页或商铺首页展示编辑。':
+      '브랜드 상세 페이지 또는 상점 전시 페이지를 바로 편집할 수 있습니다.',
+    '后台分配品牌权限后，这里会显示编辑入口。':
+      '관리자가 브랜드 권한을 배정하면 여기에 편집 입구가 표시됩니다.',
+    成长体系: '성장 시스템',
+    等级: '레벨',
+    称号: '칭호',
+    好评率: '긍정 평가율',
+    被帮助人数: '도움을 받은 사람 수',
+    累计采纳: '누적 채택',
+    奖励系数: '보상 배율',
+    学校贡献榜: '학교 기여 랭킹',
+    成长中: '성장 중',
+    距离: '다음 레벨까지',
+    优惠券: '쿠폰',
+    赚钱方式: '보상 받는 방법',
+    '回答、经验帖、专题攻略和任务奖励': '답변, 경험 글, 주제별 가이드, 미션 보상',
+    '回答被提问者采纳后，按问题难度和有效程度获得 +50～200 积分；无效回答、答非所问或无法验证的信息记 0 积分。':
+      '답변이 채택되면 난이도와 유효성에 따라 +50~200 포인트를 받습니다. 무효 답변, 동문서답, 검증 불가 정보는 0포인트입니다.',
+    '经验帖被审核为精华内容后可获得 +100～500 积分；收藏每满 10 次额外 +20 积分，点赞每满 20 次额外 +10 积分。':
+      '경험 글이 추천 콘텐츠로 승인되면 +100~500 포인트를 받을 수 있습니다. 저장 10회마다 +20포인트, 좋아요 20회마다 +10포인트가 추가됩니다.',
+    '签证、租房、打工、毕业等专题内容进入学校或分类专题库后，可获得额外积分奖励，并优先获得内容曝光。':
+      '비자, 집 구하기, 아르바이트, 졸업 등 주제 콘텐츠가 학교 또는 카테고리 라이브러리에 들어가면 추가 포인트와 우선 노출을 받을 수 있습니다.',
+    '完成悬赏任务、商家推广任务或平台活动任务后，按任务规则获得对应积分奖励。':
+      '보상 미션, 상점 홍보 미션, 플랫폼 이벤트 미션을 완료하면 규칙에 따라 포인트를 받습니다.',
+    成长制度: '성장 제도',
+    '等级、称号、奖励系数和学校榜单': '레벨, 칭호, 보상 배율, 학교 랭킹',
+    '用户会根据积分、被采纳次数、完成任务数和好评数，从 Lv1 新人成长到 Lv10 售业大师。':
+      '사용자는 포인트, 채택 횟수, 완료한 미션, 긍정 평가에 따라 Lv1 신입에서 Lv10 쇼우예 마스터까지 성장합니다.',
+    'Lv3 奖励系数 105%，Lv5 为 110%，Lv7 为 120%，Lv10 为 130%，高等级用户会获得更高平台奖励系数。':
+      '보상 배율은 Lv3 105%, Lv5 110%, Lv7 120%, Lv10 130%입니다. 높은 레벨일수록 더 높은 플랫폼 보상 배율을 받습니다.',
+    '学生称号包括租房避坑达人、签证专家、校园情报员、学校传奇、留学生之光等。':
+      '학생 칭호에는 집 구하기 고수, 비자 전문가, 캠퍼스 정보원, 학교 전설, 유학생의 빛 등이 있습니다.',
+    '经常帮助同校用户会进入学校排行榜，获得专属称号、平台曝光、限定头像框或优惠券。':
+      '같은 학교 사용자를 자주 돕는 사용자는 학교 랭킹에 오르고 전용 칭호, 플랫폼 노출, 한정 프로필 테두리 또는 쿠폰을 받을 수 있습니다.',
+    优惠券与好评: '쿠폰과 평가',
+    '求助用户也能获得平台权益': '도움을 요청하는 사용자도 혜택을 받을 수 있습니다',
+    '连续签到、发布优质问题、完成评价、首次平台内交易或回答被采纳后，可获得商家折扣券、悬赏减免券、平台活动券和学校专区券。':
+      '연속 출석, 좋은 질문 작성, 평가 완료, 첫 플랫폼 내 서비스 이용, 답변 채택 후 상점 할인권, 보상 감면권, 이벤트 쿠폰, 학교 전용 쿠폰을 받을 수 있습니다.',
+    '回答质量、商家服务、经验真实性和是否靠谱都会进入信誉记录。':
+      '답변 품질, 상점 서비스, 경험의 진정성, 신뢰도는 모두 평판 기록에 반영됩니다.',
+    '个人主页会展示等级、称号、好评率、被帮助人数、累计采纳和学校标签。':
+      '프로필에는 레벨, 칭호, 긍정 평가율, 도움 받은 사람 수, 누적 채택, 학교 태그가 표시됩니다.',
+    '平台内沟通、评价和完成服务会留下成长记录；私下交易没有积分、好评、优惠券、排名和曝光收益。':
+      '플랫폼 내 소통, 평가, 서비스 완료는 성장 기록으로 남습니다. 사적 거래에는 포인트, 평가, 쿠폰, 랭킹, 노출 혜택이 없습니다.',
+    商家规则: '상점 규칙',
+    '认证商家、服务评价和曝光权益': '인증 상점, 서비스 평가, 노출 혜택',
+    '商家从新商家、校园服务者、靠谱商家成长到官方认证商家。':
+      '상점은 신규 상점, 캠퍼스 서비스 제공자, 신뢰 상점에서 공식 인증 상점으로 성장합니다.',
+    '认证状态、好评、完成服务和用户评价会影响学校页推荐、商家排序、官方标识和优惠券合作资格。':
+      '인증 상태, 긍정 평가, 완료 서비스, 사용자 평가는 학교 페이지 추천, 상점 정렬, 공식 배지, 쿠폰 협력 자격에 영향을 줍니다.',
+    '商家广告帖、软广、带联系方式的合作内容必须标注商家身份；未标注或伪装成普通经验帖的平台可下架。':
+      '상점 광고, 협찬 글, 연락처가 포함된 협력 콘텐츠는 상점 신분을 명시해야 합니다. 미표기 또는 일반 경험 글로 위장한 콘텐츠는 삭제될 수 있습니다.',
+    '平台不强制用户走平台支付，但鼓励通过平台沟通、评价和信誉记录完成服务闭环。':
+      '플랫폼 결제를 강제하지 않지만, 플랫폼 내 소통, 평가, 평판 기록을 통한 서비스 완료를 권장합니다.',
+    惩罚规则: '처벌 규칙',
+    '无效回答、广告、抄袭和 AI 水文': '무효 답변, 광고, 표절, AI 스팸',
+    '无效回答、答非所问或无法验证的信息不获得积分。':
+      '무효 답변, 동문서답, 검증 불가 정보는 포인트를 받지 못합니다.',
+    'AI 水文、批量搬运、虚假经历或误导性内容会扣 50～200 积分。':
+      'AI 스팸, 대량 복사, 허위 경험, 오해를 부르는 내용은 50~200포인트가 차감될 수 있습니다.',
+    '恶意广告、未标注商家身份、抄袭或冒充经验内容可被下架、禁言或封号。':
+      '악성 광고, 미표기 상점 콘텐츠, 표절 또는 가짜 경험 콘텐츠는 삭제, 발언 제한, 계정 정지될 수 있습니다.',
+    '举报违规成功可获得 +20 积分，但恶意举报会影响账号信誉。':
+      '위반 신고가 인정되면 +20포인트를 받을 수 있지만, 악의적 신고는 계정 평판에 영향을 줍니다.',
+    结算边界: '정산 범위',
+    'MVP 第一版只做积分激励': 'MVP 1차 버전은 포인트 인센티브만 제공합니다',
+    '当前 MVP 第一版优先验证积分激励、人工审核、内容质量和商家服务连接。':
+      '현재 MVP 1차 버전은 포인트 인센티브, 수동 심사, 콘텐츠 품질, 상점 서비스 연결 검증을 우선합니다.',
+    '第一版不承诺直接现金提现，不做复杂金融系统，也不把平台包装成返利或赚钱项目。':
+      '1차 버전은 직접 현금 출금을 약속하지 않으며, 복잡한 금융 시스템이나 리베이트/수익형 프로젝트로 포장하지 않습니다.',
+    '未登录用户查看联系方式时会优先看到折叠提示；建议优先使用站内沟通与评价体系，保障双方信誉记录。':
+      '로그인하지 않은 사용자는 연락처가 접힌 안내로 표시됩니다. 양측 평판 기록을 위해 플랫폼 내 소통과 평가를 우선 권장합니다.',
+    '涉及结算、退款、争议或投诉的内容，以后台审核和平台最新规则为准。':
+      '정산, 환불, 분쟁, 신고 관련 사항은 관리자 심사와 최신 플랫폼 규칙을 기준으로 합니다.',
+    学校排行榜: '학교 랭킹',
+    本周学校贡献与曝光奖励: '이번 주 학교 기여와 노출 보상',
+    建国大学本周活跃榜: '건국대학교 주간 활동 랭킹',
+    中央大学攻略榜: '중앙대학교 가이드 랭킹',
+    高丽大学回答榜: '고려대학교 답변 랭킹',
+    延世大学热心榜: '연세대학교 도움 랭킹',
+    '消费积分用来提问和解锁，可提现积分来自真实帮助。':
+      '사용 포인트는 질문과 잠금 해제에 쓰이고, 출금 가능 포인트는 실제 도움에서 발생합니다.',
+    充值积分: '포인트 충전',
+    提现沉淀期: '출금 보류 기간',
+    提交消费积分充值申请: '사용 포인트 충전 신청 제출',
+    申请可提现积分结算: '출금 가능 포인트 정산 신청',
+    充值金额: '충전 금액',
+    收款方式备注: '수령 방식 메모',
+    提交充值申请: '충전 신청 제출',
+    登录后充值: '로그인 후 충전',
+    提交提现申请: '출금 신청 제출',
+    登录后提现: '로그인 후 출금',
+    提现说明: '출금 안내',
+    '通过悬赏赚取的可提现积分，需要沉淀一周后再申请提现，避免后期纠纷或退款问题。':
+      '보상으로 얻은 출금 가능 포인트는 분쟁과 환불 위험을 줄이기 위해 일주일 보류 후 출금 신청할 수 있습니다.',
+    '由被认可的回答、悬赏任务和付费内容产生。':
+      '인정된 답변, 보상 미션, 유료 콘텐츠에서 발생합니다.',
+    '用于提问、发布悬赏、解锁干货帖和资料。':
+      '질문, 보상 등록, 핵심 글과 자료 잠금 해제에 사용됩니다.',
+    '当前 MVP 先记录充值订单，后台核对收款后入账；接入微信支付后会替换为自动回调入账。':
+      '현재 MVP는 충전 주문을 먼저 기록하고 관리자가 입금 확인 후 포인트를 반영합니다. 추후 위챗페이 콜백으로 대체할 수 있습니다.',
+    '提现申请会先冻结对应可提现积分，经 7 天沉淀、争议检查和人工审核后处理。':
+      '출금 신청 시 해당 포인트가 먼저 동결되며, 7일 보류, 분쟁 확인, 수동 심사 후 처리됩니다.',
+    '用户可以用消费积分解锁深度经验或发布悬赏问题，回答者和经验作者通过被采纳答案、精华内容和专题攻略获得可提现积分。':
+      '사용자는 사용 포인트로 심층 경험 글을 해제하거나 보상 질문을 올릴 수 있습니다. 답변자와 작성자는 채택 답변, 추천 콘텐츠, 주제별 가이드를 통해 출금 가능 포인트를 얻습니다.',
+    '读者解锁深度内容，作者获得可提现积分；无效回答和复制内容不会获得收益。':
+      '독자는 심층 콘텐츠를 해제하고, 작성자는 출금 가능 포인트를 받습니다. 무효 답변과 복사 콘텐츠는 보상을 받지 못합니다.',
+    '注册送分、活动分和充值分不能提现，只有内容收益产生的可提现积分可以申请提现。':
+      '가입 포인트, 이벤트 포인트, 충전 포인트는 출금할 수 없습니다. 콘텐츠 보상으로 발생한 출금 가능 포인트만 정산 신청할 수 있습니다.',
+    '发布悬赏的人确认满意后，积分先进入可提现积分余额；悬赏类收益进入 7 天沉淀期，期满且无争议后再开放提现申请。':
+      '보상 등록자가 만족을 확인하면 포인트가 출금 가능 잔액으로 들어갑니다. 보상 수익은 7일 보류 후 분쟁이 없을 때 출금 신청이 열립니다.',
+    '把留学问题讲清楚，让有经验的人来解决。': '유학 문제를 명확히 설명하고 경험 있는 사람이 해결하도록 하세요.',
+    '签证、租房、入学、打工、保险、毕业和就业问题都可以在这里提问。先按分类找到相近问题，再补充自己的学校、时间线和材料背景。':
+      '비자, 집 구하기, 입학, 아르바이트, 보험, 졸업, 취업 문제를 질문할 수 있습니다. 먼저 카테고리로 비슷한 문제를 찾고 학교, 일정, 서류 배경을 보충하세요.',
+    我要悬赏: '보상 등록',
+    按分类找问题: '분류별 질문 찾기',
+    问题详情: '질문 상세',
+    待回答: '답변 대기',
+    已解决: '해결됨',
+    回答问题: '질문 답변하기',
+    回答列表: '답변 목록',
+    已采纳答案优先展示: '채택된 답변 우선 표시',
+    '已采纳答案优先展示。': '채택된 답변이 우선 표시됩니다.',
+    '等待更多同校或同城经验。': '같은 학교 또는 같은 지역 경험을 기다리고 있습니다.',
+    回答前请确认: '답변 전 확인',
+    回答内容: '답변 내용',
+    提交回答并获得: '답변 제출 및 획득',
+    登录后回答: '로그인 후 답변',
+    '平台奖励真实、有用、可验证的经验。请尽量写清材料、地点、时间线和你亲身经历的边界，政策类内容以官方最新公告为准。':
+      '플랫폼은 진짜이고 유용하며 검증 가능한 경험을 보상합니다. 서류, 장소, 일정, 본인 경험의 한계를 명확히 작성하세요. 정책 관련 내용은 최신 공식 공지를 기준으로 합니다.',
+    '平台奖励真实、有用、可验证的经验。':
+      '플랫폼은 진짜이고 유용하며 검증 가능한 경험을 보상합니다.',
+    '真实经验帖': '실제 경험 글',
+    '集中浏览签证、租房、入学、打工、保险、毕业和就业经验，优先展示能解决具体问题的内容。':
+      '비자, 집 구하기, 입학, 아르바이트, 보험, 졸업, 취업 경험을 모아 봅니다. 구체적인 문제를 해결하는 콘텐츠를 우선 표시합니다.',
+    网页编辑模式: '웹사이트 편집 모드',
+    管理员工具: '관리자 도구',
+    '直接点首页文字修改，改完点保存。': '홈페이지 문구를 직접 클릭해 수정한 뒤 저장하세요.',
+    '可以在当前页面直接改首页内容。': '현재 페이지에서 홈페이지 내용을 직접 수정할 수 있습니다.',
+    进入编辑模式: '편집 모드 열기',
+    最近更新的留学经验和问题记录: '최근 업데이트된 유학 경험과 질문',
+    '最近更新的留学经验和问题记录。': '최근 업데이트된 유학 경험과 질문입니다.',
+    进入帖子页: '게시글 페이지로',
+    已解决问题: '해결된 질문',
+    '先看被采纳的回答，再决定要不要继续提问。': '채택된 답변을 먼저 보고 추가 질문 여부를 결정하세요.',
+    问题悬赏: '보상 질문',
+    '不是发帖就赚钱，而是帮助别人解决真实问题才有收益。':
+      '단순히 글을 올리는 것이 아니라 실제 문제를 해결해야 보상이 생깁니다.',
+    '平台以积分模拟内容激励闭环：用户发布问题时可以设置悬赏，被采纳的回答者获得积分奖励。积分用于站内身份、内容激励和创作者等级，不承诺现金提现。':
+      '플랫폼은 포인트로 콘텐츠 보상 구조를 검증합니다. 질문자는 보상을 설정할 수 있고 채택된 답변자는 포인트를 받습니다. 포인트는 플랫폼 내 등급과 콘텐츠 인센티브에 사용되며 현금 인출을 약속하지 않습니다.',
+    查看悬赏问题: '보상 질문 보기',
+    提问者设置悬赏: '질문자가 보상 설정',
+    '把问题、学校、时间线和材料背景写清楚。': '질문, 학교, 일정, 자료 배경을 명확히 적어주세요.',
+    回答者给出解决方案: '답변자가 해결책 제공',
+    '回答要可执行，尽量附流程、材料、窗口和注意事项。':
+      '답변은 실행 가능해야 하며 가능하면 절차, 자료, 창구, 주의사항을 포함하세요.',
+    答案被采纳后结算: '답변 채택 후 정산',
+    '收益进入创作者积分账户，用于站内等级、内容权益和后续合作激励；当前不做真实支付和提现。':
+      '보상은 작성자 포인트 계정에 들어가며 플랫폼 등급, 콘텐츠 혜택, 향후 협력 인센티브에 사용됩니다. 현재 실제 결제와 인출은 지원하지 않습니다.',
+    分享赚钱: '공유로 보상 받기',
+    被采纳回答获得悬赏收益: '채택된 답변은 보상을 받습니다',
+    '解决提问者的具体问题后，收益归入创作者账户。': '질문자의 구체적인 문제를 해결하면 보상이 작성자 계정에 들어갑니다.',
+    高质量经验帖获得平台奖励: '양질의 경험 글은 플랫폼 보상을 받습니다',
+    '被收藏、点赞、加精的内容会获得更多曝光和激励。': '저장, 좋아요, 추천 콘텐츠는 더 많은 노출과 인센티브를 받습니다.',
+    精华攻略可分成或买断: '우수 가이드는 수익 배분 또는 매입 보상이 가능합니다',
+    '签证、租房、打工、毕业等专题内容可以进入平台专题库。': '비자, 집, 아르바이트, 졸업 등 주제 콘텐츠는 플랫폼 주제库에 들어갈 수 있습니다.',
+    '作者等级越高，曝光越高': '작성자 등급이 높을수록 노출이 높아집니다',
+    '持续贡献有效答案和真实经验，会提升内容推荐权重。': '유효한 답변과 실제 경험을 꾸준히 제공하면 추천 가중치가 올라갑니다.',
+    分类导航: '분류 탐색',
+    '按问题场景进入，不用在群聊里反复翻记录。': '단체 채팅 기록을 뒤지지 말고 문제 상황별로 들어가세요.',
+    城市与学校攻略: '도시와 학교 가이드',
+    '把生活落地、学校周边和常用流程整理成可复用清单。':
+      '현지 생활, 학교 주변, 자주 쓰는 절차를 재사용 가능한 체크리스트로 정리합니다.',
+    发布留学问题: '유학 질문 올리기',
+    问题标题: '질문 제목',
+    发布问题: '질문 게시',
+    浏览最多: '조회순',
+    最新发布: '최신순',
+    平台提示: '플랫폼 안내',
+    内容审核: '콘텐츠 검토',
+    '这条问题还在等待更完整的回答。回答需要给出材料、时间线、办理地点和注意事项，复制内容和无效回答不会获得积分。':
+      '이 질문은 아직 더 완전한 답변을 기다리고 있습니다. 답변에는 자료, 일정, 처리 장소, 주의사항이 필요하며 복사 글과 무효 답변은 포인트를 받지 못합니다.',
+    官方入口和材料下载: '공식 링크와 자료 다운로드',
+    回答者获得: '답변자 획득',
+    赞: '좋아요',
+    '接悬赏问答和线下求助任务。': '보상 Q&A와 오프라인 도움 요청을 맡아보세요.',
+    '这里集中展示别人用充值积分发布的悬赏问题，以及需要线下协助解决的任务。左侧看问题和要求，右侧直接看悬赏金额。':
+      '충전 포인트로 등록된 보상 질문과 오프라인 도움이 필요한 작업을 모아 보여줍니다. 왼쪽에서 요청을 보고 오른쪽에서 보상액을 확인하세요.',
+    线上悬赏: '온라인 보상',
+    线下任务: '오프라인 작업',
+    最高悬赏: '최고 보상',
+    悬赏金额: '보상 금액',
+    线下任务折算: '오프라인 작업 환산',
+    拖入图片视频到主视觉区: '이미지/동영상을 메인 영역으로 드래그',
+    '拖入图片/视频到主视觉区': '이미지/동영상을 메인 영역으로 드래그',
+    服务展示: '서비스 전시',
+    '先看服务边界，再决定是否咨询。': '상담 전 서비스 범위를 먼저 확인하세요.',
+    '你可以编辑这个商家详情页的标题、介绍、咨询提示、字体颜色和图片展示，保存后只影响当前品牌。':
+      '이 상점 상세 페이지의 제목, 소개, 상담 안내, 글자 색상, 이미지 전시를 편집할 수 있으며 저장 후 현재 브랜드에만 적용됩니다.',
+    品牌头像: '브랜드 이미지',
+    '点击上传头像，保存后进入后台审核；审核通过后才会展示在商家详情页。建议使用正方形头像或品牌 LOGO。':
+      '이미지를 업로드하면 저장 후 관리자 심사에 들어가며 승인 후 상점 상세 페이지에 표시됩니다. 정사각형 이미지나 브랜드 로고를 권장합니다.',
+    当前有头像正在等待平台审核: '현재 이미지가 플랫폼 심사를 기다리고 있습니다',
+    '当前有头像正在等待平台审核。': '현재 이미지가 플랫폼 심사를 기다리고 있습니다.',
+    '上次头像未通过审核，可以重新上传': '지난 이미지가 승인되지 않았습니다. 다시 업로드할 수 있습니다',
+    '上次头像未通过审核，可以重新上传。': '지난 이미지가 승인되지 않았습니다. 다시 업로드할 수 있습니다.',
+    关闭编辑模式: '편집 모드 닫기',
+    开启编辑模式: '편집 모드 열기',
+    '编辑模式只对当前品牌管理账号显示。': '편집 모드는 현재 브랜드 관리자 계정에만 표시됩니다.',
+    跟随平台默认: '플랫폼 기본값 사용',
+    现代黑体: '모던 고딕',
+    '宋体/衬线': '명조/세리프',
+    标题字颜色: '제목 색상',
+    正文字颜色: '본문 색상',
+    重点字颜色: '강조 색상',
+    集体展示气泡样式: '공동 전시 버블 스타일',
+    '这里控制“我要找商家要福利”水箱页里当前品牌气泡的底色、LOGO 背景和文字颜色。':
+      '“상점 혜택 찾기” 수조 페이지에서 현재 브랜드 버블의 배경색, 로고 배경, 글자 색상을 조정합니다.',
+    气泡底色: '버블 배경색',
+    '例如 rgba': '예: rgba',
+    LOGO背景色: '로고 배경색',
+    'LOGO 背景色': '로고 배경색',
+    气泡主文字色: '버블 메인 글자색',
+    分类小字色: '분류 작은 글자색',
+    主视觉图片区: '메인 이미지 영역',
+    服务展示图片区: '서비스 이미지 영역',
+    '泡泡框和素材框': '버블 박스와 소재 박스',
+    '在展示区点击泡泡框后，可拖动、拉伸、调透明度、调层级或删除；也可以直接把图片/视频拖进泡泡框。':
+      '전시 영역에서 버블 박스를 클릭하면 드래그, 크기 조정, 투명도 조절, 레이어 변경, 삭제가 가능합니다. 이미지/동영상을 박스에 직접 드래그할 수도 있습니다.',
+    添加主视觉泡泡: '메인 버블 추가',
+    添加服务区泡泡: '서비스 버블 추가',
+    还没有选中泡泡框: '선택된 버블 박스가 없습니다',
+    '还没有选中泡泡框。点击展示区里的泡泡框后，这里会显示调节项。':
+      '선택된 버블 박스가 없습니다. 전시 영역의 버블 박스를 클릭하면 여기에서 조절 항목이 표시됩니다.',
+    页面标识: '페이지 라벨',
+    详情页标题: '상세 페이지 제목',
+    品牌介绍: '브랜드 소개',
+    '服务展示 1': '서비스 전시 1',
+    '服务展示 2': '서비스 전시 2',
+    保存品牌详情页装饰: '브랜드 상세 페이지 장식 저장',
+    搜索学校: '학교 검색',
+    精华: '추천',
+    只看精华: '추천만 보기',
+    免费: '무료',
+    已解锁: '잠금 해제됨',
+    积分解锁: '포인트로 해제',
+    查看全文: '전체 보기',
+    经验帖详情: '경험 글 상세',
+    阅读: '조회',
+    点赞: '좋아요',
+    收藏: '저장',
+    举报: '신고',
+    内容质量提示: '콘텐츠 품질 안내',
+    '内容围绕真实留学问题，提供可执行步骤、材料提醒和亲身经历边界。平台会优先奖励被收藏、点赞、加精和能解决问题的经验帖，抄袭和无效内容不奖励。':
+      '콘텐츠는 실제 유학 문제, 실행 가능한 단계, 서류 안내, 개인 경험의 한계를 중심으로 해야 합니다. 저장, 좋아요, 추천, 문제 해결성이 높은 글을 우선 보상하며 표절과 무효 콘텐츠는 보상하지 않습니다.',
+    '按留学问题场景查找经验。': '유학 문제 상황별로 경험을 찾습니다.',
+    '从签证到就业，从租房到医院，把零散经验整理成可检索的问题分类。':
+      '비자부터 취업까지, 집 구하기부터 병원까지 흩어진 경험을 검색 가능한 문제 분류로 정리합니다.',
+    平台介绍: '플랫폼 소개',
+    '留学生的第一站，真实经验帮你少走弯路。这里不是普通论坛，而是把签证、入学、租房、打工、生活和就业经验沉淀成可搜索、可验证、可解决问题的社区。':
+      '유학생의 첫 출발점입니다. 실제 경험으로 시행착오를 줄입니다. 단순 포럼이 아니라 비자, 입학, 집, 아르바이트, 생활, 취업 경험을 검색 가능하고 검증 가능한 문제 해결 커뮤니티로 축적합니다.',
+    先解决真实问题: '실제 문제를 먼저 해결',
+    保护分享者隐私: '공유자의 개인정보 보호',
+    让有用经验获得回报: '유용한 경험에 보상',
+    商业闭环: '비즈니스 흐름',
+    '这是留学生问题解决社区 + 商家服务连接平台，第一版先验证真实问题、内容沉淀和供需连接。':
+      '이곳은 유학생 문제 해결 커뮤니티이자 상점 서비스 연결 플랫폼입니다. 1차 버전은 실제 문제, 콘텐츠 축적, 수요-공급 연결을 검증합니다.',
+    学生使用: '학생 이용',
+    内容供给: '콘텐츠 공급',
+    商家连接: '상점 연결',
+    收入来源: '수익원',
+    第一版边界: '1차 버전 범위',
+    '留学生可以提问、查攻略、浏览学校专题，先找到同场景问题，再看完整经验和可执行清单。':
+      '유학생은 질문하고, 가이드를 찾고, 학교별 주제를 볼 수 있습니다. 먼저 비슷한 상황의 문제를 찾은 뒤 전체 경험과 실행 목록을 확인하세요.',
+    '创作者通过回答问题、发布经验帖、获得采纳和加精来积累积分，平台优先奖励真实、有用、可验证内容。':
+      '작성자는 질문 답변, 경험 글 작성, 채택과 추천을 통해 포인트를 쌓습니다. 플랫폼은 진짜이고 유용하며 검증 가능한 콘텐츠를 우선 보상합니다.',
+    '商家以认证身份提供租房、搬家、手机卡、保险、翻译、生活服务等信息，广告和服务内容必须标注商家身份。':
+      '상점은 인증된 신분으로 집, 이사, 휴대폰, 보험, 번역, 생활 서비스 정보를 제공합니다. 광고와 서비스 콘텐츠는 상점 신분을 명시해야 합니다.',
+    '未来收入包括商家入驻、广告展示、悬赏问答服务费、会员权益和精选服务推荐，不把平台包装成返利或赚钱项目。':
+      '향후 수익은 상점 입점, 광고 노출, 보상 Q&A 수수료, 멤버십 혜택, 추천 서비스 등이 될 수 있으며 리베이트나 수익형 프로젝트로 포장하지 않습니다.',
+    '管理个人资料、认证材料和已发布帖子。': '프로필, 인증 자료, 게시한 글을 관리합니다.',
+    '请先登录后进入个人中心。': '마이페이지에 들어가려면 먼저 로그인하세요.',
+    营业范围: '영업 범위',
+    主营业务: '주요 업무',
+    所在地: '소재지',
+    '认证后，后台可按每个营业范围单独设置普通或置顶展示。':
+      '인증 후 관리자가 각 영업 범위별로 일반 또는 상단 표시를 따로 설정할 수 있습니다.',
+    '已分配品牌': '배정된 브랜드',
+    '后台分配品牌权限后，可在这里进入商家展示页编辑。':
+      '관리자가 브랜드 권한을 배정하면 여기에서 상점 전시 페이지 편집으로 이동할 수 있습니다.',
+    登录后工作台: '로그인 후 워크스페이스',
+    '从这里开始处理你的售业事务。': '여기에서 쇼우예 활동을 관리하세요.',
+    '登录后从这里开始：提问、助人、找商家和管理权益。':
+      '로그인 후 여기에서 질문, 도움, 상점 찾기, 혜택 관리를 시작하세요.',
+    '这不是内容页，而是一个快捷导航区。你可以直接进入提问、解决别人的求助、发布经验、查看商家福利、管理积分和商家展示页。':
+      '콘텐츠 페이지가 아니라 빠른 이동 영역입니다. 질문하기, 요청 해결, 경험 작성, 상점 혜택 보기, 포인트와 상점 전시 페이지 관리를 바로 시작할 수 있습니다.',
+    我的工作台: '내 워크스페이스',
+    账号资料: '계정 정보',
+    我的提问: '내 질문',
+    经验发布: '경험 작성',
+    积分账户: '포인트 계정',
+    '01 · 账号': '01 · 계정',
+    我的账号与积分: '내 계정과 포인트',
+    先创建账号: '먼저 계정 만들기',
+    '02 · 内容': '02 · 콘텐츠',
+    我要提问或帮助别人: '질문하거나 다른 사람 돕기',
+    '有问题就去提问/发布悬赏；有经验就发帖；想赚积分就去解决别人发布的求助。':
+      '도움이 필요하면 질문/보상을 올리고, 경험이 있으면 글을 쓰고, 포인트를 얻고 싶으면 다른 사람의 요청을 해결하세요.',
+    '03 · 商家': '03 · 상점',
+    找商家或管理商家页: '상점 찾기 또는 상점 페이지 관리',
+    '已认证商家可以进入展示页、商铺页和鱼缸曝光区，管理自己的对外展示。':
+      '인증 상점은 전시 페이지, 상점 페이지, 어항 노출 영역에서 외부 노출을 관리할 수 있습니다.',
+    '普通用户可以先看商家鱼缸找服务；机构或个人服务者可以申请入驻。':
+      '일반 사용자는 먼저 상점 어항에서 서비스를 찾고, 기관이나 개인 서비스 제공자는 입점을 신청할 수 있습니다.',
+    '04 · 成长': '04 · 성장',
+    '积分、等级和优惠券': '포인트, 레벨, 쿠폰',
+    '在平台内提问、回答、发布经验、评价商家，会累积等级、称号、好评和优惠券。':
+      '플랫폼에서 질문, 답변, 경험 작성, 상점 평가를 하면 레벨, 칭호, 좋은 평가, 쿠폰이 쌓입니다.',
+    '售业工作台。': '쇼우예 워크스페이스.',
+    '先选入口，再进入对应的信息流。': '먼저 입구를 선택한 뒤 해당 피드로 들어가세요.',
+    '把提问、助人、商家福利和账号权益放在同一个入口里，用户不用往页面深处找功能。':
+      '질문, 도움, 상점 혜택, 계정 권한을 한곳에 모아 사용자가 페이지 깊숙이 기능을 찾지 않아도 됩니다.',
+    账号总览: '계정 개요',
+    '提问/悬赏': '질문/보상',
+    '分享/助人': '공유/도움',
+    商家服务: '상점 서비스',
+    申请商家入驻: '상점 입점 신청',
+    商铺页面编辑: '상점 페이지 편집',
+    积分与成长: '포인트와 성장',
+    账号概况: '계정 현황',
+    创建售业账号: '쇼우예 계정 만들기',
+    '登录后可以管理提问、经验、收藏、认证材料和商家权限。':
+      '로그인 후 질문, 경험 글, 저장, 인증 자료, 상점 권한을 관리할 수 있습니다.',
+    注册账号: '계정 등록',
+    内容入口: '콘텐츠 입구',
+    '把问题发出来找人帮，也可以分享自己知道的经验或接别人的求助。':
+      '질문을 올려 도움을 받거나, 알고 있는 경험을 공유하고 다른 사람의 요청을 처리할 수 있습니다.',
+    我来解决: '해결하러 가기',
+    商家与合作: '상점과 협력',
+    '商家账号可以查看鱼缸曝光、进入展示页，并在后台认证后装饰自己的商家页面。':
+      '상점 계정은 어항 노출을 확인하고 전시 페이지로 들어가며, 관리자 인증 후 자신의 상점 페이지를 꾸밀 수 있습니다.',
+    '留学咨询、论文毕业、韩语培训、搬家通信等服务可以申请入驻展示。':
+      '유학 상담, 논문/졸업, 한국어 교육, 이사, 통신 서비스는 전시 입점을 신청할 수 있습니다.',
+    商家鱼缸: '상점 어항',
+    入驻申请: '입점 신청',
+    我的展示页: '내 전시 페이지',
+    成长与权益: '성장과 혜택',
+    '回答被采纳、经验被收藏、完成评价和商家服务都会进入等级、称号、好评和优惠券体系。':
+      '채택 답변, 저장된 경험 글, 완료 평가, 상점 서비스는 레벨, 칭호, 평가, 쿠폰 체계에 반영됩니다.',
+    等级成长: '레벨 성장',
+    学校榜单: '학교 랭킹',
+    查看收益规则: '보상 규칙 보기',
+    '按地区浏览院校，选择学校进入专属内容页。':
+      '지역별로 학교를 둘러보고 전용 학교 페이지로 들어가세요.',
+    '所院校 · 按 QS 2026 与申请热度排序': '개 학교 · QS 2026 및 지원 관심도순',
+    '按 QS 2026 与申请热度排序': 'QS 2026 및 지원 관심도순',
+    '优先展示 QS 2026 排名前列院校，并覆盖艺术、女子大学、理工类和高频申请院校。':
+      'QS 2026 상위권 학교를 우선 보여주며 예술대, 여자대, 이공계, 지원 빈도가 높은 학교도 함께 다룹니다.',
+    '首都圈通勤范围，工科、医学、产业合作项目选择多。':
+      '수도권 통학권으로 공학, 의학, 산학협력 프로그램 선택지가 많습니다.',
+    '海港城市、生活成本相对低，国立大学与地方强校适合做备选。':
+      '항구 도시이며 생활비가 비교적 낮아 국립대와 지역 강세 대학을 대안으로 보기 좋습니다.',
+    '地方国立与产业城市组合，适合看奖学金、就业和生活成本。':
+      '지방 국립대와 산업 도시 조합으로 장학금, 취업, 생활비를 비교하기 좋습니다.',
+    '研究型城市和中部交通节点，适合理工、科研和性价比选择。':
+      '연구 도시와 중부 교통 거점으로 이공계, 연구, 가성비 선택에 적합합니다.',
+    '韩国国立大学代表，研究资源强，理工、人文社科、经营、国际大学院都适合重点关注。':
+      '한국 대표 국립대학으로 연구 자원이 풍부하며 공학, 인문사회, 경영, 국제대학원 모두 주목할 만합니다.',
+    '韩国国立大学代表，研究资源强，理工、人文社科、经营、国际 Graduate school都适合重点关注。':
+      '한국 대표 국립대학으로 연구 자원이 풍부하며 공학, 인문사회, 경영, 국제대학원 모두 주목할 만합니다.',
+    '理工、人文社科、经营、国际大学院都适合重点关注。':
+      '공학, 인문사회, 경영, 국제대학원 모두 주목할 만합니다.',
+    '冠岳校区正门与主轴线': '관악캠퍼스 정문 및 중심축',
+    '冠岳校区正门与主轴线官网': '관악캠퍼스 정문 및 중심축 공식 사이트',
+    '语学院入口': '어학원 입구',
+    'Language school入口': '어학원 입구',
+    '获取外国人招生简章（모집요강）': '외국인 모집요강 보기',
+    国际大学院: '국제대학원',
+    '国际Graduate school': '국제대학원',
+    '国际 Graduate school': '국제대학원',
+    人文社科: '인문사회',
+    国立旗舰: '국립 대표',
+    研究资源强: '연구 자원 풍부',
+    申请竞争高: '지원 경쟁 높음',
+    '分享这所学校的经验': '이 학교 경험 공유',
+    '获取这所学校的经验': '이 학교 경험 보기',
+    背景图来源: '이미지 출처',
+    '首尔大学专题贴': '서울대 주제 글',
+    学校经验库: '학교 경험库',
+    入驻商家: '입점 상점',
+    '入驻商家 +': '상점 입점 +',
+    '把留学常用商家列举在此，方便货比三家。':
+      '유학생이 자주 이용하는 서비스를 모아 비교하기 쉽게 정리했습니다.',
+    '按服务类型查看广告、资质、优惠和联系方式，先比较再咨询。':
+      '서비스 유형별로 광고, 자격, 혜택, 연락처를 확인하고 비교 후 상담하세요.',
+    '按Service type查看广告、资质、优惠和Contact，先比较再咨询。':
+      '서비스 유형별로 광고, 자격, 혜택, 연락처를 확인하고 비교 후 상담하세요.',
+    '为留学生设计清晰的提问、分享和认证入口。':
+      '유학생이 질문, 공유, 인증을 쉽게 시작할 수 있도록 명확한入口를 제공합니다.',
+    '为留学生和机构建立可信连接。': '유학생과 기관 사이의 신뢰 연결을 만듭니다.',
+    '学生完成认证后，可提问、回答悬赏问题、匿名分享经验，并通过高质量内容获得收益。':
+      '학생은 인증 후 질문하고, 보상 질문에 답하고, 익명으로 경험을 공유하며, 양질의 콘텐츠로 보상을 받을 수 있습니다.',
+    '留学机构、语学院、论文辅导、政府部门和职业规划机构可提交合作表单，由后台统一跟进。':
+      '유학 기관, 어학원, 논문 지도 기관, 공공기관, 진로 서비스 기관은 협력 신청서를 제출할 수 있으며 관리자가 후속 처리합니다.',
+    查看机构合作: '기관 협력 보기',
+    '认证用户积累后，可为教育机构、跨境企业和韩企提供实习、招聘与校园服务入口。':
+      '인증 사용자가 쌓이면 교육기관, 크로스보더 기업, 한국 기업을 위한 인턴십, 채용, 캠퍼스 서비스入口를 제공할 수 있습니다.',
+    '每篇经验都对应真实的择校、申请和服务转化场景。':
+      '각 경험 글은 실제 학교 선택, 지원, 서비스 전환 상황과 연결됩니다.',
+    '真实、匿名、可验证，是留学生敢分享的前提。':
+      '진짜 경험, 익명성, 검증 가능성은 유학생이 안심하고 공유하기 위한 전제입니다.',
+    '平台采用后台认证、前台匿名、材料审核、同校交叉验证、小样本保护和人工审核，让内容可信，也让提问者和分享者更安全。':
+      '플랫폼은 관리자 인증, 전면 익명 표시, 자료 심사, 같은 학교 교차 확인, 소표본 보호, 사람의 검수를 통해 콘텐츠 신뢰도와 이용자 안전을 높입니다.',
+    '学校邮箱、Offer、在读和毕业材料认证': '학교 이메일, 오퍼, 재학 및 졸업 자료 인증',
+    '付费加精内容审核后展示': '유료 추천 콘텐츠는 심사 후 표시',
+    '匿名展示与小样本保护，降低身份暴露风险': '익명 표시와 소표본 보호로 신원 노출 위험을 낮춤',
+    '欢迎能解决留学生真实问题的机构和服务方申请合作。':
+      '유학생의 실제 문제를 해결할 수 있는 기관과 서비스 제공자의 협력을 환영합니다.',
+    '申请成为首批合作方': '초기 파트너 신청',
+    '欢迎能解决留学生真实问题的机构和服务方申请合作':
+      '유학생의 실제 문제를 해결할 수 있는 기관과 서비스 제공자의 협력을 환영합니다',
+    '申请成为首批合作方 +': '초기 파트너 신청 +',
+    '真实、匿名、可验证，是留学生敢分享的前提':
+      '진짜 경험, 익명성, 검증 가능성이 있어야 유학생이 안심하고 공유합니다',
+  },
+}
+const skipTranslationTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA'])
+const translatableAttributeSelector = translationAttributeNames.map((attributeName) => `[${attributeName}]`).join(',')
+const translatedSiteCopyValues = new Set(
+  Object.values(translationDictionaries.en).concat(Object.values(translationDictionaries.ko)),
+)
+const isKnownTranslatedSiteCopy = (value: string) => translatedSiteCopyValues.has(value.trim())
+
+const translateSiteCopy = (language: SiteLanguage, value: string) => {
+  if (language === 'zh') return value
+  const dictionary = translationDictionaries[language]
+  const trimmed = value.trim()
+  if (!trimmed) return value
+  const exactTranslation = dictionary[trimmed]
+  if (exactTranslation) return value.replace(trimmed, exactTranslation)
+
+  let translated = trimmed
+  for (const [source, target] of Object.entries(dictionary)) {
+    if (source.length < 3 || !translated.includes(source)) continue
+    translated = translated.split(source).join(target)
+  }
+  return translated === trimmed ? value : value.replace(trimmed, translated)
+}
+
+const formatSchoolCount = (language: SiteLanguage, count: number) => {
+  if (language === 'en') return `${count} schools`
+  if (language === 'ko') return `${count}개 학교`
+  return `${count} 所院校`
+}
 const studentStageOptions: { label: string; value: StudentStage }[] = [
   { label: '准备申请', value: 'preparing' },
   { label: '已录取待入学', value: 'admitted' },
@@ -1151,10 +3924,36 @@ const skillServiceCategories = [
   '同校生活帮忙',
   '其他技能服务',
 ]
+
+const helpIntentOptions: { mode: HelpIntentMode; label: string; title: string; description: string }[] = [
+  {
+    mode: 'knowledge',
+    label: '我想知道',
+    title: '找知识、流程和经验答案',
+    description: '适合签证、入学、选课、租房、看病、打工、毕业等可通过经验回答的问题。',
+  },
+  {
+    mode: 'service',
+    label: '我需要帮助',
+    title: '找能直接帮你做的人',
+    description: '适合跑腿、陪同、翻译、喂猫、搬家、排队、资料整理等需要对接帮助者的事项。',
+  },
+]
+
+const helpMatchKeywordGroups = [
+  { label: '宠物照看', category: '宠物照看/遛狗喂猫', terms: ['宠物', '猫', '狗', '喂猫', '遛狗', '寄养', '照看'] },
+  { label: '跑腿代办', category: '跑腿/排队/代办', terms: ['跑腿', '排队', '代办', '取件', '送件', '买东西', '打印'] },
+  { label: '陪同翻译', category: '地陪/陪同/翻译', terms: ['陪同', '翻译', '医院', '出入境', '银行', '看房', '地陪'] },
+  { label: '学习辅导', category: '学习辅导/资料整理', terms: ['学习', '辅导', '资料', '选课', '作业', '论文', '韩语', '整理'] },
+  { label: '搬家取送', category: '搬家/取送/寄件', terms: ['搬家', '取送', '寄件', '快递', '行李', '家具', '退租'] },
+  { label: '同校生活', category: '同校生活帮忙', terms: ['同校', '学校', '新生', '宿舍', '校园', '入学', '带路'] },
+]
+
 const postApprovedBonusPoints = 10
 const rechargePointsPerYuan = 10
 const cashoutPointsPerYuan = 100 / 8
 const minimumCashoutPoints = 1700
+const renameRequestCostEarningPoints = 60
 const categories = [
   '签证/滞留资格',
   '入学/选课/学分',
@@ -1882,7 +4681,7 @@ const makeGenericSchoolTopic = (school: SchoolProfile): SchoolTopic => {
     city,
     district: location,
     tags: [...new Set(topicTags)],
-    seoTitle: `${schoolName}留学生生活攻略 - 留学生首页`,
+    seoTitle: `${schoolName}留学生生活攻略 - 售业首页`,
     seoDescription: `${schoolName}留学生生活攻略，整理${schoolName}入学、选课、租房、签证、外国人登录证、打工、医院、银行卡、毕业和校园生活相关经验，帮助韩国留学生少走弯路。`,
     heroTitle: `${schoolName}留学生生活攻略`,
     heroSubtitle: `整理${schoolName}留学生在${location}学习和生活时最常遇到的问题：入学选课、签证滞留、租房保证金、打工许可、医院保险、毕业论文和周边生活。${programText ? `${programText}方向` : '本科、大学院和语学院'}同学可以按专题快速查找经验。`,
@@ -3681,6 +6480,91 @@ const seedPosts: Post[] = [
     ],
   },
   {
+    id: 'korea-f2-f5-residency-guide',
+    slug: 'korea-f2-f5-residency-guide',
+    title: '韩国 F-2 / F-5 长期居留与永驻申请指南',
+    summary: '从毕业、就业、F-2 居留到 F-5 永驻，拆解留学生长期留韩要提前积累的收入、纳税、韩语、住所和守法记录。',
+    school: '韩国生活',
+    category: '签证/滞留资格',
+    country: '韩国',
+    city: '全国',
+    author: '长期居留规划整理员',
+    identity: '毕业生',
+    price: 0,
+    hot: '7.4k',
+    views: 7420,
+    likes: 486,
+    bookmarks: 1040,
+    tags: ['韩国', 'F-2', 'F-5', '永驻', '长期居留', 'KIIP', '以公告为准', '精华'],
+    contentType: '长期规划',
+    featured: true,
+    isFeatured: true,
+    createdAt: '2026-05-13',
+    updatedAt: '2026-05-13',
+    excerpt: 'F-2 不是永驻，F-5 才是永驻。想长期留韩，重点不是临时凑材料，而是提前把签证路线、收入纳税、韩语/KIIP、住所和守法记录连续起来。',
+    body: `适用人群
+适合已经在韩国读书、准备毕业求职，或已经从 D-2 / D-10 转到 E-7 等工作签证，正在规划 F-2 居留、F-5 永驻的人。本文不是承诺“几年一定拿永驻”，而是帮你把长期留韩路径拆成可以提前准备的事项。
+
+先分清 F-2 和 F-5
+F-2 通常理解为居留资格/长期居留路径，常见方向包括点数制优秀人才、长期居留者、配偶或其他细分类别。F-2 比学生签和求职签稳定，但仍然要看细分资格、续签条件、收入和住所等要求。
+F-5 才是永驻资格。取得 F-5 后，活动范围和停留期限限制会明显减少，但并不等于以后完全不用管出入境：永驻卡有效期、再入境期限、地址变更、违法记录和撤销风险都要继续重视。
+
+常见路线
+第一条是留学生毕业就业路线：D-2 学生签证 -> D-10 求职或直接就业 -> E-7 等专业工作签证 -> F-2 居留 -> F-5 永驻。这条路线适合大多数毕业后在韩国工作的同学，关键是岗位、公司、工资、专业匹配和合法就业记录。
+第二条是点数制 F-2 路线：满足学历、年龄、收入、韩语/KIIP、韩国学习或工作经历、加分项等条件后申请 F-2。具体分数表和适用对象会调整，不要只用旧版计算器判断。
+第三条是高学历/专业人才路线：部分博士、硕士、本科特定领域或技术资格持有人，在就业、收入、居住年限等条件满足时，可能有更直接的 F-5 路径。是否适用要看本人专业、学历取得地、公司和岗位。
+第四条是婚姻、投资、同胞、难民认定等其他类别。这些不适合用普通留学生模板套用，材料和审查重点差异很大。
+
+F-2 之前要开始积累什么
+第一，合法连续滞留记录。每次延签、换签、地址变更、雇主变更都要按要求处理，别让一个小罚款或漏申报影响长期规划。
+第二，收入和纳税记录。韩国长期签证很看“你能不能稳定生活”。工资合同、源泉征收、所得金额证明、纳税证明、四大保险或健康保险记录都要保存。
+第三，学历和工作匹配。D-2 到 E-7 或 F-2 的路上，专业、岗位、公司业务和薪资经常一起被看。不要只拿到 offer 就安心，要提前确认岗位是否能支撑后续签证。
+第四，韩语和社会统合。TOPIK、KIIP 阶段、综合评价等会影响很多长期居留和永驻判断。想长期留韩的人，建议尽早把 KIIP 或韩语能力纳入 1-2 年计划。
+第五，住所连续性。租房合同、住所证明、地址变更回执、外国人登录证地址信息都要一致。搬家后只告诉房东或公司不够，涉及出入境登记的信息要按官方要求更新。
+
+F-5 永驻重点看什么
+F-5 的核心不是“我在韩国待够时间了”，而是综合证明你适合长期稳定居住。常见审查方向包括：是否属于可申请类别、韩国滞留年限、品行和守法记录、收入或资产等生计维持能力、韩语和韩国社会理解能力、住所证明、犯罪记录或海外滞留记录、以及不同细分类别要求的补充材料。
+对从 F-2 或工作签证走上来的同学来说，最容易被忽略的是三件事：收入是否够且能用官方材料证明；KIIP/TOPIK 或基本素养材料是否提前准备；当前签证到期前是否还有足够时间补件。申请 F-5 时，当前滞留资格不能因为等待结果就放任到期。
+
+材料准备清单
+基础材料通常会围绕护照、外国人登录证、综合申请书、照片、手续费、住所证明、收入/纳税/资产证明、就业合同或在职证明、学历材料、韩语或社会统合材料、犯罪记录或海外长期停留相关材料展开。
+工作相关材料建议单独建档：劳动合同、在职证明、工资明细、源泉征收、所得金额证明、纳税证明、健康保险缴费、公司营业执照或雇佣相关材料、岗位说明和专业匹配说明。
+个人记录也要整理：历次签证批准记录、地址变更、出入境记录、学校毕业证明、成绩单、学位证明、TOPIK/KIIP 证明、补件回执和 1345/出入境咨询记录。
+
+时间线建议
+毕业前 6-12 个月：确认是先走 D-10、E-7，还是已有资格直接看 F-2。不要等 D-2 快到期才问公司能不能办工作签。
+就业后第 1 年：稳定合同、工资、纳税和保险记录，确认公司和岗位能支撑后续签证。每次换工作、换住址、换手机号都同步检查出入境信息。
+准备 F-2 前 3-6 个月：按官方点数表或长期居留类别核对资格，补 KIIP/TOPIK、收入证明、住所证明和公司材料。
+拿到 F-2 后：不要把 F-2 当终点。继续维护收入、纳税、住所、守法记录和韩语/社会统合材料，为 F-5 做连续记录。
+申请 F-5 前 6-12 个月：先问 1345 或管辖出入境自己的类别、年限和材料口径，再决定是否需要行政士协助。把材料按“身份、滞留、收入、住所、韩语/社会统合、犯罪记录、类别补充”分类。
+
+常见坑
+第一，把 F-2 和 F-5 混成一个东西。F-2 是居留，F-5 是永驻，准备逻辑不同。
+第二，只问“收入要多少”，不看收入来源、纳税材料、家庭合算、GNI 或当年官方标准如何适用。
+第三，盲目相信网上旧分数表。F-2 点数和 F-5 细则可能调整，旧帖只能做参考。
+第四，工作签证期间换公司、换岗位、换地址没有及时确认，后面申请长期居留时才发现记录不干净。
+第五，KIIP 拖到最后。课程、考试和名额都需要时间，不适合申请前一个月才开始。
+第六，当前签证快到期才申请 F-5。永驻审查需要时间，补件也需要时间，等待结果期间也要守住现有合法滞留。
+
+实操建议
+把长期留韩当成一个三年文件夹，而不是一次申请。每年固定整理一次：收入证明、纳税证明、健康保险、住址、合同、学历、韩语/KIIP、出入境记录。所有文件用韩文/英文姓名统一命名，避免护照、外国人登录证、学校证明、银行记录出现拼写差异。
+和公司沟通时，不要只说“我要换签”。要讲清需要在职证明、合同、工资证明、公司材料和岗位说明，确认公司是否愿意配合补件。若公司从未办过外籍员工签证，更要提前问出入境或专业人士。
+如果你条件比较边界，比如收入刚够、频繁换工作、离境时间较长、有罚款记录、专业和岗位不太匹配、家庭收入合算、或者从特殊类别转入，建议先做一次正式咨询，不要直接照搬别人的材料。
+
+检查清单
+当前签证到期日已确认、目标路线已确认、管辖出入境已确认、收入/纳税记录可开具、住所证明一致、公司愿意配合、韩语/KIIP 计划明确、违法/罚款记录已核对、离境时间已核对、所有材料姓名拼写一致、1345 或官方窗口答复已记录。
+
+免责声明
+签证、居留、永驻和就业相关要求会随政策、细分类别、管辖窗口和个人情况变化。本文只提供规划思路和材料整理方向，不构成法律意见，也不保证申请结果。最终请以 HiKorea、Korea Visa Portal、韩国法务部出入境资料、1345 外国人综合咨询中心和管辖出入境事务所最新说明为准。`,
+    sources: [
+      { label: 'HiKorea 电子民愿指南', url: officialLinks.hiKoreaElectronicApplicationGuide, kind: 'official' },
+      { label: 'HiKorea 访问预约', url: officialLinks.hiKoreaVisitReservation, kind: 'official' },
+      { label: 'Korea Visa Portal', url: officialLinks.koreaVisaPortal, kind: 'official' },
+      { label: '法务部出入境签证路径导航', url: officialLinks.immigrationVisaNavigator, kind: 'official' },
+      { label: 'EasyLaw 永驻资格说明', url: officialLinks.easyLawPermanentResidency, kind: 'official' },
+    ],
+  },
+  {
     id: 'd10-job-seeking-visa-guide',
     slug: 'd10-job-seeking-visa-guide',
     title: '毕业后 D-10 求职准备清单',
@@ -4969,6 +7853,51 @@ const getMatchedSchoolIds = (normalizedQuery: string) =>
     )
     .map((school) => school.id)
 
+const getHelpMatchKeywords = (needText: string) => {
+  const normalizedNeed = normalizeSearchText(needText)
+  const keywords = new Set<string>()
+
+  for (const group of helpMatchKeywordGroups) {
+    if (group.terms.some((term) => normalizedNeed.includes(normalizeSearchText(term)))) {
+      keywords.add(group.label)
+      keywords.add(group.category)
+      group.terms.slice(0, 3).forEach((term) => keywords.add(term))
+    }
+  }
+
+  needText
+    .split(/[,\s，。；;、/]+/)
+    .map((term) => term.trim())
+    .filter((term) => term.length >= 2 && term.length <= 12)
+    .slice(0, 6)
+    .forEach((term) => keywords.add(term))
+
+  return Array.from(keywords)
+}
+
+const isSkillHelpPost = (post: Post) =>
+  post.contentType === '技能服务' || skillServiceCategories.includes(post.category)
+
+const scoreHelpCandidateText = (text: string, normalizedNeed: string, keywords: string[]) => {
+  const normalizedText = normalizeSearchText(text)
+  let score = normalizedNeed && normalizedText.includes(normalizedNeed) ? 90 : 0
+
+  for (const keyword of keywords) {
+    if (normalizedText.includes(normalizeSearchText(keyword))) score += 18
+  }
+
+  for (const group of helpMatchKeywordGroups) {
+    if (keywords.includes(group.label) || keywords.includes(group.category)) {
+      if (normalizedText.includes(normalizeSearchText(group.category))) score += 28
+      for (const term of group.terms) {
+        if (normalizedText.includes(normalizeSearchText(term))) score += 8
+      }
+    }
+  }
+
+  return score
+}
+
 const scoreSchoolForQuery = (school: SchoolProfile, normalizedQuery: string) => {
   const schoolText = normalizeSearchText(
     `${school.name}${school.englishName}${school.city}${school.landmark}${school.description}${school.programs.join('')}${school.strengths.join('')}`,
@@ -5065,13 +7994,22 @@ const normalizeUser = (user: Partial<User>): User => ({
   documents: user.documents ?? [],
 })
 
-const openCredentialDocument = (document: CredentialDocument, setMessage: (message: string) => void) => {
-  if (!document.dataUrl) {
-    setMessage('这份材料是旧记录，之前没有保存文件内容；请让用户重新上传后再查看。')
-    return
+const getCredentialDocumentMimeType = (document: CredentialDocument) => {
+  const dataUrlMime = document.dataUrl?.match(/^data:([^;,]+)/)?.[1]
+  return dataUrlMime || document.type || 'application/octet-stream'
+}
+
+const getCredentialDocumentTextPreview = (document: CredentialDocument) => {
+  if (!document.dataUrl || !document.dataUrl.startsWith('data:')) return ''
+  const commaIndex = document.dataUrl.indexOf(',')
+  if (commaIndex < 0) return ''
+  const meta = document.dataUrl.slice(0, commaIndex)
+  const payload = document.dataUrl.slice(commaIndex + 1)
+  try {
+    return meta.includes(';base64') ? window.atob(payload) : decodeURIComponent(payload)
+  } catch {
+    return ''
   }
-  const preview = window.open(document.dataUrl, '_blank', 'noopener,noreferrer')
-  if (!preview) setMessage('浏览器拦截了预览窗口，请允许弹窗后重试。')
 }
 
 const normalizePartnerApplication = (application: Partial<PartnerApplication>): PartnerApplication => ({
@@ -5098,12 +8036,15 @@ const initialState = (): StoredState => {
       partnerApplications: [],
       merchantLeads: [],
       merchantBrandDecorations: defaultMerchantBrandDecorations,
+      managedMerchants: [],
       questionBounties: [],
       questionDisputes: [],
       pointOrders: [],
       withdrawalRequests: [],
+      renameRequests: [],
       pointLedger: [],
       reports: [],
+      legalConsents: [],
       currentUserId: null,
       unlockedPostIds: {},
       siteContent: defaultSiteContent,
@@ -5120,12 +8061,15 @@ const initialState = (): StoredState => {
       partnerApplications: [],
       merchantLeads: [],
       merchantBrandDecorations: defaultMerchantBrandDecorations,
+      managedMerchants: [],
       questionBounties: [],
       questionDisputes: [],
       pointOrders: [],
       withdrawalRequests: [],
+      renameRequests: [],
       pointLedger: [],
       reports: [],
+      legalConsents: [],
       currentUserId: null,
       unlockedPostIds: {},
       siteContent: defaultSiteContent,
@@ -5142,12 +8086,15 @@ const initialState = (): StoredState => {
       partnerApplications: (parsed.partnerApplications ?? []).map(normalizePartnerApplication),
       merchantLeads: parsed.merchantLeads ?? [],
       merchantBrandDecorations: mergeMerchantBrandDecorations(parsed.merchantBrandDecorations),
+      managedMerchants: parsed.managedMerchants ?? [],
       questionBounties: parsed.questionBounties ?? [],
       questionDisputes: parsed.questionDisputes ?? [],
       pointOrders: parsed.pointOrders ?? [],
       withdrawalRequests: parsed.withdrawalRequests ?? [],
+      renameRequests: parsed.renameRequests ?? [],
       pointLedger: parsed.pointLedger ?? [],
       reports: parsed.reports ?? [],
+      legalConsents: parsed.legalConsents ?? [],
       currentUserId: parsed.currentUserId ?? null,
       unlockedPostIds: parsed.unlockedPostIds ?? {},
       siteContent: normalizeSiteContent(parsed.siteContent),
@@ -5161,12 +8108,15 @@ const initialState = (): StoredState => {
       partnerApplications: [],
       merchantLeads: [],
       merchantBrandDecorations: defaultMerchantBrandDecorations,
+      managedMerchants: [],
       questionBounties: [],
       questionDisputes: [],
       pointOrders: [],
       withdrawalRequests: [],
+      renameRequests: [],
       pointLedger: [],
       reports: [],
+      legalConsents: [],
       currentUserId: null,
       unlockedPostIds: {},
       siteContent: defaultSiteContent,
@@ -5196,6 +8146,17 @@ type MerchantEditableTextField =
   | 'sectionThreeText'
   | 'caseOne'
   | 'caseTwo'
+  | 'serviceHeadingTitle'
+  | 'showcaseCategory'
+  | 'showcaseMerchantName'
+  | 'showcaseServiceTitle'
+  | 'showcaseServiceSubtitle'
+  | 'showcaseTagOne'
+  | 'showcaseTagTwo'
+  | 'showcaseTagThree'
+  | 'showcaseTagFour'
+  | 'showcaseTagFive'
+  | 'showcaseTagSix'
   | 'showcaseArtTitle'
   | 'showcaseArtSubtitle'
   | 'titleColor'
@@ -5245,12 +8206,19 @@ function App() {
   const isRewardsRoute = currentPath === '/rewards'
   const isCategoriesRoute = currentPath === '/categories'
   const isAboutRoute = currentPath === '/about'
+  const isContactRoute = currentPath === '/contact'
   const isHowItWorksRoute = currentPath === '/how-it-works'
+  const joinRouteSlug = typeof window !== 'undefined' ? currentPath.match(/^\/join\/([^/]+)$/)?.[1] : undefined
+  const activeJoinPage = joinRouteSlug ? publicJoinPagesBySlug[joinRouteSlug] : undefined
+  const isJoinRoute = Boolean(activeJoinPage)
   const partnerRouteSlug = typeof window !== 'undefined' ? currentPath.match(/^\/partners\/([^/]+)$/)?.[1] : undefined
   const isPartnerDetailRoute = Boolean(partnerRouteSlug)
   const policyRoute = currentPath.match(/^\/(terms|privacy|content-rules|minor-privacy)$/)?.[1] as
     | LegalPolicyRoute
     | undefined
+  const legalRouteMatch = currentPath.match(/^\/legal(?:\/([^/]+))?$/)
+  const legalDocumentRouteId = legalRouteMatch?.[1]
+  const isLegalRoute = Boolean(legalRouteMatch)
   const topicRouteSlug = typeof window !== 'undefined' ? currentPath.match(/^\/topics\/([^/]+)$/)?.[1] : undefined
   const isTopicRoute = Boolean(topicRouteSlug)
   const isInfoRoute =
@@ -5262,9 +8230,12 @@ function App() {
     isRewardsRoute ||
     isCategoriesRoute ||
     isAboutRoute ||
+    isContactRoute ||
     isHowItWorksRoute ||
+    isJoinRoute ||
     isPartnerDetailRoute ||
     Boolean(policyRoute) ||
+    isLegalRoute ||
     isTopicRoute
   const schoolRouteId =
     typeof window !== 'undefined'
@@ -5273,6 +8244,16 @@ function App() {
   const initialAdminToken = typeof window !== 'undefined' ? window.sessionStorage.getItem(adminSessionKey) ?? '' : ''
   const [appState, setAppState] = useState<StoredState>(() => initialState())
   const currentUser = appState.users.find((user) => user.id === appState.currentUserId) ?? null
+  const helperQualificationDocuments = (currentUser?.documents ?? []).filter(isHelperQualificationDocument)
+  const onlineHelperQualificationStatus = getDocumentVerificationStatus(helperQualificationDocuments)
+  const offlineHelperQualificationStatus = getDocumentVerificationStatus(
+    helperQualificationDocuments.filter(
+      (document) =>
+        document.type === helperQualificationDocumentType || document.type.startsWith(offlineHelperQualificationDocumentType),
+    ),
+  )
+  const currentUserOnlineHelperQualified = onlineHelperQualificationStatus === 'approved'
+  const currentUserOfflineHelperQualified = offlineHelperQualificationStatus === 'approved'
   const [selectedCategory, setSelectedCategory] = useState(allCategoryLabel)
   const [selectedPartnerType, setSelectedPartnerType] = useState(partnerShowcases[0].type)
   const [selectedPartnerMerchantIndex, setSelectedPartnerMerchantIndex] = useState(0)
@@ -5306,17 +8287,30 @@ function App() {
   const [adminLoginOpen, setAdminLoginOpen] = useState(() => isAdminRoute && !initialAdminToken)
   const [adminToken, setAdminToken] = useState(initialAdminToken)
   const [adminTab, setAdminTab] = useState<
-    'users' | 'posts' | 'reports' | 'partners' | 'leads' | 'settlement' | 'payments' | 'content'
+    'todos' | 'users' | 'posts' | 'reports' | 'partners' | 'leads' | 'settlement' | 'payments' | 'merchants' | 'content'
   >('users')
   const [leadSearch, setLeadSearch] = useState('')
   const [leadStatusFilter, setLeadStatusFilter] = useState<'all' | MerchantLead['status']>('all')
   const [leadAssigneeFilter, setLeadAssigneeFilter] = useState('全部')
   const [contentDraft, setContentDraft] = useState<SiteContentSettings>(() => normalizeSiteContent(appState.siteContent))
+  const [merchantManagerDraft, setMerchantManagerDraft] = useState({
+    category: businessCategoryOptions[0],
+    name: '',
+    logo: '',
+    summary: '',
+    description: '',
+    tags: '',
+    location: '',
+    level: 'normal' as MerchantLevel,
+  })
+  const [merchantManagerSaving, setMerchantManagerSaving] = useState(false)
   const [partnerReviewDrafts, setPartnerReviewDrafts] = useState<Record<string, PartnerApplicationReviewDraft>>({})
   const [merchantDecorationDrafts, setMerchantDecorationDrafts] = useState<Record<string, MerchantBrandDecoration>>({})
   const [merchantDecorationNotice, setMerchantDecorationNotice] = useState('')
   const [partnerShowcaseSaving, setPartnerShowcaseSaving] = useState(false)
   const [partnerShowcaseEditMode, setPartnerShowcaseEditMode] = useState(false)
+  const [activePartnerShowcaseTextField, setActivePartnerShowcaseTextField] = useState<MerchantEditableTextField | null>(null)
+  const [activePartnerShowcaseTemplateItem, setActivePartnerShowcaseTemplateItem] = useState<PartnerShowcaseTemplateItem | null>(null)
   const [activePartnerShowcaseTextEditor, setActivePartnerShowcaseTextEditor] = useState<MerchantEditableTextField | null>(null)
   const [partnerShowcaseTextPopoverAnchor, setPartnerShowcaseTextPopoverAnchor] = useState<TextPopoverAnchor | null>(null)
   const [activePartnerShowcaseDesignItemId, setActivePartnerShowcaseDesignItemId] = useState<string | null>(null)
@@ -5326,6 +8320,10 @@ function App() {
   const [activeMerchantMediaZone, setActiveMerchantMediaZone] = useState<'hero' | 'service' | null>(null)
   const [activeMerchantDesignItemId, setActiveMerchantDesignItemId] = useState<string | null>(null)
   const [activeMerchantStageLayerId, setActiveMerchantStageLayerId] = useState<MerchantStageLayerId | null>(null)
+  const activeMerchantDecorationDraftRef = useRef<MerchantBrandDecoration | null>(null)
+  const activeMerchantDesignItemIdRef = useRef<string | null>(null)
+  const activeMerchantMediaZoneRef = useRef<'hero' | 'service' | null>(null)
+  const activeMerchantStageLayerIdRef = useRef<MerchantStageLayerId | null>(null)
   const merchantImageDragRef = useRef<{
     zone: 'hero' | 'service'
     startX: number
@@ -5355,7 +8353,9 @@ function App() {
     originX: number
     originY: number
   } | null>(null)
+  const merchantHeroPanelFileInputRef = useRef<HTMLInputElement | null>(null)
   const partnerShowcaseFileInputRef = useRef<HTMLInputElement | null>(null)
+  const merchantDesignItemClipboardRef = useRef<MerchantDesignItem | null>(null)
   const partnerShowcaseItemDragRef = useRef<{
     id: string
     mode: 'move' | 'resize'
@@ -5369,6 +8369,9 @@ function App() {
     stageWidth: number
     stageHeight: number
   } | null>(null)
+  const activePartnerShowcaseDesignItemIdRef = useRef<string | null>(null)
+  const activePartnerShowcaseTextFieldRef = useRef<MerchantEditableTextField | null>(null)
+  const activePartnerShowcaseTemplateItemRef = useRef<PartnerShowcaseTemplateItem | null>(null)
   const partnerShowcaseTextLayerDragRef = useRef<{
     brandId: string
     field: MerchantEditableTextField
@@ -5377,6 +8380,8 @@ function App() {
     originX: number
     originY: number
   } | null>(null)
+  const merchantDetailUndoStackRef = useRef<Record<string, MerchantBrandDecoration[]>>({})
+  const partnerShowcaseUndoStackRef = useRef<Record<string, MerchantBrandDecoration[]>>({})
   const partnerCategoryRailDragRef = useRef<{
     pointerId: number
     startX: number
@@ -5387,6 +8392,12 @@ function App() {
   const [partnerCategoryDragging, setPartnerCategoryDragging] = useState(false)
   const [inlineEditMode, setInlineEditMode] = useState(false)
   const [selectedAdminUserId, setSelectedAdminUserId] = useState<string | null>(null)
+  const [previewCredentialDocument, setPreviewCredentialDocument] = useState<CredentialDocument | null>(null)
+  const [credentialDocumentBusyId, setCredentialDocumentBusyId] = useState('')
+  const [rejectingCredentialDocumentId, setRejectingCredentialDocumentId] = useState('')
+  const [credentialRejectDrafts, setCredentialRejectDrafts] = useState<Record<string, string>>({})
+  const [adminPasswordDrafts, setAdminPasswordDrafts] = useState<Record<string, string>>({})
+  const [adminPasswordResetBusyId, setAdminPasswordResetBusyId] = useState('')
   const [adminUserSettingDrafts, setAdminUserSettingDrafts] = useState<
     Record<
       string,
@@ -5394,6 +8405,8 @@ function App() {
         status?: UserStatus
         verificationStatus?: VerificationStatus
         managedBrandId?: string
+        businessCategories?: string[]
+        businessScopeLevels?: Record<string, MerchantLevel>
         managedBrandLevel?: MerchantLevel
       }
     >
@@ -5402,6 +8415,7 @@ function App() {
   const [activePost, setActivePost] = useState<Post | null>(null)
   const [reportTarget, setReportTarget] = useState<{ contentType: string; contentId: string; title: string } | null>(null)
   const [reportForm, setReportForm] = useState({ reason: '违法违规内容', description: '', contact: '' })
+  const [legalAcceptances, setLegalAcceptances] = useState<Record<string, boolean>>({})
   const [message, setMessage] = useState('')
   const [schoolPages, setSchoolPages] = useState<Record<string, number>>({})
   const [authNotice, setAuthNotice] = useState('')
@@ -5439,6 +8453,13 @@ function App() {
     accountLabel: '',
   })
   const [megaMenuOpen, setMegaMenuOpen] = useState(false)
+  const [languageMenuOpen, setLanguageMenuOpen] = useState(false)
+  const [selectedLanguage, setSelectedLanguage] = useState<SiteLanguage>(() => {
+    if (typeof window === 'undefined') return 'zh'
+    const savedLanguage = window.localStorage.getItem(languageStorageKey)
+    return languageOptions.some((option) => option.value === savedLanguage) ? (savedLanguage as SiteLanguage) : 'zh'
+  })
+  const translationOriginalTextRef = useRef<WeakMap<Text, string>>(new WeakMap())
   const [failedSchoolImageUrls, setFailedSchoolImageUrls] = useState<Record<string, boolean>>({})
   const [schoolHeroSlideIndex, setSchoolHeroSlideIndex] = useState(0)
 
@@ -5453,6 +8474,12 @@ function App() {
     body: '',
     price: '0',
   })
+  const [helpIntentMode, setHelpIntentMode] = useState<HelpIntentMode>('knowledge')
+  const [quickMatchInput, setQuickMatchInput] = useState('')
+  const [quickMatchTouched, setQuickMatchTouched] = useState(false)
+  const [activeHelpConversation, setActiveHelpConversation] = useState<HelpConversation | null>(null)
+  const [helpChatInput, setHelpChatInput] = useState('')
+  const [helpQuoteDraft, setHelpQuoteDraft] = useState('100')
   const [askQuestionOpen, setAskQuestionOpen] = useState(false)
   const [questionForm, setQuestionForm] = useState({
     title: '',
@@ -5464,6 +8491,18 @@ function App() {
     detail: '',
   })
   const [answerForm, setAnswerForm] = useState({ content: '' })
+  const [helperQualificationOpen, setHelperQualificationOpen] = useState(false)
+  const [helperQualificationMode, setHelperQualificationMode] = useState<HelperQualificationMode>('online')
+  const [helperQualificationSubmitting, setHelperQualificationSubmitting] = useState(false)
+  const [selectedOfflineTask, setSelectedOfflineTask] = useState<OfflineBountyTask | null>(null)
+  const [helperQualificationForm, setHelperQualificationForm] = useState({
+    realName: '',
+    contact: '',
+    identityNote: '',
+    serviceScope: '',
+    documents: [] as CredentialDocument[],
+    oath: false,
+  })
   const [partnerForm, setPartnerForm] = useState({
     company: '',
     type: '留学咨询',
@@ -5504,17 +8543,110 @@ function App() {
   const [profileForm, setProfileForm] = useState({
     name: currentUser?.name ?? '',
     avatarUrl: currentUser?.avatarUrl ?? '',
-    bio: currentUser?.bio ?? '',
+    bio: getUserPublicBio(currentUser?.bio),
     identity: currentUser?.identity ?? '准备申请',
     school: currentUser?.school ?? '',
+    businessCategory: normalizeBusinessCategory(parseUserBioSettings(currentUser?.bio).businessCategory, currentUser?.name),
+    businessCategories: getUserBusinessCategories(parseUserBioSettings(currentUser?.bio)),
     documents: [] as CredentialDocument[],
   })
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [merchantLogoReviewBusyId, setMerchantLogoReviewBusyId] = useState('')
+  const [renameRequestSubmitting, setRenameRequestSubmitting] = useState(false)
 
   useEffect(() => {
     if (!message) return
     const timer = window.setTimeout(() => setMessage(''), 2800)
     return () => window.clearTimeout(timer)
   }, [message])
+
+  useEffect(() => {
+    const activeLanguage = languageOptions.find((option) => option.value === selectedLanguage) ?? languageOptions[0]
+    window.localStorage.setItem(languageStorageKey, selectedLanguage)
+    document.documentElement.lang = activeLanguage.htmlLang
+  }, [selectedLanguage])
+
+  useEffect(() => {
+    if (typeof document === 'undefined' || typeof window === 'undefined' || !document.body) return undefined
+
+    const originalTextMap = translationOriginalTextRef.current
+
+    const shouldSkipTextNode = (node: Text) => {
+      const parent = node.parentElement
+      return (
+        !parent ||
+        skipTranslationTags.has(parent.tagName) ||
+        Boolean(parent.closest('[data-no-translate="true"], input, textarea'))
+      )
+    }
+
+    const translatePage = () => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+      const textNodes: Text[] = []
+
+      while (walker.nextNode()) {
+        textNodes.push(walker.currentNode as Text)
+      }
+
+      textNodes.forEach((node) => {
+        if (shouldSkipTextNode(node)) return
+        const currentValue = node.nodeValue ?? ''
+        if (!currentValue.trim()) return
+        let originalValue = originalTextMap.get(node) ?? currentValue
+        if (originalTextMap.has(node) && currentValue !== originalValue && !isKnownTranslatedSiteCopy(currentValue)) {
+          originalValue = currentValue
+        }
+        originalTextMap.set(node, originalValue)
+        const nextValue = selectedLanguage === 'zh' ? originalValue : translateSiteCopy(selectedLanguage, originalValue)
+        if (node.nodeValue !== nextValue) {
+          node.nodeValue = nextValue
+        }
+      })
+
+      document.querySelectorAll<HTMLElement>(translatableAttributeSelector).forEach((element) => {
+        if (element.closest('[data-no-translate="true"]')) return
+        translationAttributeNames.forEach((attributeName) => {
+          const currentValue = element.getAttribute(attributeName)
+          if (!currentValue?.trim()) return
+          const originalAttributeName = `data-shouye-i18n-original-${attributeName}`
+          const originalValue = element.getAttribute(originalAttributeName) ?? currentValue
+          if (!element.hasAttribute(originalAttributeName)) {
+            element.setAttribute(originalAttributeName, originalValue)
+          }
+          const nextValue = selectedLanguage === 'zh' ? originalValue : translateSiteCopy(selectedLanguage, originalValue)
+          if (element.getAttribute(attributeName) !== nextValue) {
+            element.setAttribute(attributeName, nextValue)
+          }
+        })
+      })
+    }
+
+    let animationFrame = 0
+    const scheduleTranslation = () => {
+      if (animationFrame) return
+      animationFrame = window.requestAnimationFrame(() => {
+        animationFrame = 0
+        translatePage()
+      })
+    }
+
+    translatePage()
+    const observer = new MutationObserver(scheduleTranslation)
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: [...translationAttributeNames],
+      childList: true,
+      characterData: true,
+      subtree: true,
+    })
+
+    return () => {
+      observer.disconnect()
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame)
+      }
+    }
+  }, [selectedLanguage])
 
   const handleMerchantStudioMediaInput = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = Array.from(event.target.files ?? []).find((item) => item.type.startsWith('image/') || item.type.startsWith('video/'))
@@ -5531,6 +8663,9 @@ function App() {
           mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
           background: 'transparent',
         })
+        activeMerchantDesignItemIdRef.current = activeMerchantDesignItem.id
+        activeMerchantStageLayerIdRef.current = `design:${activeMerchantDesignItem.id}`
+        activeMerchantMediaZoneRef.current = null
         setActiveMerchantDesignItemId(activeMerchantDesignItem.id)
         setActiveMerchantStageLayerId(`design:${activeMerchantDesignItem.id}`)
         setMerchantDecorationNotice('素材已放入选中框，可拖动、缩放，保存后展示。')
@@ -5570,6 +8705,18 @@ function App() {
       })
       .catch(() => {
         // Default brand decorations keep merchant pages usable when the API is unavailable.
+      })
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/managed-merchants')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { managedMerchants?: ManagedMerchant[] } | null) => {
+        if (!data?.managedMerchants) return
+        setAppState((state) => ({ ...state, managedMerchants: data.managedMerchants! }))
+      })
+      .catch(() => {
+        // Static merchant data keeps the showcase available when this API is offline.
       })
   }, [])
 
@@ -5631,7 +8778,7 @@ function App() {
   useEffect(() => {
     if (typeof document === 'undefined') return
 
-    const defaultTitle = '留学生首页 - 留学生经验分享与问题解决平台'
+    const defaultTitle = '售业首页'
     const defaultDescription =
       '留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。'
     const routeSlug =
@@ -5641,10 +8788,12 @@ function App() {
       ? getJourneyTopicBySlug(decodeURIComponent(currentPath.match(/^\/topics\/([^/]+)$/)?.[1] ?? ''))
       : undefined
 
-    document.title = currentSchoolTopic?.seoTitle ?? (currentJourneyTopic ? `${currentJourneyTopic.title} - 留学生首页` : defaultTitle)
+    document.title =
+      currentSchoolTopic?.seoTitle ??
+      (currentJourneyTopic ? `${currentJourneyTopic.title} - 售业首页` : activeJoinPage ? `${activeJoinPage.eyebrow} - 售业` : defaultTitle)
     document
       .querySelector('meta[name="description"]')
-      ?.setAttribute('content', currentSchoolTopic?.seoDescription ?? currentJourneyTopic?.heroCopy ?? defaultDescription)
+      ?.setAttribute('content', currentSchoolTopic?.seoDescription ?? currentJourneyTopic?.heroCopy ?? activeJoinPage?.lead ?? defaultDescription)
   }, [currentPath])
 
   useEffect(() => {
@@ -5688,6 +8837,15 @@ function App() {
   }, [])
 
   const selectedAdminUser = appState.users.find((user) => user.id === selectedAdminUserId) ?? null
+  const sortRenameRequests = (requests: RenameRequest[]) =>
+    [...requests].sort((first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime())
+  const currentUserRenameRequests = currentUser
+    ? sortRenameRequests(appState.renameRequests.filter((request) => request.userId === currentUser.id))
+    : []
+  const currentUserPendingRenameRequest = currentUserRenameRequests.find((request) => request.status === 'pending')
+  const selectedAdminUserRenameRequests = selectedAdminUser
+    ? sortRenameRequests(appState.renameRequests.filter((request) => request.userId === selectedAdminUser.id))
+    : []
   const selectedAdminUserBioSettings = parseUserBioSettings(selectedAdminUser?.bio)
   const leadAssignees = ['全部', ...Array.from(new Set(appState.merchantLeads.map((lead) => lead.assignedTo).filter(Boolean)))]
   const filteredMerchantLeads = appState.merchantLeads.filter((lead) => {
@@ -5718,27 +8876,51 @@ function App() {
   const approvedPartnerApplications = appState.partnerApplications.filter(
     (application) => application.status === 'approved' && application.company.trim(),
   )
+  const managedMerchantScopes = appState.users
+    .map((user) => ({ user, settings: parseUserBioSettings(user.bio) }))
+    .filter(({ settings }) => settings.managedBrandId)
   const merchantLevelByBrandId = new Map(
     [
-      ...appState.users
-        .map((user) => parseUserBioSettings(user.bio))
-        .filter((settings) => settings.managedBrandId)
-        .map((settings) => [settings.managedBrandId!, settings.managedBrandLevel ?? 'normal'] as const),
+      ...managedMerchantScopes.map(({ settings }) => [settings.managedBrandId!, settings.managedBrandLevel ?? 'normal'] as const),
       ...publicBrandAccesses.map((access) => [access.brandId, access.level] as const),
     ],
   )
+  const merchantScopeLevelByKey = new Map(
+    managedMerchantScopes.flatMap(({ settings }) =>
+      getUserBusinessCategories(settings).map(
+        (category) =>
+          [`${settings.managedBrandId}::${category}`, settings.businessScopeLevels?.[category] ?? settings.managedBrandLevel ?? 'normal'] as const,
+      ),
+    ),
+  )
   const getPartnerMerchantSlug = (merchant: PartnerMerchant) =>
     'id' in merchant && merchant.id ? merchant.id : encodeURIComponent(merchant.name)
+  const decodeUrlLikeText = (value: string) => {
+    if (!/%[0-9a-f]{2}/i.test(value)) return value
+    try {
+      return decodeURIComponent(value)
+    } catch {
+      return value
+    }
+  }
+  const getAdminMerchantMeta = (merchant: PartnerMerchant, slug: string) => {
+    const location = merchant.location?.trim()
+    if (location) return location
+    const readableSlug = decodeUrlLikeText(slug)
+    return readableSlug && readableSlug !== merchant.name ? `ID：${readableSlug}` : '系统商家'
+  }
+  const getHighestMerchantLevel = (...levels: Array<MerchantLevel | undefined>) =>
+    levels.includes('pinned') ? 'pinned' : 'normal'
   const sortPartnerMerchants = (merchants: PartnerMerchant[]) =>
     [...merchants].sort((first, second) => {
       const firstPinned = first.level === 'pinned' ? 1 : 0
       const secondPinned = second.level === 'pinned' ? 1 : 0
       return secondPinned - firstPinned
     })
-  const partnerShowcasesWithApproved = approvedPartnerApplications.reduce<PartnerShowcase[]>(
+  const partnerShowcasesWithApprovedBase = approvedPartnerApplications.reduce<PartnerShowcase[]>(
     (showcases, application) => {
       const brandId = `partner-${application.id.replace(/[^a-zA-Z0-9_-]/g, '') || encodeURIComponent(application.company)}`
-      const merchantLevel = merchantLevelByBrandId.get(brandId) ?? 'normal'
+      const merchantLevel = merchantScopeLevelByKey.get(`${brandId}::${normalizeBusinessCategory(application.type, application.company)}`) ?? merchantLevelByBrandId.get(brandId) ?? 'normal'
       const showcaseType = normalizeBusinessCategory(application.type, application.company)
       const merchant: PartnerMerchant = {
         id: brandId,
@@ -5787,6 +8969,111 @@ function App() {
       ),
     })),
   )
+  const partnerShowcasesWithUserManaged = managedMerchantScopes.reduce<PartnerShowcase[]>(
+    (showcases, { user, settings }) => {
+      const brandId = settings.managedBrandId ?? ''
+      const brandName = settings.managedBrandName || settings.businessName || user.name
+      if (!brandId || !brandName) return showcases
+      return getUserBusinessCategories(settings).reduce<PartnerShowcase[]>((nextShowcases, category) => {
+        const existingEntry = nextShowcases.flatMap((showcase) => showcase.merchants).find((merchant) => getPartnerMerchantSlug(merchant) === brandId)
+        const merchantLevel = settings.businessScopeLevels?.[category] ?? settings.managedBrandLevel ?? 'normal'
+        const merchant: PartnerMerchant = {
+          ...(existingEntry ?? {}),
+          id: brandId,
+          name: brandName,
+          logo: existingEntry?.logo ?? brandName.slice(0, 3),
+          logoImage: existingEntry?.logoImage,
+          summary: existingEntry?.summary ?? `${category}服务展示`,
+          description: existingEntry?.description ?? `${brandName}已通过售业商家认证，可展示服务范围、联系方式、优惠和咨询边界。`,
+          tags: Array.from(new Set([category, ...(existingEntry?.tags ?? []), merchantLevel === 'pinned' ? '置顶商家' : '认证商家'])),
+          verified: true,
+          location: existingEntry?.location ?? user.school,
+          detailTone: existingEntry?.detailTone ?? `${category}服务展示`,
+          level: merchantLevel,
+          detailSections: existingEntry?.detailSections,
+        }
+        const showcaseIndex = nextShowcases.findIndex((showcase) => showcase.type === category)
+        if (showcaseIndex >= 0) {
+          return nextShowcases.map((showcase, index) =>
+            index === showcaseIndex
+              ? {
+                  ...showcase,
+                  merchants: sortPartnerMerchants([
+                    ...showcase.merchants.filter((item) => getPartnerMerchantSlug(item) !== brandId),
+                    merchant,
+                  ]),
+                }
+              : showcase,
+          )
+        }
+        return [
+          ...nextShowcases,
+          {
+            type: category,
+            audience: '认证商家',
+            tone: 'consulting',
+            merchants: [merchant],
+          },
+        ]
+      }, showcases)
+    },
+    partnerShowcasesWithApprovedBase,
+  )
+  const partnerShowcasesWithApproved = appState.managedMerchants.reduce<PartnerShowcase[]>((showcases, managedMerchant) => {
+    const existingEntry = showcases
+      .flatMap((showcase) => showcase.merchants)
+      .find((item) => getPartnerMerchantSlug(item) === managedMerchant.id)
+    const effectiveLevel = getHighestMerchantLevel(
+      managedMerchant.level,
+      existingEntry?.level,
+      merchantScopeLevelByKey.get(`${managedMerchant.id}::${managedMerchant.category}`),
+      merchantLevelByBrandId.get(managedMerchant.id),
+    )
+    const effectiveTags = Array.from(
+      new Set([
+        ...(managedMerchant.tags?.length ? managedMerchant.tags : [managedMerchant.category]),
+        ...(existingEntry?.tags ?? []),
+        effectiveLevel === 'pinned' ? '置顶商家' : '',
+      ].filter(Boolean)),
+    )
+    const merchant: PartnerMerchant = {
+      id: managedMerchant.id,
+      name: managedMerchant.name,
+      logo: managedMerchant.logo || existingEntry?.logo || managedMerchant.name.slice(0, 3) || '商家',
+      logoImage: managedMerchant.logoImage || existingEntry?.logoImage,
+      summary: managedMerchant.summary || `${managedMerchant.category}服务展示`,
+      description: managedMerchant.description || `${managedMerchant.name}已加入售业商家展示。`,
+      tags: effectiveTags,
+      verified: managedMerchant.verified ?? true,
+      location: managedMerchant.location || '认证商家',
+      detailTone: managedMerchant.detailTone || `${managedMerchant.category}服务展示`,
+      level: effectiveLevel,
+    }
+    const withoutExisting = showcases
+      .map((showcase) => ({
+        ...showcase,
+        merchants: showcase.merchants.filter((item) => getPartnerMerchantSlug(item) !== managedMerchant.id),
+      }))
+      .filter((showcase) => showcase.merchants.length > 0)
+    if (managedMerchant.status === 'hidden') return withoutExisting
+    const showcaseIndex = withoutExisting.findIndex((showcase) => showcase.type === managedMerchant.category)
+    if (showcaseIndex >= 0) {
+      return withoutExisting.map((showcase, index) =>
+        index === showcaseIndex
+          ? { ...showcase, merchants: sortPartnerMerchants([...showcase.merchants, merchant]) }
+          : showcase,
+      )
+    }
+    return [
+      ...withoutExisting,
+      {
+        type: managedMerchant.category,
+        audience: `${managedMerchant.category}认证商家`,
+        tone: 'consulting',
+        merchants: [merchant],
+      },
+    ]
+  }, partnerShowcasesWithUserManaged)
   const partnerMerchantEntries = partnerShowcasesWithApproved.flatMap((showcase) =>
     showcase.merchants.map((merchant) => ({
       showcase,
@@ -5794,6 +9081,15 @@ function App() {
       slug: getPartnerMerchantSlug(merchant),
     })),
   )
+  const adminMerchantCategoryOptions = Array.from(
+    new Set([...businessCategoryOptions, ...partnerShowcasesWithApproved.map((showcase) => showcase.type), merchantManagerDraft.category]),
+  ).filter(Boolean)
+  const adminMerchantGroups = partnerShowcasesWithApproved
+    .map((showcase) => ({
+      ...showcase,
+      merchants: [...showcase.merchants].sort((first, second) => first.name.localeCompare(second.name, 'zh-CN')),
+    }))
+    .filter((showcase) => showcase.merchants.length > 0)
   const partnerCollectiveBubbles = partnerMerchantEntries.map((entry, index) => {
     const decoration = appState.merchantBrandDecorations.find((item) => item.brandId === entry.slug)
     const approvedLogoImage = decoration?.logoReviewStatus === 'approved' ? decoration.logoImage : ''
@@ -5819,6 +9115,7 @@ function App() {
     const motionSpeed = 0.012 + ((seed >>> 8) % 18) * 0.00115
     return {
       ...entry,
+      bubbleKey: `${entry.slug}::${entry.showcase.type}`,
       logoImage,
       bubbleColor,
       bubbleTextColor,
@@ -5834,7 +9131,7 @@ function App() {
       driftRateY: 910 + (seedB % 760),
     }
   })
-  const partnerBubbleKeys = partnerCollectiveBubbles.map((entry) => entry.slug).join('|')
+  const partnerBubbleKeys = partnerCollectiveBubbles.map((entry) => entry.bubbleKey).join('|')
   const partnerCollectiveBubblesForRender = [
     ...partnerCollectiveBubbles.filter((entry) => entry.merchant.level !== 'pinned'),
     ...partnerCollectiveBubbles.filter((entry) => entry.merchant.level === 'pinned'),
@@ -5844,9 +9141,9 @@ function App() {
 
     const bubbleState = partnerBubblePhysicsRef.current
     partnerCollectiveBubbles.forEach((entry) => {
-      if (bubbleState[entry.slug]) return
+      if (bubbleState[entry.bubbleKey]) return
       const speedFactor = entry.merchant.level === 'pinned' ? 0.46 : 1
-      bubbleState[entry.slug] = {
+      bubbleState[entry.bubbleKey] = {
         x: entry.seedX,
         y: entry.seedY,
         vx: Math.cos(entry.motionAngle) * entry.motionSpeed * speedFactor,
@@ -5856,7 +9153,7 @@ function App() {
     })
 
     Object.keys(bubbleState).forEach((slug) => {
-      if (!partnerCollectiveBubbles.some((entry) => entry.slug === slug)) delete bubbleState[slug]
+      if (!partnerCollectiveBubbles.some((entry) => entry.bubbleKey === slug)) delete bubbleState[slug]
     })
 
     let animationFrame = 0
@@ -5882,7 +9179,7 @@ function App() {
     const tick = (time: number) => {
       const delta = Math.min((time - lastFrame) / 16.67, 2)
       lastFrame = time
-      const entries = partnerCollectiveBubbles.map((entry) => ({ entry, state: bubbleState[entry.slug] })).filter((item) => item.state)
+      const entries = partnerCollectiveBubbles.map((entry) => ({ entry, state: bubbleState[entry.bubbleKey] })).filter((item) => item.state)
       const collided = new Set<string>()
 
       for (let i = 0; i < entries.length; i += 1) {
@@ -5928,30 +9225,30 @@ function App() {
           second.state.vy += ny * push * 0.036
           first.state.boost = 4.2
           second.state.boost = 4.2
-          collided.add(first.entry.slug)
-          collided.add(second.entry.slug)
+          collided.add(first.entry.bubbleKey)
+          collided.add(second.entry.bubbleKey)
         }
       }
 
       const nextPositions: Record<string, { x: number; y: number }> = {}
       entries.forEach(({ entry, state }) => {
-        if (!collided.has(entry.slug)) {
+        if (!collided.has(entry.bubbleKey)) {
           state.boost += (1 - state.boost) * 0.025
         }
 
         const maxSpeed =
           entry.merchant.level === 'pinned'
-            ? collided.has(entry.slug)
+            ? collided.has(entry.bubbleKey)
               ? pinnedBoostedMaxSpeed
               : pinnedMaxSpeed
-            : collided.has(entry.slug)
+            : collided.has(entry.bubbleKey)
               ? boostedMaxSpeed
               : baseMaxSpeed
         const speed = Math.max(Math.hypot(state.vx, state.vy), 0.001)
         if (speed > maxSpeed) {
           state.vx = (state.vx / speed) * maxSpeed
           state.vy = (state.vy / speed) * maxSpeed
-        } else if (!collided.has(entry.slug) && speed < (entry.merchant.level === 'pinned' ? 0.006 : 0.01)) {
+        } else if (!collided.has(entry.bubbleKey) && speed < (entry.merchant.level === 'pinned' ? 0.006 : 0.01)) {
           state.vx *= 1.012
           state.vy *= 1.012
         }
@@ -5971,7 +9268,7 @@ function App() {
         const driftFactor = entry.merchant.level === 'pinned' ? 0.42 : 1
         state.vx += Math.sin((time / entry.driftRateX) + entry.driftPhaseX) * 0.00038 * driftFactor
         state.vy += Math.cos((time / entry.driftRateY) + entry.driftPhaseY) * 0.00034 * driftFactor
-        nextPositions[entry.slug] = { x: state.x, y: state.y }
+        nextPositions[entry.bubbleKey] = { x: state.x, y: state.y }
       })
 
       setPartnerBubblePositions(nextPositions)
@@ -5981,26 +9278,177 @@ function App() {
     animationFrame = window.requestAnimationFrame(tick)
     return () => window.cancelAnimationFrame(animationFrame)
   }, [partnerBubbleKeys, showPartnerCollectiveBoard])
-  const manageablePartnerBrands = partnerMerchantEntries.map((entry) => ({
-    id: entry.slug,
-    name: entry.merchant.name,
-    type: entry.showcase.type,
-  }))
+  const manageablePartnerBrands = Array.from(
+    (() => {
+      const brandMap = new Map<string, { id: string; aliases: string[]; name: string; type: string; types: string[] }>()
+      const addBrand = (brand: { id: string; aliases?: string[]; name: string; type: string; types?: string[] }) => {
+        const brandName = brand.name.trim()
+        if (!brand.id || !brandName) return
+        const brandKey = brandName.toLowerCase()
+        const types = brand.types?.length ? brand.types : [brand.type]
+        const aliases = Array.from(new Set([brand.id, ...(brand.aliases ?? [])].filter(Boolean)))
+        const existing = brandMap.get(brandKey)
+        if (existing) {
+          aliases.forEach((alias) => {
+            if (!existing.aliases.includes(alias)) existing.aliases.push(alias)
+          })
+          types.forEach((type) => {
+            if (!existing.types.includes(type)) existing.types.push(type)
+          })
+          existing.type = existing.types[0]
+          return
+        }
+        brandMap.set(brandKey, {
+          id: brand.id,
+          aliases,
+          name: brandName,
+          type: types[0],
+          types,
+        })
+      }
+
+      partnerMerchantEntries.forEach((entry) => {
+        addBrand({
+          id: entry.slug,
+          name: entry.merchant.name,
+          type: entry.showcase.type,
+        })
+      })
+
+      appState.managedMerchants
+        .filter((merchant) => merchant.status !== 'hidden')
+        .forEach((merchant) => {
+          addBrand({
+            id: merchant.id,
+            name: merchant.name,
+            type: merchant.category,
+          })
+        })
+
+      appState.users.forEach((user) => {
+        const settings = parseUserBioSettings(user.bio)
+        const isMerchantUser = settings.userType === 'merchant' || user.identity.startsWith('商家')
+        if (!isMerchantUser) return
+        const businessName = settings.businessName?.trim() || user.name.trim()
+        const syntheticBrandId = `merchant-user-${user.id}`
+        const categories = getUserBusinessCategories(settings)
+        const type =
+          categories[0] ||
+          normalizeBusinessCategory(settings.businessCategory || user.identity.replace(/^商家\s*[·路]\s*/, ''), businessName)
+        addBrand({
+          id: settings.managedBrandId || syntheticBrandId,
+          aliases: [syntheticBrandId, user.id, settings.managedBrandId ?? ''].filter(Boolean),
+          name: businessName,
+          type,
+          types: categories.length ? categories : [type],
+        })
+      })
+
+      return brandMap
+    })().values(),
+  ).sort((first, second) => first.name.localeCompare(second.name, 'zh-CN'))
   const selectedAdminUserSettingDraft = selectedAdminUser ? adminUserSettingDrafts[selectedAdminUser.id] : undefined
   const selectedAdminUserControlSettings = selectedAdminUser
     ? {
         status: selectedAdminUserSettingDraft?.status ?? selectedAdminUser.status,
         verificationStatus: selectedAdminUserSettingDraft?.verificationStatus ?? selectedAdminUser.verificationStatus,
         managedBrandId: selectedAdminUserSettingDraft?.managedBrandId ?? selectedAdminUserBioSettings.managedBrandId ?? '',
+        businessCategories:
+          selectedAdminUserSettingDraft?.businessCategories ?? getUserBusinessCategories(selectedAdminUserBioSettings),
+        businessScopeLevels:
+          selectedAdminUserSettingDraft?.businessScopeLevels ?? selectedAdminUserBioSettings.businessScopeLevels ?? {},
         managedBrandLevel:
           selectedAdminUserSettingDraft?.managedBrandLevel ?? selectedAdminUserBioSettings.managedBrandLevel ?? 'normal',
       }
     : null
   const selectedAdminUserControlBrand = selectedAdminUserControlSettings
-    ? manageablePartnerBrands.find((brand) => brand.id === selectedAdminUserControlSettings.managedBrandId)
+    ? manageablePartnerBrands.find(
+        (brand) =>
+          brand.id === selectedAdminUserControlSettings.managedBrandId ||
+          brand.aliases.includes(selectedAdminUserControlSettings.managedBrandId),
+      )
     : undefined
+  const selectedAdminManagedBrandSelectValue =
+    selectedAdminUserControlBrand?.id ?? selectedAdminUserControlSettings?.managedBrandId ?? ''
   const selectedAdminUserControlBrandName =
     selectedAdminUserControlBrand?.name ?? selectedAdminUserBioSettings.managedBrandName ?? ''
+  const selectedAdminUserIsMerchant =
+    selectedAdminUserBioSettings.userType === 'merchant' || selectedAdminUser?.identity.startsWith('商家')
+  const selectedAdminUserBusinessCategoryLabel =
+    selectedAdminUserControlSettings?.businessCategories.length
+      ? selectedAdminUserControlSettings.businessCategories.join('、')
+      : selectedAdminUserBioSettings.businessCategory || selectedAdminUser?.identity.replace(/^商家\s*[·路]\s*/, '') || ''
+  const pendingCredentialTodos = appState.users.flatMap((user) =>
+    user.documents
+      .filter((document) => document.status === 'pending' && user.verificationStatus !== 'approved')
+      .map((document) => ({
+        id: `document-${user.id}-${document.id}`,
+        type: '材料审核',
+        title: document.name,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        detail: document.type,
+        createdAt: document.uploadedAt,
+        document,
+      })),
+  )
+  const pendingPartnerTodos = appState.partnerApplications
+    .filter((application) => application.status === 'pending')
+    .map((application) => ({
+      id: `partner-${application.id}`,
+      type: '合作申请',
+      title: application.company || '未命名机构',
+      userId: '',
+      userName: application.contact || '未填写联系人',
+      userEmail: application.phone || '未填写联系方式',
+      detail: `${application.type} · ${application.direction}`,
+      createdAt: application.createdAt,
+      application,
+    }))
+  const pendingLogoTodos = appState.merchantBrandDecorations
+    .filter((decoration) => decoration.pendingLogoImage && decoration.logoReviewStatus === 'pending')
+    .map((decoration) => {
+      const brand = manageablePartnerBrands.find((item) => item.id === decoration.brandId)
+      return {
+        id: `logo-${decoration.brandId}`,
+        type: '商家头像审核',
+        title: brand?.name ?? decoration.brandId,
+        userId: '',
+        userName: '商家头像',
+        userEmail: decoration.brandId,
+        detail: '上传新头像，等待后台审核后对外展示',
+        createdAt: decoration.updatedAt,
+        decoration,
+      }
+    })
+  const pendingRenameTodos = appState.renameRequests
+    .filter((request) => request.status === 'pending')
+    .map((request) => {
+      const user = appState.users.find((item) => item.id === request.userId)
+      return {
+        id: `rename-${request.id}`,
+        type: '改名申请',
+        title: `${request.oldName || user?.name || '未命名'} → ${request.requestedName}`,
+        userId: request.userId,
+        userName: user?.name ?? request.oldName,
+        userEmail: user?.email ?? '',
+        detail: `消耗 ${request.costEarningPoints} 可提现积分`,
+        createdAt: request.createdAt,
+        renameRequest: request,
+      }
+    })
+  const adminTodoItems = [...pendingCredentialTodos, ...pendingPartnerTodos, ...pendingLogoTodos, ...pendingRenameTodos].sort(
+    (first, second) => new Date(second.createdAt).getTime() - new Date(first.createdAt).getTime(),
+  )
+  const previewCredentialMimeType = previewCredentialDocument
+    ? getCredentialDocumentMimeType(previewCredentialDocument)
+    : ''
+  const previewCredentialText = previewCredentialDocument
+    ? getCredentialDocumentTextPreview(previewCredentialDocument)
+    : ''
+  const previewCredentialIsImage = previewCredentialMimeType.startsWith('image/')
+  const previewCredentialIsPdf = previewCredentialMimeType === 'application/pdf'
   const selectedPartnerShowcase =
     partnerShowcasesWithApproved.find((partner) => partner.type === selectedPartnerType) ?? partnerShowcasesWithApproved[0]
   const selectedPartnerMerchantCount = selectedPartnerShowcase.merchants.length
@@ -6064,8 +9512,23 @@ function App() {
   const activePartnerShowcaseBadge =
     activePartnerMerchantPreviewDecoration?.badge ??
     (activePartnerMerchant.name === '瓦剌留学' ? 'WALA STUDY · 留学生服务展示' : 'SHOUYE PARTNER · 商家广告展示')
+  const activePartnerShowcaseCategory = activePartnerMerchantPreviewDecoration?.showcaseCategory || selectedPartnerShowcase.type
+  const activePartnerShowcaseMerchantName = activePartnerMerchantPreviewDecoration?.showcaseMerchantName || activePartnerMerchant.name
   const activePartnerShowcaseTitle = activePartnerMerchantPreviewDecoration?.heroTitle ?? activePartnerMerchant.summary
   const activePartnerShowcaseDescription = activePartnerMerchantPreviewDecoration?.intro ?? activePartnerMerchant.description
+  const activePartnerShowcaseServiceTitle =
+    activePartnerMerchantPreviewDecoration?.showcaseServiceTitle ||
+    (selectedPartnerShowcase.type === '留学咨询' ? '专业留学规划与服务' : `${selectedPartnerShowcase.type}服务展示`)
+  const activePartnerShowcaseServiceSubtitle =
+    activePartnerMerchantPreviewDecoration?.showcaseServiceSubtitle || activePartnerMerchant.name
+  const partnerShowcaseTagFields: MerchantEditableTextField[] = [
+    'showcaseTagOne',
+    'showcaseTagTwo',
+    'showcaseTagThree',
+    'showcaseTagFour',
+    'showcaseTagFive',
+    'showcaseTagSix',
+  ]
   const activePartnerShowcaseArtTitle =
     activePartnerMerchantPreviewDecoration?.showcaseArtTitle ||
     (selectedPartnerShowcase.type === '留学咨询' ? '留学' : activePartnerMerchant.logo)
@@ -6153,6 +9616,146 @@ function App() {
   }, [failedSchoolImageUrls, markSchoolImageFailed, schoolTopicBaseHeroImage, selectedSchoolBaseHeroImage, selectedSchoolGalleryKey])
 
   const activePolicyPage = policyRoute ? legalPolicyPages[policyRoute] : undefined
+  const activeLegalDocumentId = legalDocumentRouteId ?? (policyRoute ? legacyLegalRouteMap[policyRoute] : undefined)
+  const activeLegalDocumentCandidate = activeLegalDocumentId ? legalDocumentsById[activeLegalDocumentId] : undefined
+  const activeLegalDocument = activeLegalDocumentCandidate?.isPublic ? activeLegalDocumentCandidate : undefined
+  const privateLegalDocumentRequested = Boolean(activeLegalDocumentCandidate && !activeLegalDocumentCandidate.isPublic)
+
+  const legalDocsFor = (documentIds: string[]) =>
+    documentIds
+      .map((documentId) => legalDocumentsById[documentId])
+      .filter((document): document is LegalDocument => Boolean(document?.isPublic))
+
+  const authLegalDocumentIds =
+    authForm.userType === 'merchant'
+      ? [
+          'user-agreement',
+          'privacy-policy',
+          'merchant-onboarding-agreement',
+          'merchant-content-rules',
+          'merchant-violation-rules',
+        ]
+      : ['user-agreement', 'privacy-policy']
+  const contentPublishLegalDocumentIds = ['community-rules', 'content-license-agreement', 'originality-statement']
+  const rewardQaLegalDocumentIds = ['community-rules', 'reward-qa-rules', 'content-license-agreement', 'originality-statement']
+  const reportLegalDocumentIds = ['report-complaint-rules']
+  const merchantOnboardingLegalDocumentIds = [
+    'merchant-onboarding-agreement',
+    'merchant-content-rules',
+    'merchant-violation-rules',
+  ]
+  const merchantVerificationLegalDocumentIds = ['merchant-verification-rules', 'privacy-policy']
+  const advertisingLegalDocumentIds = ['advertising-agreement', 'merchant-content-rules', 'merchant-violation-rules']
+  const campusAmbassadorLegalDocumentIds = [
+    'campus-ambassador-agreement',
+    'nda',
+    'campus-reward-settlement-rules',
+    'non-shareholder-statement',
+  ]
+  const creatorLegalDocumentIds = [
+    'creator-agreement',
+    'content-license-agreement',
+    'originality-statement',
+    'points-and-levels-rules',
+    'featured-content-buyout-revenue-share',
+  ]
+
+  const getPartnerLegalContext = () => {
+    const text = `${partnerForm.type} ${partnerForm.direction}`.toLowerCase()
+    if (text.includes('校园') || text.includes('合伙人') || text.includes('campus')) {
+      return {
+        key: 'campus-ambassador',
+        documentIds: campusAmbassadorLegalDocumentIds,
+        label:
+          '我确认已阅读并同意校园合伙人合作规则、保密义务、奖励结算规则，并确认本合作不代表我取得公司股权、员工身份或代理权限。',
+      }
+    }
+    if (text.includes('广告') || text.includes('投放')) {
+      return {
+        key: 'advertising',
+        documentIds: advertisingLegalDocumentIds,
+        label: '我确认广告内容真实合法，不冒充官方，不夸大宣传，并已了解平台不承诺广告效果。',
+      }
+    }
+    return {
+      key: 'merchant-onboarding',
+      documentIds: merchantOnboardingLegalDocumentIds,
+      label:
+        '我确认已阅读并同意《商家入驻协议》《商家服务信息发布规范》《商家违规处理规则》，承诺提交资料真实，服务信息真实合法。',
+    }
+  }
+
+  const getLegalUserId = (fallback?: string) => currentUser?.id || fallback || authForm.email.trim().toLowerCase() || 'anonymous'
+
+  const recordLegalConsents = (entry: string, documentIds: string[], userId?: string) => {
+    const confirmedAt = new Date().toISOString()
+    const deviceInfo = typeof navigator === 'undefined' ? 'server-render' : navigator.userAgent
+    const legalUserId = getLegalUserId(userId)
+    const records = legalDocsFor(documentIds).map((document) => ({
+      id: createId('legal-consent'),
+      userId: legalUserId,
+      documentId: document.id,
+      filename: document.filename,
+      version: document.version,
+      titleZh: document.titleZh,
+      confirmedAt,
+      entry,
+      deviceInfo,
+      ipAddress: 'client-side-unavailable',
+    }))
+    if (!records.length) return
+    setAppState((state) => ({
+      ...state,
+      legalConsents: [...records, ...state.legalConsents],
+    }))
+  }
+
+  const renderLegalDocumentLinks = (documentIds: string[]) => (
+    <>
+      {legalDocsFor(documentIds).map((document, index, documents) => (
+        <Fragment key={document.id}>
+          <a
+            href={document.route}
+            onClick={(event) => {
+              event.preventDefault()
+              navigateToPath(document.route)
+            }}
+          >
+            《{document.titleZh}》
+          </a>
+          {index < documents.length - 1 ? ' ' : ''}
+        </Fragment>
+      ))}
+    </>
+  )
+
+  const renderLegalConsent = (
+    contextKey: string,
+    documentIds: string[],
+    label: string,
+    options?: { notice?: string; summaries?: string[] },
+  ) => (
+    <div className="legal-consent-block">
+      <label className="agreement-check legal-consent-check">
+        <input
+          checked={Boolean(legalAcceptances[contextKey])}
+          onChange={(event) => setLegalAcceptances((state) => ({ ...state, [contextKey]: event.target.checked }))}
+          type="checkbox"
+        />
+        <span>
+          {label} {renderLegalDocumentLinks(documentIds)}
+        </span>
+      </label>
+      {options?.notice && <p className="legal-consent-notice">{options.notice}</p>}
+      {options?.summaries?.length ? (
+        <ul className="legal-consent-summary">
+          {options.summaries.map((summary) => (
+            <li key={summary}>{summary}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  )
 
   const filteredPosts = useMemo(() => {
     const normalizedQuery = normalizeSearchText(query)
@@ -6169,6 +9772,69 @@ function App() {
       .sort((a, b) => b.searchScore - a.searchScore || (b.post.views ?? 0) - (a.post.views ?? 0))
       .map(({ post }) => post)
   }, [appState.posts, postCityFilter, postFeaturedFilter, postSchoolFilter, selectedCategory, query])
+  const quickMatchKeywords = useMemo(() => getHelpMatchKeywords(quickMatchInput), [quickMatchInput])
+  const quickMatchCandidates = useMemo<HelpMatchCandidate[]>(() => {
+    const need = quickMatchInput.trim()
+    if (!need) return []
+    const normalizedNeed = normalizeSearchText(need)
+    const skillPostMatches = appState.posts
+      .filter(isSkillHelpPost)
+      .map((post) => {
+        const score = scoreHelpCandidateText(
+          `${post.title} ${post.category} ${post.school} ${post.excerpt} ${post.body} ${post.author}`,
+          normalizedNeed,
+          quickMatchKeywords,
+        )
+        return {
+          type: 'skill-post' as const,
+          id: post.id,
+          title: post.title,
+          providerName: post.author,
+          providerUserId: post.authorId,
+          category: post.category,
+          school: post.school,
+          excerpt: post.excerpt || post.body.slice(0, 80),
+          score,
+          keywords: quickMatchKeywords.slice(0, 5),
+          post,
+        }
+      })
+      .filter((candidate) => candidate.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+
+    if (skillPostMatches.length) return skillPostMatches
+
+    return appState.users
+      .filter((user) => {
+        if (user.id === currentUser?.id) return false
+        if (user.status !== 'active') return false
+        return user.verificationStatus === 'approved' || getDocumentVerificationStatus(user.documents) === 'approved'
+      })
+      .map((user) => {
+        const score = scoreHelpCandidateText(
+          `${user.name} ${user.identity} ${user.school} ${user.bio}`,
+          normalizedNeed,
+          quickMatchKeywords,
+        )
+        const fallbackScore = score || (user.school && normalizedNeed.includes(normalizeSearchText(user.school)) ? 25 : 8)
+        return {
+          type: 'verified-user' as const,
+          id: user.id,
+          title: `${user.name} · 站内在线`,
+          providerName: user.name,
+          providerUserId: user.id,
+          category: '验证帮助者',
+          school: user.school || '韩国留学',
+          excerpt: getUserPublicBio(user.bio) || `${user.identity}，可先站内打招呼确认是否能接。`,
+          score: fallbackScore,
+          keywords: quickMatchKeywords.slice(0, 5),
+          user,
+        }
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+  }, [appState.posts, appState.users, currentUser?.id, quickMatchInput, quickMatchKeywords])
   const postCityOptions = useMemo(
     () => ['全部城市', ...Array.from(new Set(appState.posts.map((post) => post.city).filter(Boolean)))],
     [appState.posts],
@@ -6223,6 +9889,49 @@ function App() {
     setHomeExperienceStart((start) => (start + direction + featuredExperiences.length) % featuredExperiences.length)
   }
 
+  const getHelperQualificationStatusText = (mode: HelperQualificationMode = helperQualificationMode) => {
+    if (!currentUser) return '登录后可申请提供帮助资格。'
+    const status = mode === 'offline' ? offlineHelperQualificationStatus : onlineHelperQualificationStatus
+    if (status === 'approved') {
+      return mode === 'offline'
+        ? '已通过线下帮助资格筛查，可以接需要见面或实质陪同的求助任务。'
+        : '已通过线上解答资格筛查，可以回答悬赏问题。'
+    }
+    if (status === 'pending') {
+      return mode === 'offline'
+        ? '线下帮助资格正在审核中，审核通过后可以接线下求助任务。'
+        : '线上解答资格正在审核中，审核通过后可以回答悬赏问题。'
+    }
+    if (status === 'rejected') return '帮助资格未通过，请按后台反馈补充真实、清晰、有效的证明材料后重新提交。'
+    return mode === 'offline'
+      ? '需要线下见面或陪同办理时，必须先提交真实身份信息和线下面见材料，审核通过后才能接单。'
+      : '线上回答悬赏问题前，只需提交学生证或能够证明在韩经验的材料，审核通过后即可回答。'
+  }
+
+  const requireHelperQualification = useCallback((mode: HelperQualificationMode = 'online') => {
+    if (!currentUser) {
+      setAuthMode('login')
+      setMessage('请先登录后申请提供帮助资格。')
+      return false
+    }
+    if (currentUser.status === 'muted' || currentUser.status === 'banned') {
+      setMessage(currentUser.status === 'banned' ? '账号已被封号，不能提供帮助。' : '账号已被禁言，暂时不能提供帮助。')
+      return false
+    }
+    const qualified = mode === 'offline' ? currentUserOfflineHelperQualified : currentUserOnlineHelperQualified
+    if (qualified) return true
+    setHelperQualificationMode(mode)
+    setHelperQualificationOpen(true)
+    setMessage(getHelperQualificationStatusText(mode))
+    return false
+  }, [
+    currentUser,
+    currentUserOfflineHelperQualified,
+    currentUserOnlineHelperQualified,
+    offlineHelperQualificationStatus,
+    onlineHelperQualificationStatus,
+  ])
+
   const solveBountyItems = useMemo(() => {
     const questionBounties = appState.questions
       .filter((question) => question.rewardPoints > 0 && question.status === 'open')
@@ -6239,7 +9948,9 @@ function App() {
         earningPoints: question.rewardPoints,
         meta: `${question.answersCount} 个回答 · ${question.views} 浏览`,
         cta: '去回答',
-        onClick: () => navigateToPath(`/questions/${question.id}`),
+        onClick: () => {
+          if (requireHelperQualification('online')) navigateToPath(`/questions/${question.id}`)
+        },
       }))
 
     const offlineBounties = offlineBountyTasks
@@ -6256,11 +9967,24 @@ function App() {
         earningPoints: Math.round(task.amountYuan * cashoutPointsPerYuan),
         meta: `截止 ${task.deadline}`,
         cta: '联系接单',
-        onClick: () => setAuthMode(currentUser ? null : 'login'),
+        onClick: () => {
+          if (requireHelperQualification('offline')) {
+            setSelectedOfflineTask(task)
+          }
+        },
       }))
 
     return [...questionBounties, ...offlineBounties].sort((a, b) => b.earningPoints - a.earningPoints)
-  }, [appState.questions, currentUser])
+  }, [appState.questions, requireHelperQualification])
+
+  useEffect(() => {
+    if (!isSolveRoute || !currentUser) return
+    if (onlineHelperQualificationStatus === 'none' || onlineHelperQualificationStatus === 'rejected') {
+      setHelperQualificationMode('online')
+      setHelperQualificationOpen(true)
+    }
+  }, [currentUser, isSolveRoute, onlineHelperQualificationStatus])
+
   const filteredQuestions = useMemo(() => {
     const questions = appState.questions.filter((question) => {
       const matchesCategory = questionCategoryFilter === allCategoryLabel || question.category === questionCategoryFilter
@@ -6385,6 +10109,9 @@ function App() {
     currentUserBioSettings.userType === 'merchant' ||
     currentUser?.identity === '商家' ||
     Boolean(currentUserBioSettings.businessName || currentUserBioSettings.businessCategory)
+  const profileHasNewVerificationDocuments =
+    Boolean(currentUser) &&
+    profileForm.documents.some((document) => !currentUser?.documents.some((existingDocument) => existingDocument.id === document.id))
   const canManageActivePartnerBrand =
     Boolean(currentUser) &&
     currentUser?.status === 'active' &&
@@ -6417,24 +10144,36 @@ function App() {
         caseTwo: activePartnerDetail.merchant.tags[1]
           ? `${activePartnerDetail.merchant.tags[1]}：展示咨询前需要准备的信息。`
           : '咨询准备：整理需求、预算、时间节点和联系方式。',
+        serviceHeadingTitle: '先看服务边界，再决定是否咨询。',
       },
     )
+  activeMerchantDecorationDraftRef.current = activeMerchantDecorationDraft
   const activeMerchantPreviewDecoration =
     canManageActivePartnerBrand && merchantDesignEditMode ? activeMerchantDecorationDraft : activeMerchantDecoration
-  const activeMerchantDesignItem = activeMerchantDecorationDraft.designItems.find((item) => item.id === activeMerchantDesignItemId) ?? null
+  const activeMerchantDesignItem =
+    activeMerchantDecorationDraft.designItems.find((item) => item.id === activeMerchantDesignItemId && !isMerchantHeroBackgroundItem(item)) ?? null
   const selectMerchantTextLayer = (field: MerchantEditableTextField, openEditor = false) => {
+    activeMerchantStageLayerIdRef.current = `text:${field}`
+    activeMerchantDesignItemIdRef.current = null
+    activeMerchantMediaZoneRef.current = null
     setActiveMerchantStageLayerId(`text:${field}`)
     setActiveMerchantDesignItemId(null)
     setActiveMerchantMediaZone(null)
     if (openEditor) setActiveMerchantTextEditor(field)
   }
   const selectMerchantMediaLayer = (zone: 'hero' | 'service') => {
+    activeMerchantStageLayerIdRef.current = `media:${zone}`
+    activeMerchantDesignItemIdRef.current = null
+    activeMerchantMediaZoneRef.current = zone
     setActiveMerchantStageLayerId(`media:${zone}`)
     setActiveMerchantDesignItemId(null)
     setActiveMerchantTextEditor(null)
     setActiveMerchantMediaZone(zone)
   }
   const selectMerchantDesignLayer = (itemId: string) => {
+    activeMerchantStageLayerIdRef.current = `design:${itemId}`
+    activeMerchantDesignItemIdRef.current = itemId
+    activeMerchantMediaZoneRef.current = null
     setActiveMerchantStageLayerId(`design:${itemId}`)
     setActiveMerchantTextEditor(null)
     setActiveMerchantMediaZone(null)
@@ -6466,13 +10205,19 @@ function App() {
       : fallbackPartnerDetailSections
   const partnerDetailHeroTitle = isWalaPartnerDetail
     ? activeSiteContent.merchantWalaHeroTitle
-    : activeMerchantPreviewDecoration?.heroTitle ?? activePartnerDetail.merchant.summary
+    : activeMerchantPreviewDecoration
+      ? activeMerchantPreviewDecoration.heroTitle
+      : activePartnerDetail.merchant.summary
   const partnerDetailIntro = isWalaPartnerDetail
     ? activeSiteContent.merchantWalaIntro
-    : activeMerchantPreviewDecoration?.intro ?? activePartnerDetail.merchant.description
+    : activeMerchantPreviewDecoration
+      ? activeMerchantPreviewDecoration.intro
+      : activePartnerDetail.merchant.description
   const partnerDetailBadge = isWalaPartnerDetail
     ? activeSiteContent.merchantWalaBadge
-    : activeMerchantPreviewDecoration?.badge ?? '认证商家展示页'
+    : activeMerchantPreviewDecoration
+      ? activeMerchantPreviewDecoration.badge
+      : '认证商家展示页'
   const partnerDetailCases = isWalaPartnerDetail
     ? [activeSiteContent.merchantWalaCaseOne, activeSiteContent.merchantWalaCaseTwo]
     : activeMerchantPreviewDecoration
@@ -6494,7 +10239,16 @@ function App() {
     ...(activeMerchantPreviewDecoration?.accentColor ? { color: activeMerchantPreviewDecoration.accentColor } : {}),
   }
   const activeMerchantDisplayName =
-    activeMerchantPreviewDecoration?.showcaseArtTitle || activePartnerDetail.merchant.name
+    activeMerchantPreviewDecoration ? activeMerchantPreviewDecoration.showcaseArtTitle : activePartnerDetail.merchant.name
+  const activeMerchantHeroBackgroundImage = getMerchantHeroBackgroundImage(activeMerchantPreviewDecoration)
+  const activeMerchantHeroBackgroundStyle = activeMerchantHeroBackgroundImage
+    ? ({
+        '--merchant-hero-background-image': `url("${activeMerchantHeroBackgroundImage}")`,
+        backgroundImage: `url("${activeMerchantHeroBackgroundImage}")`,
+        backgroundPosition: 'center',
+        backgroundSize: 'cover',
+      } as CSSProperties)
+    : undefined
   const getTextLayerState = (
     decoration: MerchantBrandDecoration | undefined,
     field: MerchantEditableTextField,
@@ -6508,6 +10262,8 @@ function App() {
       position: 'relative',
       transform: `translate(${layer.x}px, ${layer.y}px)`,
       zIndex: layer.z,
+      ...(layer.textAlign ? { textAlign: layer.textAlign } : {}),
+      ...(layer.lineHeight ? { lineHeight: layer.lineHeight } : {}),
     }
   }
   const getTextContentStyle = (
@@ -6520,19 +10276,150 @@ function App() {
       ...baseStyle,
       ...(layer.color ? { color: layer.color } : {}),
       ...(layer.fontSize ? { fontSize: layer.fontSize } : {}),
+      ...(layer.textAlign ? { textAlign: layer.textAlign } : {}),
+      ...(layer.lineHeight ? { lineHeight: layer.lineHeight } : {}),
     }
   }
   const getTextPopoverAnchor = (element: HTMLElement): TextPopoverAnchor => {
     const rect = element.getBoundingClientRect()
     const nextWidth = Math.max(360, Math.min(680, rect.width + 96, window.innerWidth - 32))
     const computedFontSize = Number.parseFloat(window.getComputedStyle(element).fontSize)
+    const computedTextAlign = normalizeMerchantTextAlign(window.getComputedStyle(element).textAlign) ?? 'center'
+    const computedLineHeight = Number.parseFloat(window.getComputedStyle(element).lineHeight)
+    const computedLineHeightRatio =
+      Number.isFinite(computedFontSize) && computedFontSize > 0 && Number.isFinite(computedLineHeight)
+        ? Number((computedLineHeight / computedFontSize).toFixed(1))
+        : 0
     return {
       left: Math.min(window.innerWidth - nextWidth / 2 - 16, Math.max(nextWidth / 2 + 16, rect.left + rect.width / 2)),
       top: rect.top - 10,
       width: nextWidth,
       fontSize: Number.isFinite(computedFontSize) ? Math.round(computedFontSize) : 0,
+      textAlign: computedTextAlign,
+      lineHeight: normalizeMerchantLineHeight(computedLineHeightRatio),
     }
   }
+  const getElementDesignGeometry = (element: HTMLElement, stageElement: HTMLElement) => {
+    const rect = element.getBoundingClientRect()
+    const stageRect = stageElement.getBoundingClientRect()
+    const stageWidth = Math.max(1, stageRect.width)
+    const stageHeight = Math.max(1, stageRect.height)
+    return {
+      x: Number(Math.min(96, Math.max(0, ((rect.left + rect.width / 2 - stageRect.left) / stageWidth) * 100)).toFixed(1)),
+      y: Number(Math.min(96, Math.max(0, ((rect.top + rect.height / 2 - stageRect.top) / stageHeight) * 100)).toFixed(1)),
+      width: Number(Math.min(90, Math.max(8, (rect.width / stageWidth) * 100)).toFixed(1)),
+      height: Number(Math.min(90, Math.max(6, (rect.height / stageHeight) * 100)).toFixed(1)),
+      stageWidth,
+      stageHeight,
+    }
+  }
+  const getTextLayerCopyItem = (
+    decoration: MerchantBrandDecoration,
+    field: MerchantEditableTextField,
+    element: HTMLElement,
+    stageElement: HTMLElement,
+    zone: MerchantDesignZone,
+    idPrefix: string,
+    z: number,
+  ): MerchantDesignItem => {
+    const geometry = getElementDesignGeometry(element, stageElement)
+    const layer = getTextLayerState(decoration, field)
+    const computedStyle = window.getComputedStyle(element)
+    const computedFontSize = Number.parseFloat(computedStyle.fontSize)
+    const text = String((decoration as Record<string, unknown>)[field] ?? element.textContent ?? '').trim()
+    return {
+      id: createId(idPrefix),
+      zone,
+      kind: 'bubble',
+      text: text || '双击修改文字',
+      mediaUrl: '',
+      mediaKind: 'image',
+      x: geometry.x,
+      y: geometry.y,
+      width: geometry.width,
+      height: geometry.height,
+      z,
+      opacity: 0.96,
+      fontSize: Math.min(72, Math.max(12, layer.fontSize || (Number.isFinite(computedFontSize) ? Math.round(computedFontSize) : 18))),
+      color: layer.color || computedStyle.color || '#10201d',
+      background: 'transparent',
+      textAlign: layer.textAlign ?? normalizeMerchantTextAlign(computedStyle.textAlign) ?? 'center',
+      lineHeight: layer.lineHeight,
+    }
+  }
+  const getMediaLayerCopyItem = (
+    mediaUrl: string,
+    element: HTMLElement,
+    stageElement: HTMLElement,
+    zone: MerchantDesignZone,
+    idPrefix: string,
+    z: number,
+  ): MerchantDesignItem => {
+    const geometry = getElementDesignGeometry(element, stageElement)
+    return {
+      id: createId(idPrefix),
+      zone,
+      kind: 'media',
+      text: '',
+      mediaUrl,
+      mediaKind: isVideoDataUrl(mediaUrl) ? 'video' : 'image',
+      x: geometry.x,
+      y: geometry.y,
+      width: geometry.width,
+      height: geometry.height,
+      z,
+      opacity: 1,
+      fontSize: 18,
+      color: '#10201d',
+      background: 'transparent',
+    }
+  }
+  const renderTextAlignControls = (
+    currentAlign: MerchantTextAlign,
+    onChange: (value: MerchantTextAlign) => void,
+    compact = false,
+  ) => {
+    const iconByAlign = {
+      left: AlignLeft,
+      center: AlignCenter,
+      right: AlignRight,
+    }
+    return (
+      <div className="merchant-text-align-control-group" role="group" aria-label="文字对齐">
+        {MERCHANT_TEXT_ALIGN_OPTIONS.map((option) => {
+          const Icon = iconByAlign[option.value]
+          return (
+            <button
+              aria-label={option.label}
+              className={currentAlign === option.value ? 'is-active' : ''}
+              key={option.value}
+              title={option.label}
+              type="button"
+              onClick={() => onChange(option.value)}
+            >
+              <Icon size={compact ? 15 : 16} aria-hidden="true" />
+              {!compact && <span>{option.label}</span>}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+  const renderLineHeightControl = (currentLineHeight: number | undefined, onChange: (value: number | undefined) => void) => (
+    <label>
+      行距
+      <select
+        value={currentLineHeight ?? 0}
+        onChange={(event) => onChange(normalizeMerchantLineHeight(event.target.value))}
+      >
+        {MERCHANT_TEXT_LINE_HEIGHT_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  )
   const getMerchantDecorationImageStyle = (
     decoration: MerchantBrandDecoration | undefined,
     zone: 'hero' | 'service',
@@ -6557,6 +10444,13 @@ function App() {
   const currentUserPosts = currentUser
     ? appState.posts.filter((post) => post.authorId === currentUser.id || post.author === currentUser.name)
     : []
+  const currentUserGrowthProfile = currentUser
+    ? calculateGrowthProfile(currentUser, appState.posts, appState.questions, appState.answers, currentUserIsMerchant)
+    : null
+  const schoolLeaderboards = useMemo(
+    () => buildSchoolLeaderboards(appState.users, appState.posts, appState.questions, appState.answers),
+    [appState.answers, appState.posts, appState.questions, appState.users],
+  )
   const openPostsPage = (nextQuery = query) => {
     const trimmedQuery = nextQuery.trim()
     const nextUrl = trimmedQuery ? `/posts?q=${encodeURIComponent(trimmedQuery)}` : '/posts'
@@ -6675,6 +10569,8 @@ function App() {
       status?: UserStatus
       verificationStatus?: VerificationStatus
       managedBrandId?: string
+      businessCategories?: string[]
+      businessScopeLevels?: Record<string, MerchantLevel>
       managedBrandLevel?: MerchantLevel
     },
   ) => {
@@ -6687,19 +10583,175 @@ function App() {
     }))
   }
 
+  const selectAdminUserForDetail = (userId: string) => {
+    setSelectedAdminUserId(userId)
+    setOpenVerificationBubbleUserId(null)
+    setMessage('')
+  }
+
+  const applyCredentialUserUpdate = (nextUser?: User) => {
+    if (!nextUser) return
+    const normalizedUser = normalizeUser(nextUser)
+    setAppState((state) => ({
+      ...state,
+      users: state.users.some((user) => user.id === normalizedUser.id)
+        ? state.users.map((user) => (user.id === normalizedUser.id ? normalizedUser : user))
+        : [...state.users, normalizedUser],
+    }))
+  }
+
+  const handleOpenCredentialDocument = async (
+    document: CredentialDocument,
+    ownerUserId = currentUser?.id ?? selectedAdminUser?.id ?? '',
+  ) => {
+    if (document.dataUrl) {
+      setPreviewCredentialDocument(document)
+      return
+    }
+    if (!ownerUserId) {
+      setMessage('没有找到这份材料所属账号，请刷新后重试。')
+      return
+    }
+
+    setCredentialDocumentBusyId(document.id)
+    setMessage('正在读取材料，请稍候。')
+    try {
+      const headers: Record<string, string> = { 'x-user-id': ownerUserId }
+      if (adminToken) headers.authorization = `Bearer ${adminToken}`
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(ownerUserId)}/documents/${encodeURIComponent(document.id)}`,
+        { headers },
+      )
+      const data = (await response.json().catch(() => null)) as { document?: CredentialDocument; error?: string } | null
+      if (!response.ok || !data?.document) {
+        throw new Error(data?.error ?? '材料读取失败，请稍后重试。')
+      }
+      setPreviewCredentialDocument(data.document)
+      setAppState((state) => ({
+        ...state,
+        users: state.users.map((user) =>
+          user.id === ownerUserId
+            ? {
+                ...user,
+                documents: user.documents.map((item) => (item.id === data.document!.id ? data.document! : item)),
+              }
+            : user,
+        ),
+      }))
+      setMessage('材料已打开。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '材料读取失败，请稍后重试。')
+    } finally {
+      setCredentialDocumentBusyId('')
+    }
+  }
+
+  const handleReplaceOwnCredentialDocument = async (document: CredentialDocument, file: File | null | undefined) => {
+    if (!currentUser || !file || credentialDocumentBusyId) return
+    setCredentialDocumentBusyId(document.id)
+    setMessage('正在重新上传材料，请稍候。')
+    try {
+      const nextDocument: CredentialDocument = {
+        ...document,
+        name: file.name,
+        type: file.type || document.type || '身份/学校认证材料',
+        status: 'pending',
+        uploadedAt: new Date().toISOString(),
+        dataUrl: await readCredentialFileToDataUrl(file),
+      }
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(currentUser.id)}/documents/${encodeURIComponent(document.id)}`,
+        {
+          body: JSON.stringify(nextDocument),
+          headers: {
+            'content-type': 'application/json',
+            'x-user-id': currentUser.id,
+          },
+          method: 'PUT',
+        },
+      )
+      const data = (await response.json().catch(() => null)) as { user?: User; error?: string } | null
+      if (!response.ok || !data?.user) {
+        throw new Error(data?.error ?? '材料重新上传失败，请稍后重试。')
+      }
+      applyCredentialUserUpdate(data.user)
+      const freshDocument = data.user.documents.find((item) => item.id === document.id)
+      if (previewCredentialDocument?.id === document.id && freshDocument) setPreviewCredentialDocument(freshDocument)
+      setMessage('材料已重新上传，正在等待后台审核。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '材料重新上传失败，请稍后重试。')
+    } finally {
+      setCredentialDocumentBusyId('')
+    }
+  }
+
+  const handleDeleteOwnCredentialDocument = async (document: CredentialDocument) => {
+    if (!currentUser || credentialDocumentBusyId) return
+    const confirmed = window.confirm('确定删除这份认证材料吗？删除后后台将看不到这份材料。')
+    if (!confirmed) return
+    setCredentialDocumentBusyId(document.id)
+    setMessage('正在删除材料，请稍候。')
+    try {
+      const response = await fetch(
+        `/api/users/${encodeURIComponent(currentUser.id)}/documents/${encodeURIComponent(document.id)}`,
+        {
+          headers: { 'x-user-id': currentUser.id },
+          method: 'DELETE',
+        },
+      )
+      const data = (await response.json().catch(() => null)) as { user?: User; error?: string } | null
+      if (!response.ok || !data?.user) {
+        throw new Error(data?.error ?? '材料删除失败，请稍后重试。')
+      }
+      applyCredentialUserUpdate(data.user)
+      if (previewCredentialDocument?.id === document.id) setPreviewCredentialDocument(null)
+      setMessage('材料已删除。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '材料删除失败，请稍后重试。')
+    } finally {
+      setCredentialDocumentBusyId('')
+    }
+  }
+
+  const updateSelectedAdminUserBusinessScope = (category: string, enabled: boolean) => {
+    if (!selectedAdminUser || !selectedAdminUserControlSettings) return
+    const nextCategories = enabled
+      ? Array.from(new Set([...selectedAdminUserControlSettings.businessCategories, category]))
+      : selectedAdminUserControlSettings.businessCategories.filter((item) => item !== category)
+    const nextScopeLevels = { ...selectedAdminUserControlSettings.businessScopeLevels }
+    if (!enabled) delete nextScopeLevels[category]
+    updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
+      businessCategories: nextCategories,
+      businessScopeLevels: nextScopeLevels,
+    })
+  }
+
   const saveSelectedAdminUserSettings = async () => {
     if (!selectedAdminUser || !selectedAdminUserControlSettings) return
-    const brand = manageablePartnerBrands.find((item) => item.id === selectedAdminUserControlSettings.managedBrandId)
+    const brand = manageablePartnerBrands.find(
+      (item) =>
+        item.id === selectedAdminUserControlSettings.managedBrandId ||
+        item.aliases.includes(selectedAdminUserControlSettings.managedBrandId),
+    )
+    const syncedDocuments =
+      selectedAdminUserControlSettings.verificationStatus === 'approved'
+        ? selectedAdminUser.documents
+            .filter((document) => document.status !== 'approved')
+            .map((document) => ({ ...document, status: 'approved' as VerificationStatus, reviewNote: '' }))
+        : undefined
     const saved = await updateUserAccount(
       selectedAdminUser.id,
       {
         status: selectedAdminUserControlSettings.status,
         verificationStatus: selectedAdminUserControlSettings.verificationStatus,
+        ...(syncedDocuments?.length ? { documents: syncedDocuments } : {}),
         bio: serializeUserBrandAccess(
           selectedAdminUser.bio,
           brand?.id ?? '',
           brand?.name ?? '',
           selectedAdminUserControlSettings.managedBrandLevel,
+          selectedAdminUserControlSettings.businessCategories,
+          selectedAdminUserControlSettings.businessScopeLevels,
         ),
       },
       '商家状态和品牌权限已保存。',
@@ -6729,29 +10781,49 @@ function App() {
     }
   }
 
-  const updateUserDocuments = (
-    userId: string,
-    status: VerificationStatus,
-    verificationStatus: VerificationStatus = status,
-  ) => {
+  const reviewUserDocument = async (userId: string, documentId: string, status: VerificationStatus) => {
+    if (!adminToken) {
+      setMessage('请先登录管理员账号。')
+      return
+    }
+    const reviewKey = `${userId}:${documentId}`
+    const user = appState.users.find((item) => item.id === userId)
+    const document = user?.documents.find((item) => item.id === documentId)
+    if (!user || !document) {
+      setMessage('没有找到这份材料，请刷新后重试。')
+      return
+    }
+    const reviewNote = status === 'rejected' ? (credentialRejectDrafts[reviewKey] ?? '').trim() : ''
+    if (status === 'rejected' && !reviewNote) {
+      setRejectingCredentialDocumentId(reviewKey)
+      setMessage('请先填写不通过理由。')
+      return
+    }
+    const nextDocuments = user.documents.map((item) =>
+      item.id === documentId ? { ...item, status, reviewNote } : item,
+    )
+    const nextDocumentStatus = getDocumentVerificationStatus(nextDocuments)
+    const verificationStatus = nextDocumentStatus === 'none' ? user.verificationStatus : nextDocumentStatus
+    setCredentialDocumentBusyId(documentId)
     setAppState((state) => ({
       ...state,
-      users: state.users.map((user) =>
-        user.id === userId
+      users: state.users.map((item) =>
+        item.id === userId
           ? {
-              ...user,
+              ...item,
               verificationStatus,
-              documents: user.documents.map((document) => ({ ...document, status })),
+              documents: item.documents.map((credential) =>
+                credential.id === documentId ? { ...credential, status, reviewNote } : credential,
+              ),
             }
-          : user,
+          : item,
       ),
     }))
-    if (adminToken) {
-      const user = appState.users.find((item) => item.id === userId)
-      fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
+    try {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`, {
         body: JSON.stringify({
           verificationStatus,
-          documents: user?.documents.map((document) => ({ ...document, status })) ?? [],
+          documents: [{ id: documentId, status, reviewNote }],
         }),
         headers: {
           authorization: `Bearer ${adminToken}`,
@@ -6759,13 +10831,62 @@ function App() {
         },
         method: 'PATCH',
       })
-        .then(async (response) => {
-          const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
-          if (!response.ok) throw new Error(data?.error ?? '材料审核状态更新失败，请稍后重试。')
-          if (data?.users) setAppState((state) => ({ ...state, users: data.users! }))
-          setMessage('材料审核状态已保存。')
+      const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
+      if (!response.ok) throw new Error(data?.error ?? '材料审核状态更新失败，请稍后重试。')
+      if (data?.users) setAppState((state) => ({ ...state, users: data.users! }))
+      if (status === 'approved') {
+        setCredentialRejectDrafts((drafts) => {
+          const nextDrafts = { ...drafts }
+          delete nextDrafts[reviewKey]
+          return nextDrafts
         })
-        .catch((error) => setMessage(error instanceof Error ? error.message : '材料审核状态更新失败，请稍后重试。'))
+      }
+      setRejectingCredentialDocumentId('')
+      setMessage(status === 'approved' ? '这份材料已审核通过。' : '这份材料已标记为不通过。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '材料审核状态更新失败，请稍后重试。')
+    } finally {
+      setCredentialDocumentBusyId('')
+    }
+  }
+
+  const resetUserPassword = async (userId: string) => {
+    if (!adminToken) {
+      setMessage('请先登录管理员账号。')
+      return
+    }
+    const password = (adminPasswordDrafts[userId] ?? '').trim()
+    if (password.length < 6) {
+      setMessage('临时密码至少需要 6 位。')
+      return
+    }
+    const user = appState.users.find((item) => item.id === userId)
+    const confirmed = window.confirm(`确定要把 ${user?.email ?? '这个账号'} 的登录密码重置为当前临时密码吗？`)
+    if (!confirmed) return
+
+    setAdminPasswordResetBusyId(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${encodeURIComponent(userId)}/reset-password`, {
+        body: JSON.stringify({ password }),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'POST',
+      })
+      const data = (await response.json().catch(() => null)) as { users?: User[]; error?: string } | null
+      if (!response.ok) throw new Error(data?.error ?? '密码重置失败，请稍后重试。')
+      if (data?.users) setAppState((state) => ({ ...state, users: data.users! }))
+      setAdminPasswordDrafts((drafts) => {
+        const nextDrafts = { ...drafts }
+        delete nextDrafts[userId]
+        return nextDrafts
+      })
+      setMessage('密码已重置。用户现在可以用新的临时密码登录 APP 和网站。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '密码重置失败，请稍后重试。')
+    } finally {
+      setAdminPasswordResetBusyId('')
     }
   }
 
@@ -6994,6 +11115,34 @@ function App() {
     URL.revokeObjectURL(url)
   }
 
+  const downloadAdminDocumentBackup = async () => {
+    if (!adminToken) {
+      setMessage('请先登录后台。')
+      return
+    }
+    try {
+      const response = await fetch('/api/admin/document-backup', {
+        headers: { authorization: `Bearer ${adminToken}` },
+      })
+      const data = (await response.json().catch(() => null)) as { error?: string } | null
+      if (!response.ok || !data) {
+        throw new Error(data?.error ?? '材料备份下载失败，请稍后重试。')
+      }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `shouye-document-backup-${new Date().toISOString().replace(/[:.]/g, '-')}.json`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      setMessage('材料备份已下载到浏览器默认下载目录。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '材料备份下载失败，请稍后重试。')
+    }
+  }
+
   const updateQuestionDispute = (disputeId: string, patch: Partial<QuestionDispute> & { adminAction?: 'refund' | 'settle' | '' }) => {
     setAppState((state) => ({
       ...state,
@@ -7088,6 +11237,58 @@ function App() {
     }
   }
 
+  const reviewRenameRequest = async (
+    renameRequestId: string,
+    status: Extract<RenameRequest['status'], 'approved' | 'rejected'>,
+  ) => {
+    if (!adminToken) {
+      setMessage('请先登录管理员账号。')
+      return
+    }
+    const adminNote =
+      status === 'rejected'
+        ? window.prompt('请输入驳回理由，系统会退回本次改名消耗的可提现积分。') ?? ''
+        : ''
+    if (status === 'rejected' && !adminNote.trim()) {
+      setMessage('驳回改名申请需要填写理由。')
+      return
+    }
+    try {
+      const response = await fetch(`/api/admin/rename-requests/${encodeURIComponent(renameRequestId)}`, {
+        body: JSON.stringify({ status, adminNote }),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: 'PATCH',
+      })
+      const data = (await response.json().catch(() => null)) as
+        | {
+            users?: User[]
+            posts?: Post[]
+            questions?: CommunityQuestion[]
+            answers?: QuestionAnswer[]
+            renameRequests?: RenameRequest[]
+            pointLedger?: PointLedger[]
+            error?: string
+          }
+        | null
+      if (!response.ok) throw new Error(data?.error ?? '改名申请审核失败，请稍后重试。')
+      setAppState((state) => ({
+        ...state,
+        users: data?.users ?? state.users,
+        posts: data?.posts ?? state.posts,
+        questions: data?.questions ?? state.questions,
+        answers: data?.answers ?? state.answers,
+        renameRequests: data?.renameRequests ?? state.renameRequests,
+        pointLedger: data?.pointLedger ?? state.pointLedger,
+      }))
+      setMessage(status === 'approved' ? '改名申请已通过。' : '改名申请已驳回，积分已退回。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '改名申请审核失败，请稍后重试。')
+    }
+  }
+
   const removeQuestionDispute = (disputeId: string) => {
     setAppState((state) => ({
       ...state,
@@ -7104,6 +11305,10 @@ function App() {
   const submitReport = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!reportTarget) return
+    if (!legalAcceptances['report-complaint']) {
+      setMessage('请先确认已了解投诉举报规则。')
+      return
+    }
     const now = new Date().toISOString()
     const report: ContentReport = {
       id: createId('report'),
@@ -7135,6 +11340,7 @@ function App() {
     } finally {
       setReportTarget(null)
       setReportForm({ reason: '违法违规内容', description: '', contact: '' })
+      recordLegalConsents('report-complaint', reportLegalDocumentIds)
     }
   }
 
@@ -7189,7 +11395,11 @@ function App() {
     brandId: string,
     key: Key,
     value: MerchantBrandDecoration[Key],
+    options: { skipUndo?: boolean } = {},
   ) => {
+    if (!options.skipUndo && merchantDesignEditMode && canManageActivePartnerBrand && brandId === activePartnerDetailSlug) {
+      pushMerchantDetailUndoSnapshot(brandId)
+    }
     setMerchantDecorationDrafts((drafts) => {
       const fallback =
         drafts[brandId] ??
@@ -7200,6 +11410,100 @@ function App() {
         [brandId]: normalizeMerchantBrandDecoration({ ...fallback, [key]: value }),
       }
     })
+  }
+
+  const getMerchantDecorationDraftSnapshot = (brandId: string) =>
+    normalizeMerchantBrandDecoration(
+      merchantDecorationDrafts[brandId] ??
+        appState.merchantBrandDecorations.find((decoration) => decoration.brandId === brandId) ??
+      normalizeMerchantBrandDecoration({ brandId }),
+    )
+
+  const pushMerchantDetailUndoSnapshot = (brandId = activePartnerDetailSlug) => {
+    if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
+    const snapshot = getMerchantDecorationDraftSnapshot(brandId)
+    const stack = merchantDetailUndoStackRef.current[brandId] ?? []
+    const previous = stack[stack.length - 1]
+    if (previous && JSON.stringify(previous) === JSON.stringify(snapshot)) return
+    merchantDetailUndoStackRef.current = {
+      ...merchantDetailUndoStackRef.current,
+      [brandId]: [...stack.slice(-39), snapshot],
+    }
+  }
+
+  const undoMerchantDetailLastChange = () => {
+    const brandId = activePartnerDetailSlug
+    const stack = merchantDetailUndoStackRef.current[brandId] ?? []
+    const previous = stack[stack.length - 1]
+    if (!previous) {
+      setMerchantDecorationNotice('没有可撤销的上一步。')
+      return
+    }
+    merchantDetailUndoStackRef.current = {
+      ...merchantDetailUndoStackRef.current,
+      [brandId]: stack.slice(0, -1),
+    }
+    setMerchantDecorationDrafts((drafts) => ({
+      ...drafts,
+      [brandId]: previous,
+    }))
+    activeMerchantDesignItemIdRef.current = null
+    activeMerchantMediaZoneRef.current = null
+    activeMerchantStageLayerIdRef.current = null
+    setActiveMerchantDesignItemId(null)
+    setActiveMerchantMediaZone(null)
+    setActiveMerchantStageLayerId(null)
+    setActiveMerchantTextEditor(null)
+    setMerchantTextPopoverAnchor(null)
+    setMerchantDecorationNotice('已撤销上一步操作。')
+  }
+
+  const pushPartnerShowcaseUndoSnapshot = (brandId = activePartnerMerchantSlug) => {
+    if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
+    const snapshot = getMerchantDecorationDraftSnapshot(brandId)
+    const stack = partnerShowcaseUndoStackRef.current[brandId] ?? []
+    const previous = stack[stack.length - 1]
+    if (previous && JSON.stringify(previous) === JSON.stringify(snapshot)) return
+    partnerShowcaseUndoStackRef.current = {
+      ...partnerShowcaseUndoStackRef.current,
+      [brandId]: [...stack.slice(-24), snapshot],
+    }
+  }
+
+  const updatePartnerShowcaseDecorationDraft = <Key extends keyof MerchantBrandDecoration>(
+    key: Key,
+    value: MerchantBrandDecoration[Key],
+    options: { skipUndo?: boolean } = {},
+  ) => {
+    if (!options.skipUndo) pushPartnerShowcaseUndoSnapshot(activePartnerMerchantSlug)
+    updateMerchantDecorationDraft(activePartnerMerchantSlug, key, value)
+  }
+
+  const undoPartnerShowcaseLastChange = () => {
+    const brandId = activePartnerMerchantSlug
+    const stack = partnerShowcaseUndoStackRef.current[brandId] ?? []
+    const previous = stack[stack.length - 1]
+    if (!previous) {
+      setMerchantDecorationNotice('没有可撤销的上一步。')
+      return
+    }
+    partnerShowcaseUndoStackRef.current = {
+      ...partnerShowcaseUndoStackRef.current,
+      [brandId]: stack.slice(0, -1),
+    }
+    setMerchantDecorationDrafts((drafts) => ({
+      ...drafts,
+      [brandId]: previous,
+    }))
+    setMerchantDecorationNotice('已撤销上一步操作。')
+  }
+
+  const clearPartnerShowcaseSelection = () => {
+    setActivePartnerShowcaseTextField(null)
+    setActivePartnerShowcaseTemplateItem(null)
+    setActivePartnerShowcaseTextEditor(null)
+    setPartnerShowcaseTextPopoverAnchor(null)
+    setActivePartnerShowcaseDesignItemId(null)
   }
 
   const handleMerchantLogoUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -7259,6 +11563,11 @@ function App() {
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageY', 50)
         updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageScale', 1)
       }
+      activeMerchantStageLayerIdRef.current = `media:${zone}`
+      activeMerchantDesignItemIdRef.current = null
+      activeMerchantMediaZoneRef.current = zone
+      setActiveMerchantStageLayerId(`media:${zone}`)
+      setActiveMerchantDesignItemId(null)
       setActiveMerchantMediaZone(zone)
       setMerchantDecorationNotice('素材已加入草稿，可在展示区拖动位置、调整大小，保存后展示。')
     } catch (error) {
@@ -7290,16 +11599,29 @@ function App() {
   const startMerchantDecorationImageDrag = (zone: 'hero' | 'service', event: PointerEvent<HTMLElement>) => {
     event.preventDefault()
     event.stopPropagation()
-    setActiveMerchantStageLayerId(`media:${zone}`)
-    setActiveMerchantDesignItemId(null)
-    setActiveMerchantTextEditor(null)
-    setActiveMerchantMediaZone(zone)
     event.currentTarget.setPointerCapture(event.pointerId)
     const stageElement =
       event.currentTarget.closest<HTMLElement>('[data-merchant-design-stage]') ??
       event.currentTarget.parentElement ??
       event.currentTarget
     const stageRect = stageElement.getBoundingClientRect()
+    const mediaUrl = zone === 'hero' ? activeMerchantDecorationDraft.heroImage : activeMerchantDecorationDraft.serviceImage
+    if (event.altKey && mediaUrl && stageElement.matches('[data-merchant-design-stage]')) {
+      const maxZ = Math.max(20, ...activeMerchantDecorationDraft.designItems.map((item) => item.z))
+      const item = getMediaLayerCopyItem(
+        mediaUrl,
+        event.currentTarget,
+        stageElement,
+        zone,
+        'merchant-media-copy',
+        Math.min(120, maxZ + 1),
+      )
+      addMerchantDesignItemCopyForDrag(item, event, stageElement)
+      return
+    }
+    pushMerchantDetailUndoSnapshot(activePartnerDetailSlug)
+    selectMerchantMediaLayer(zone)
+    setActiveMerchantTextEditor(null)
     merchantImageDragRef.current = {
       zone,
       startX: event.clientX,
@@ -7311,17 +11633,18 @@ function App() {
     }
   }
 
-  const moveMerchantDecorationImageDrag = (event: PointerEvent<HTMLElement>) => {
+  const moveMerchantDecorationImageDrag = (event: { clientX: number; clientY: number; preventDefault?: () => void }) => {
     const drag = merchantImageDragRef.current
     if (!drag) return
+    event.preventDefault?.()
     const nextX = Math.min(100, Math.max(0, drag.originX + ((event.clientX - drag.startX) / drag.stageWidth) * 100))
     const nextY = Math.min(100, Math.max(0, drag.originY + ((event.clientY - drag.startY) / drag.stageHeight) * 100))
     if (drag.zone === 'hero') {
-      updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageX', Number(nextX.toFixed(1)))
-      updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageY', Number(nextY.toFixed(1)))
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageX', Number(nextX.toFixed(1)), { skipUndo: true })
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'heroImageY', Number(nextY.toFixed(1)), { skipUndo: true })
     } else {
-      updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageX', Number(nextX.toFixed(1)))
-      updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageY', Number(nextY.toFixed(1)))
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageX', Number(nextX.toFixed(1)), { skipUndo: true })
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceImageY', Number(nextY.toFixed(1)), { skipUndo: true })
     }
   }
 
@@ -7329,10 +11652,15 @@ function App() {
     merchantImageDragRef.current = null
   }
 
-  const updateMerchantDesignItem = (itemId: string, patch: Partial<MerchantDesignItem>) => {
-    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', activeMerchantDecorationDraft.designItems.map((item) =>
+  const updateMerchantDesignItem = (
+    itemId: string,
+    patch: Partial<MerchantDesignItem>,
+    options: { skipUndo?: boolean } = {},
+  ) => {
+    const currentDecoration = activeMerchantDecorationDraftRef.current ?? activeMerchantDecorationDraft
+    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', currentDecoration.designItems.map((item) =>
       item.id === itemId ? { ...item, ...patch } : item,
-    ))
+    ), options)
   }
 
   const addMerchantDesignBubble = (zone: MerchantDesignZone) => {
@@ -7353,10 +11681,76 @@ function App() {
       fontSize: 18,
       color: '#10201d',
       background: 'rgba(255, 253, 247, 0.88)',
+      textAlign: 'center',
     }
     updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, item])
-    setActiveMerchantDesignItemId(item.id)
-    setActiveMerchantStageLayerId(`design:${item.id}`)
+    selectMerchantDesignLayer(item.id)
+  }
+
+  const addMerchantDesignPanel = (zone: MerchantDesignZone) => {
+    const item: MerchantDesignItem = {
+      id: createId('merchant-panel'),
+      zone,
+      kind: 'panel',
+      text: '',
+      mediaUrl: '',
+      mediaKind: 'image',
+      x: zone === 'hero' ? 48 : 50,
+      y: zone === 'hero' ? 42 : 48,
+      width: zone === 'hero' ? 78 : 88,
+      height: zone === 'hero' ? 42 : 56,
+      z: 8,
+      opacity: 0.58,
+      fontSize: 18,
+      color: '#ffffff',
+      background: '#10201d',
+      textAlign: 'center',
+    }
+    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, item])
+    selectMerchantDesignLayer(item.id)
+    setActiveMerchantTextEditor(null)
+    setMerchantDecorationNotice('背景板已插入。它默认在文字下方，可拖动、拉伸，也能在右侧调整透明度和颜色。')
+  }
+
+  const addMerchantHeroImagePanel = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = Array.from(event.target.files ?? []).find((item) => item.type.startsWith('image/'))
+    event.target.value = ''
+    if (!file || !canManageActivePartnerBrand) return
+    try {
+      const mediaUrl = await resizeImageFileToDataUrl(file, 1600, 0.88)
+      const item: MerchantDesignItem = {
+        id: MERCHANT_HERO_BACKGROUND_ITEM_ID,
+        zone: 'hero',
+        kind: 'panel',
+        text: '',
+        mediaUrl,
+        mediaKind: 'image',
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        z: 0,
+        opacity: 1,
+        fontSize: 18,
+        color: '#ffffff',
+        background: 'rgba(0, 0, 0, 0.48)',
+        textAlign: 'center',
+      }
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [
+        item,
+        ...activeMerchantDecorationDraft.designItems.filter((entry) => !isMerchantHeroBackgroundItem(entry)),
+      ])
+      activeMerchantDesignItemIdRef.current = null
+      activeMerchantStageLayerIdRef.current = null
+      activeMerchantMediaZoneRef.current = null
+      setActiveMerchantDesignItemId(null)
+      setActiveMerchantStageLayerId(null)
+      setActiveMerchantTextEditor(null)
+      setActiveMerchantMediaZone(null)
+      setMerchantDecorationNotice('主视觉背景图已应用到页面背景和展示分组，白色分组已改成图片叠黑色半透明遮罩。')
+    } catch (error) {
+      setMerchantDecorationNotice(error instanceof Error ? error.message : '背景图上传失败，请换一张图片重试。')
+    }
   }
 
   const deleteMerchantDesignItem = (itemId: string) => {
@@ -7365,8 +11759,21 @@ function App() {
       'designItems',
       activeMerchantDecorationDraft.designItems.filter((item) => item.id !== itemId),
     )
+    if (activeMerchantDesignItemIdRef.current === itemId) activeMerchantDesignItemIdRef.current = null
+    if (activeMerchantStageLayerIdRef.current === `design:${itemId}`) activeMerchantStageLayerIdRef.current = null
     setActiveMerchantDesignItemId((selectedId) => (selectedId === itemId ? null : selectedId))
     setActiveMerchantStageLayerId((selectedId) => (selectedId === `design:${itemId}` ? null : selectedId))
+  }
+
+  const deleteMerchantTextLayer = (field: MerchantEditableTextField) => {
+    updateMerchantDecorationDraft(activePartnerDetailSlug, field as keyof MerchantBrandDecoration, '')
+    if (activeMerchantStageLayerIdRef.current === `text:${field}`) activeMerchantStageLayerIdRef.current = null
+    activeMerchantDesignItemIdRef.current = null
+    activeMerchantMediaZoneRef.current = null
+    setActiveMerchantTextEditor(null)
+    setMerchantTextPopoverAnchor(null)
+    setActiveMerchantStageLayerId(null)
+    setMerchantDecorationNotice('已删除这个文本框内容，保存后生效。')
   }
 
   const moveMerchantDesignItemLayer = (itemId: string, direction: 1 | -1) => {
@@ -7376,12 +11783,119 @@ function App() {
     updateMerchantDesignItem(itemId, { z: direction > 0 ? Math.min(120, maxZ + 10) : 0 })
   }
 
+  const copyMerchantDesignItem = (itemId: string) => {
+    const item = activeMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
+    if (!item) return
+    merchantDesignItemClipboardRef.current = item
+    setMerchantDecorationNotice('已复制选中对象，按 Ctrl+V 粘贴。')
+  }
+
+  const copyMerchantTextLayer = (field: MerchantEditableTextField) => {
+    const element = Array.from(document.querySelectorAll<HTMLElement>('[data-merchant-text-field]')).find(
+      (entry) => entry.dataset.merchantTextField === field,
+    )
+    const stageElement = element?.closest<HTMLElement>('[data-merchant-design-stage]')
+    if (!element || !stageElement) {
+      setMerchantDecorationNotice('这个原始文字不在当前可复制舞台里，请先选中主视觉或服务区里的文字。')
+      return
+    }
+    const zone: MerchantDesignZone = stageElement.classList.contains('partner-detail-cases') ? 'service' : 'hero'
+    merchantDesignItemClipboardRef.current = getTextLayerCopyItem(
+      activeMerchantDecorationDraft,
+      field,
+      element,
+      stageElement,
+      zone,
+      'merchant-text-copy',
+      getTextLayerState(activeMerchantDecorationDraft, field).z,
+    )
+    setMerchantDecorationNotice('已复制原始文字，按 Ctrl+V 会粘贴成可拖动文本框。')
+  }
+
+  const copyMerchantMediaLayer = (zone: 'hero' | 'service') => {
+    const mediaUrl = zone === 'hero' ? activeMerchantDecorationDraft.heroImage : activeMerchantDecorationDraft.serviceImage
+    const element = document.querySelector<HTMLElement>(
+      zone === 'hero' ? '.partner-detail-floating-image-hero' : '.partner-detail-floating-image-service',
+    )
+    const stageElement = element?.closest<HTMLElement>('[data-merchant-design-stage]')
+    if (!mediaUrl || !element || !stageElement) {
+      setMerchantDecorationNotice('当前图片还不能复制，请先选中展示区里的图片。')
+      return
+    }
+    merchantDesignItemClipboardRef.current = getMediaLayerCopyItem(
+      mediaUrl,
+      element,
+      stageElement,
+      zone,
+      'merchant-media-copy',
+      Math.max(20, ...activeMerchantDecorationDraft.designItems.map((item) => item.z)),
+    )
+    setMerchantDecorationNotice('已复制原始图片，按 Ctrl+V 会粘贴成可拖动图片。')
+  }
+
+  const pasteMerchantDesignItem = () => {
+    const source = merchantDesignItemClipboardRef.current
+    if (!source || !canManageActivePartnerBrand) return false
+    const maxZ = Math.max(20, ...activeMerchantDecorationDraft.designItems.map((item) => item.z))
+    const item: MerchantDesignItem = {
+      ...source,
+      id: createId(source.kind === 'media' ? 'merchant-media-copy' : source.kind === 'panel' ? 'merchant-panel-copy' : 'merchant-text-copy'),
+      zone: source.zone === 'showcase' ? activeMerchantDesignItem?.zone ?? 'hero' : source.zone,
+      x: Number(Math.min(96, Math.max(0, source.x + 4)).toFixed(1)),
+      y: Number(Math.min(96, Math.max(0, source.y + 4)).toFixed(1)),
+      z: Math.min(120, maxZ + 1),
+    }
+    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, item])
+    selectMerchantDesignLayer(item.id)
+    setMerchantDecorationNotice('已粘贴一个副本，拖动即可调整位置。')
+    return true
+  }
+
+  const addMerchantDesignItemCopyForDrag = (
+    source: MerchantDesignItem,
+    event: PointerEvent<HTMLElement>,
+    stageElement: HTMLElement,
+  ) => {
+    const maxZ = Math.max(20, ...activeMerchantDecorationDraft.designItems.map((item) => item.z))
+    const item: MerchantDesignItem = {
+      ...source,
+      id: createId(source.kind === 'media' ? 'merchant-media-copy' : source.kind === 'panel' ? 'merchant-panel-copy' : 'merchant-text-copy'),
+      z: Math.min(120, maxZ + 1),
+    }
+    updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, item])
+    selectMerchantDesignLayer(item.id)
+    setActiveMerchantTextEditor(null)
+    const stageRect = stageElement.getBoundingClientRect()
+    merchantDesignItemDragRef.current = {
+      id: item.id,
+      mode: 'move',
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: item.x,
+      originY: item.y,
+      originWidth: item.width,
+      originHeight: item.height,
+      stageWidth: Math.max(1, stageRect.width),
+      stageHeight: Math.max(1, stageRect.height),
+    }
+    setMerchantDecorationNotice('已复制出一个相同对象，松开 Alt 后继续拖动即可摆放。')
+  }
+
   const updateTextLayerStyle = (
     brandId: string,
     decoration: MerchantBrandDecoration,
     field: MerchantEditableTextField,
     patch: Partial<MerchantTextLayerStyle>,
+    options: { skipMerchantUndo?: boolean; skipPartnerUndo?: boolean } = {},
   ) => {
+    if (
+      !options.skipPartnerUndo &&
+      partnerShowcaseEditMode &&
+      canManageActivePartnerMerchant &&
+      brandId === activePartnerMerchantSlug
+    ) {
+      pushPartnerShowcaseUndoSnapshot(brandId)
+    }
     const currentLayer = getTextLayerState(decoration, field)
     updateMerchantDecorationDraft(brandId, 'textLayerStyles', {
       ...decoration.textLayerStyles,
@@ -7389,7 +11903,7 @@ function App() {
         ...currentLayer,
         ...patch,
       },
-    })
+    }, { skipUndo: options.skipMerchantUndo })
   }
 
   const moveTextLayer = (
@@ -7412,9 +11926,35 @@ function App() {
       openMerchantTextEditor(field, event.currentTarget)
       return
     }
+    const stageElement =
+      event.currentTarget.closest<HTMLElement>('[data-merchant-design-stage]') ??
+      event.currentTarget.parentElement ??
+      event.currentTarget
+    if (event.altKey && stageElement.matches('[data-merchant-design-stage]')) {
+      event.preventDefault()
+      event.stopPropagation()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      const zone: MerchantDesignZone = stageElement.classList.contains('partner-detail-cases') ? 'service' : 'hero'
+      const maxZ = Math.max(20, ...activeMerchantDecorationDraft.designItems.map((item) => item.z))
+      const item = getTextLayerCopyItem(
+        activeMerchantDecorationDraft,
+        field,
+        event.currentTarget,
+        stageElement,
+        zone,
+        'merchant-text-copy',
+        Math.min(120, maxZ + 1),
+      )
+      addMerchantDesignItemCopyForDrag(item, event, stageElement)
+      return
+    }
+    event.preventDefault()
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
+    pushMerchantDetailUndoSnapshot(activePartnerDetailSlug)
     selectMerchantTextLayer(field)
+    setActiveMerchantTextEditor(null)
+    setMerchantTextPopoverAnchor(null)
     const layer = getTextLayerState(activeMerchantDecorationDraft, field)
     merchantTextLayerDragRef.current = {
       brandId: activePartnerDetailSlug,
@@ -7426,13 +11966,23 @@ function App() {
     }
   }
 
-  const moveMerchantTextLayerDrag = (event: PointerEvent<HTMLDivElement>) => {
+  const moveMerchantTextLayerDrag = (event: { clientX: number; clientY: number; preventDefault?: () => void }) => {
     const drag = merchantTextLayerDragRef.current
     if (!drag) return
-    updateTextLayerStyle(drag.brandId, activeMerchantDecorationDraft, drag.field, {
-      x: Math.min(800, Math.max(-800, Math.round(drag.originX + event.clientX - drag.startX))),
-      y: Math.min(800, Math.max(-800, Math.round(drag.originY + event.clientY - drag.startY))),
-    })
+    const deltaX = event.clientX - drag.startX
+    const deltaY = event.clientY - drag.startY
+    if (Math.abs(deltaX) < 4 && Math.abs(deltaY) < 4) return
+    event.preventDefault?.()
+    updateTextLayerStyle(
+      drag.brandId,
+      activeMerchantDecorationDraftRef.current ?? activeMerchantDecorationDraft,
+      drag.field,
+      {
+        x: Math.min(800, Math.max(-800, Math.round(drag.originX + deltaX))),
+        y: Math.min(800, Math.max(-800, Math.round(drag.originY + deltaY))),
+      },
+      { skipMerchantUndo: true },
+    )
     setMerchantTextPopoverAnchor(null)
   }
 
@@ -7454,43 +12004,63 @@ function App() {
     event.preventDefault()
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
+    pushMerchantDetailUndoSnapshot(activePartnerDetailSlug)
     const stageElement =
       event.currentTarget.closest<HTMLElement>('[data-merchant-design-stage]') ??
       event.currentTarget.parentElement ??
       event.currentTarget
     const stageRect = stageElement.getBoundingClientRect()
-    setActiveMerchantDesignItemId(item.id)
-    setActiveMerchantStageLayerId(`design:${item.id}`)
+    const dragItem =
+      event.altKey && mode === 'move'
+        ? {
+            ...item,
+            id: createId(item.kind === 'media' ? 'merchant-media-copy' : item.kind === 'panel' ? 'merchant-panel-copy' : 'merchant-text-copy'),
+            z: Math.min(120, Math.max(20, ...activeMerchantDecorationDraft.designItems.map((entry) => entry.z)) + 1),
+          }
+        : item
+    if (dragItem.id !== item.id) {
+      updateMerchantDecorationDraft(activePartnerDetailSlug, 'designItems', [...activeMerchantDecorationDraft.designItems, dragItem])
+      setMerchantDecorationNotice('已复制出一个相同对象，继续拖动即可摆放。')
+    }
+    activeMerchantDesignItemIdRef.current = dragItem.id
+    activeMerchantStageLayerIdRef.current = `design:${dragItem.id}`
+    activeMerchantMediaZoneRef.current = null
+    setActiveMerchantDesignItemId(dragItem.id)
+    setActiveMerchantStageLayerId(`design:${dragItem.id}`)
     merchantDesignItemDragRef.current = {
-      id: item.id,
+      id: dragItem.id,
       mode,
       startX: event.clientX,
       startY: event.clientY,
-      originX: item.x,
-      originY: item.y,
-      originWidth: item.width,
-      originHeight: item.height,
+      originX: dragItem.x,
+      originY: dragItem.y,
+      originWidth: dragItem.width,
+      originHeight: dragItem.height,
       stageWidth: Math.max(1, stageRect.width),
       stageHeight: Math.max(1, stageRect.height),
     }
   }
 
-  const moveMerchantDesignItemDrag = (event: PointerEvent<HTMLDivElement>) => {
+  const moveMerchantDesignItemDrag = (event: { clientX: number; clientY: number; preventDefault?: () => void }) => {
     const drag = merchantDesignItemDragRef.current
     if (!drag) return
-    const deltaX = ((event.clientX - drag.startX) / drag.stageWidth) * 100
-    const deltaY = ((event.clientY - drag.startY) / drag.stageHeight) * 100
+    const rawDeltaX = event.clientX - drag.startX
+    const rawDeltaY = event.clientY - drag.startY
+    if (drag.mode === 'move' && Math.abs(rawDeltaX) < 4 && Math.abs(rawDeltaY) < 4) return
+    event.preventDefault?.()
+    const deltaX = (rawDeltaX / drag.stageWidth) * 100
+    const deltaY = (rawDeltaY / drag.stageHeight) * 100
     if (drag.mode === 'resize') {
       updateMerchantDesignItem(drag.id, {
         width: Number(Math.min(92, Math.max(10, drag.originWidth + deltaX)).toFixed(1)),
         height: Number(Math.min(92, Math.max(8, drag.originHeight + deltaY)).toFixed(1)),
-      })
+      }, { skipUndo: true })
       return
     }
     updateMerchantDesignItem(drag.id, {
       x: Number(Math.min(96, Math.max(0, drag.originX + deltaX)).toFixed(1)),
       y: Number(Math.min(96, Math.max(0, drag.originY + deltaY)).toFixed(1)),
-    })
+    }, { skipUndo: true })
   }
 
   const endMerchantDesignItemDrag = () => {
@@ -7511,6 +12081,9 @@ function App() {
         mediaUrl,
         mediaKind: file.type.startsWith('video/') ? 'video' : 'image',
       })
+      activeMerchantDesignItemIdRef.current = itemId
+      activeMerchantStageLayerIdRef.current = `design:${itemId}`
+      activeMerchantMediaZoneRef.current = null
       setActiveMerchantDesignItemId(itemId)
       setActiveMerchantStageLayerId(`design:${itemId}`)
     } catch (error) {
@@ -7518,13 +12091,17 @@ function App() {
     }
   }
 
-  const updatePartnerShowcaseDesignItem = (itemId: string, patch: Partial<MerchantDesignItem>) => {
-    updateMerchantDecorationDraft(
-      activePartnerMerchantSlug,
+  const updatePartnerShowcaseDesignItem = (
+    itemId: string,
+    patch: Partial<MerchantDesignItem>,
+    options: { skipUndo?: boolean } = {},
+  ) => {
+    updatePartnerShowcaseDecorationDraft(
       'designItems',
       activePartnerMerchantDecorationDraft.designItems.map((item) =>
         item.id === itemId ? { ...item, ...patch } : item,
       ),
+      options,
     )
   }
 
@@ -7554,11 +12131,13 @@ function App() {
         color: '#10201d',
         background: 'transparent',
       }
-      updateMerchantDecorationDraft(activePartnerMerchantSlug, 'designItems', [
+      updatePartnerShowcaseDecorationDraft('designItems', [
         ...activePartnerMerchantDecorationDraft.designItems,
         item,
       ])
       setActivePartnerShowcaseDesignItemId(item.id)
+      setActivePartnerShowcaseTextField(null)
+      setActivePartnerShowcaseTemplateItem(null)
       setMerchantDecorationNotice('图片已添加到展示卡，拖动调整位置，右下角可拉伸大小。')
     } catch (error) {
       setMerchantDecorationNotice(error instanceof Error ? error.message : '图片添加失败，请换一张图片重试。')
@@ -7584,18 +12163,50 @@ function App() {
       fontSize: 20,
       color: '#10201d',
       background: 'transparent',
+      textAlign: 'center',
     }
-    updateMerchantDecorationDraft(activePartnerMerchantSlug, 'designItems', [
+    updatePartnerShowcaseDecorationDraft('designItems', [
       ...activePartnerMerchantDecorationDraft.designItems,
       item,
     ])
     setActivePartnerShowcaseDesignItemId(item.id)
+    setActivePartnerShowcaseTextField(null)
+    setActivePartnerShowcaseTemplateItem(null)
     setMerchantDecorationNotice('文本框已添加到展示卡，拖动调整位置，双击可修改文字。')
   }
 
+  const addPartnerShowcaseBackgroundPanel = () => {
+    if (!canManageActivePartnerMerchant) return
+    const item: MerchantDesignItem = {
+      id: createId('showcase-panel'),
+      zone: 'showcase',
+      kind: 'panel',
+      text: '',
+      mediaUrl: '',
+      mediaKind: 'image',
+      x: 50,
+      y: 50,
+      width: 74,
+      height: 46,
+      z: 8,
+      opacity: 0.5,
+      fontSize: 18,
+      color: '#ffffff',
+      background: '#10201d',
+      textAlign: 'center',
+    }
+    updatePartnerShowcaseDecorationDraft('designItems', [
+      ...activePartnerMerchantDecorationDraft.designItems,
+      item,
+    ])
+    setActivePartnerShowcaseDesignItemId(item.id)
+    setActivePartnerShowcaseTextField(null)
+    setActivePartnerShowcaseTemplateItem(null)
+    setMerchantDecorationNotice('背景板已添加到展示卡，可拖动、缩放并调整透明度。')
+  }
+
   const deletePartnerShowcaseDesignItem = (itemId: string) => {
-    updateMerchantDecorationDraft(
-      activePartnerMerchantSlug,
+    updatePartnerShowcaseDecorationDraft(
       'designItems',
       activePartnerMerchantDecorationDraft.designItems.filter((item) => item.id !== itemId),
     )
@@ -7609,6 +12220,171 @@ function App() {
     updatePartnerShowcaseDesignItem(itemId, { z: direction > 0 ? Math.min(120, maxZ + 10) : 0 })
   }
 
+  const copyPartnerShowcaseDesignItem = (itemId: string) => {
+    const item = activePartnerMerchantDecorationDraft.designItems.find((entry) => entry.id === itemId)
+    if (!item) return
+    merchantDesignItemClipboardRef.current = item
+    setMerchantDecorationNotice('已复制选中对象，按 Ctrl+V 粘贴。')
+  }
+
+  const getPartnerShowcaseTextLayerElement = (field: MerchantEditableTextField) =>
+    Array.from(document.querySelectorAll<HTMLElement>('[data-partner-showcase-text-field]')).find(
+      (entry) => entry.dataset.partnerShowcaseTextField === field,
+    ) ?? null
+
+  const getPartnerShowcaseTextLayerCopyItem = (
+    field: MerchantEditableTextField,
+    element: HTMLElement,
+    z: number,
+  ) => {
+    const stageElement = element.closest<HTMLElement>('[data-partner-showcase-stage]')
+    if (!stageElement) return null
+    return getTextLayerCopyItem(
+      activePartnerMerchantDecorationDraft,
+      field,
+      element,
+      stageElement,
+      'showcase',
+      'showcase-text-copy',
+      z,
+    )
+  }
+
+  const copyPartnerShowcaseTextLayer = (field: MerchantEditableTextField) => {
+    const element = getPartnerShowcaseTextLayerElement(field)
+    const item = element ? getPartnerShowcaseTextLayerCopyItem(field, element, getTextLayerState(activePartnerMerchantDecorationDraft, field).z) : null
+    if (!item) {
+      setMerchantDecorationNotice('这个原始文字暂时不能复制，请先选中展示卡里的文字。')
+      return
+    }
+    merchantDesignItemClipboardRef.current = item
+    setMerchantDecorationNotice('已复制原始文字，按 Ctrl+V 会粘贴成可拖动文本框。')
+  }
+
+  const getPartnerShowcaseLogoCopyItem = (element: HTMLElement, z: number): MerchantDesignItem | null => {
+    const stageElement = element.closest<HTMLElement>('[data-partner-showcase-stage]')
+    if (!stageElement) return null
+    const geometry = getElementDesignGeometry(element, stageElement)
+    const logoImage = activePartnerMerchantPreviewDecoration?.logoImage || activePartnerMerchant.logoImage || ''
+    if (logoImage) {
+      return {
+        id: createId('showcase-logo-copy'),
+        zone: 'showcase',
+        kind: 'media',
+        text: '',
+        mediaUrl: logoImage,
+        mediaKind: isVideoDataUrl(logoImage) ? 'video' : 'image',
+        x: geometry.x,
+        y: geometry.y,
+        width: geometry.width,
+        height: geometry.height,
+        z,
+        opacity: 1,
+        fontSize: 18,
+        color: '#10201d',
+        background: 'transparent',
+      }
+    }
+    const computedStyle = window.getComputedStyle(element)
+    const computedFontSize = Number.parseFloat(computedStyle.fontSize)
+    return {
+      id: createId('showcase-logo-text-copy'),
+      zone: 'showcase',
+      kind: 'bubble',
+      text: activePartnerMerchant.logo || activePartnerMerchant.name.slice(0, 2),
+      mediaUrl: '',
+      mediaKind: 'image',
+      x: geometry.x,
+      y: geometry.y,
+      width: geometry.width,
+      height: geometry.height,
+      z,
+      opacity: 0.96,
+      fontSize: Math.min(72, Math.max(12, Number.isFinite(computedFontSize) ? Math.round(computedFontSize) : 18)),
+      color: computedStyle.color || '#10201d',
+      background: 'transparent',
+      textAlign: 'center',
+    }
+  }
+
+  const copyPartnerShowcaseTemplateItem = (templateItem: PartnerShowcaseTemplateItem) => {
+    if (templateItem !== 'logo') return
+    const element = document.querySelector<HTMLElement>('[data-partner-showcase-template-item="logo"]')
+    const item = element
+      ? getPartnerShowcaseLogoCopyItem(
+          element,
+          Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((entry) => entry.z)),
+        )
+      : null
+    if (!item) {
+      setMerchantDecorationNotice('这个原始图标暂时不能复制，请先选中展示卡里的图标。')
+      return
+    }
+    merchantDesignItemClipboardRef.current = item
+    setMerchantDecorationNotice('已复制原始图标，按 Ctrl+V 会粘贴成可拖动对象。')
+  }
+
+  const pastePartnerShowcaseDesignItem = () => {
+    const source = merchantDesignItemClipboardRef.current
+    if (!source || !canManageActivePartnerMerchant) return false
+    const maxZ = Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((item) => item.z))
+    const item: MerchantDesignItem = {
+      ...source,
+      id: createId(source.kind === 'media' ? 'showcase-image-copy' : source.kind === 'panel' ? 'showcase-panel-copy' : 'showcase-text-copy'),
+      zone: 'showcase',
+      x: Number(Math.min(96, Math.max(0, source.x + 4)).toFixed(1)),
+      y: Number(Math.min(96, Math.max(0, source.y + 4)).toFixed(1)),
+      z: Math.min(120, maxZ + 1),
+    }
+    updatePartnerShowcaseDecorationDraft('designItems', [
+      ...activePartnerMerchantDecorationDraft.designItems,
+      item,
+    ])
+    setActivePartnerShowcaseDesignItemId(item.id)
+    setActivePartnerShowcaseTextField(null)
+    setActivePartnerShowcaseTemplateItem(null)
+    setActivePartnerShowcaseTextEditor(null)
+    setMerchantDecorationNotice('已粘贴一个副本，拖动即可调整位置。')
+    return true
+  }
+
+  const addPartnerShowcaseDesignItemCopyForDrag = (
+    source: MerchantDesignItem,
+    event: PointerEvent<HTMLElement>,
+    stageElement: HTMLElement,
+  ) => {
+    const maxZ = Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((item) => item.z))
+    const item: MerchantDesignItem = {
+      ...source,
+      id: createId(source.kind === 'media' ? 'showcase-image-copy' : source.kind === 'panel' ? 'showcase-panel-copy' : 'showcase-text-copy'),
+      zone: 'showcase',
+      z: Math.min(120, maxZ + 1),
+    }
+    updatePartnerShowcaseDecorationDraft('designItems', [
+      ...activePartnerMerchantDecorationDraft.designItems,
+      item,
+    ])
+    setActivePartnerShowcaseDesignItemId(item.id)
+    setActivePartnerShowcaseTextField(null)
+    setActivePartnerShowcaseTemplateItem(null)
+    setActivePartnerShowcaseTextEditor(null)
+    const stageRect = stageElement.getBoundingClientRect()
+    partnerShowcaseItemDragRef.current = {
+      id: item.id,
+      mode: 'move',
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: item.x,
+      originY: item.y,
+      originWidth: item.width,
+      originHeight: item.height,
+      aspectRatio: item.width / Math.max(1, item.height),
+      stageWidth: Math.max(1, stageRect.width),
+      stageHeight: Math.max(1, stageRect.height),
+    }
+    setMerchantDecorationNotice('已复制出一个相同对象，继续拖动即可摆放。')
+  }
+
   const startPartnerShowcaseTextLayerDrag = (field: MerchantEditableTextField, event: PointerEvent<HTMLElement>) => {
     if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
     if (event.detail > 1) {
@@ -7617,9 +12393,24 @@ function App() {
       openPartnerShowcaseTextEditor(field, event.currentTarget)
       return
     }
+    const stageElement = event.currentTarget.closest<HTMLElement>('[data-partner-showcase-stage]')
+    if (event.altKey && stageElement) {
+      event.preventDefault()
+      event.stopPropagation()
+      event.currentTarget.setPointerCapture(event.pointerId)
+      const maxZ = Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((item) => item.z))
+      const item = getPartnerShowcaseTextLayerCopyItem(field, event.currentTarget, Math.min(120, maxZ + 1))
+      if (item) addPartnerShowcaseDesignItemCopyForDrag(item, event, stageElement)
+      return
+    }
+    event.preventDefault()
     event.stopPropagation()
     event.currentTarget.setPointerCapture(event.pointerId)
+    setActivePartnerShowcaseTextField(field)
+    setActivePartnerShowcaseTemplateItem(null)
+    setActivePartnerShowcaseDesignItemId(null)
     setActivePartnerShowcaseTextEditor(null)
+    pushPartnerShowcaseUndoSnapshot(activePartnerMerchantSlug)
     const layer = getTextLayerState(activePartnerMerchantDecorationDraft, field)
     partnerShowcaseTextLayerDragRef.current = {
       brandId: activePartnerMerchantSlug,
@@ -7634,10 +12425,14 @@ function App() {
   const movePartnerShowcaseTextLayerDrag = (event: PointerEvent<HTMLElement>) => {
     const drag = partnerShowcaseTextLayerDragRef.current
     if (!drag) return
+    const deltaX = event.clientX - drag.startX
+    const deltaY = event.clientY - drag.startY
+    if (Math.abs(deltaX) < 4 && Math.abs(deltaY) < 4) return
+    event.preventDefault()
     updateTextLayerStyle(drag.brandId, activePartnerMerchantDecorationDraft, drag.field, {
-      x: Math.min(800, Math.max(-800, Math.round(drag.originX + event.clientX - drag.startX))),
-      y: Math.min(800, Math.max(-800, Math.round(drag.originY + event.clientY - drag.startY))),
-    })
+      x: Math.min(800, Math.max(-800, Math.round(drag.originX + deltaX))),
+      y: Math.min(800, Math.max(-800, Math.round(drag.originY + deltaY))),
+    }, { skipPartnerUndo: true })
     setPartnerShowcaseTextPopoverAnchor(null)
   }
 
@@ -7646,6 +12441,9 @@ function App() {
   }
 
   const openPartnerShowcaseTextEditor = (field: MerchantEditableTextField, element: HTMLElement) => {
+    setActivePartnerShowcaseTextField(field)
+    setActivePartnerShowcaseTemplateItem(null)
+    setActivePartnerShowcaseDesignItemId(null)
     setActivePartnerShowcaseTextEditor(field)
     setPartnerShowcaseTextPopoverAnchor(getTextPopoverAnchor(element))
   }
@@ -7668,18 +12466,6 @@ function App() {
     return element && field ? { element, field } : null
   }
 
-  const maybeStartPartnerShowcaseTextLayerFromPoint = (
-    item: MerchantDesignItem,
-    event: PointerEvent<HTMLElement>,
-  ) => {
-    const textLayer = findPartnerShowcaseTextLayerAtPoint(event.clientX, event.clientY)
-    if (!textLayer) return false
-    const textZ = getTextLayerState(activePartnerMerchantDecorationDraft, textLayer.field).z
-    if (textZ < item.z) return false
-    startPartnerShowcaseTextLayerDrag(textLayer.field, event)
-    return true
-  }
-
   const startPartnerShowcaseDesignItemDrag = (
     item: MerchantDesignItem,
     mode: 'move' | 'resize',
@@ -7694,27 +12480,50 @@ function App() {
       event.currentTarget.parentElement ??
       event.currentTarget
     const stageRect = stageElement.getBoundingClientRect()
-    setActivePartnerShowcaseDesignItemId(item.id)
+    pushPartnerShowcaseUndoSnapshot(activePartnerMerchantSlug)
+    const dragItem =
+      event.altKey && mode === 'move'
+        ? {
+            ...item,
+            id: createId(item.kind === 'media' ? 'showcase-image-copy' : item.kind === 'panel' ? 'showcase-panel-copy' : 'showcase-text-copy'),
+            zone: 'showcase' as MerchantDesignZone,
+            z: Math.min(120, Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((entry) => entry.z)) + 1),
+          }
+        : item
+    if (dragItem.id !== item.id) {
+      updatePartnerShowcaseDecorationDraft(
+        'designItems',
+        [...activePartnerMerchantDecorationDraft.designItems, dragItem],
+        { skipUndo: true },
+      )
+      setMerchantDecorationNotice('已复制出一个相同对象，继续拖动即可摆放。')
+    }
+    setActivePartnerShowcaseDesignItemId(dragItem.id)
+    setActivePartnerShowcaseTextField(null)
+    setActivePartnerShowcaseTextEditor(null)
     partnerShowcaseItemDragRef.current = {
-      id: item.id,
+      id: dragItem.id,
       mode,
       startX: event.clientX,
       startY: event.clientY,
-      originX: item.x,
-      originY: item.y,
-      originWidth: item.width,
-      originHeight: item.height,
-      aspectRatio: item.width / Math.max(1, item.height),
+      originX: dragItem.x,
+      originY: dragItem.y,
+      originWidth: dragItem.width,
+      originHeight: dragItem.height,
+      aspectRatio: dragItem.width / Math.max(1, dragItem.height),
       stageWidth: Math.max(1, stageRect.width),
       stageHeight: Math.max(1, stageRect.height),
     }
   }
 
-  const movePartnerShowcaseDesignItemDrag = (event: PointerEvent<HTMLElement>) => {
+  const movePartnerShowcaseDesignItemDrag = (event: { clientX: number; clientY: number; shiftKey?: boolean }) => {
     const drag = partnerShowcaseItemDragRef.current
     if (!drag) return
-    const deltaX = ((event.clientX - drag.startX) / drag.stageWidth) * 100
-    const deltaY = ((event.clientY - drag.startY) / drag.stageHeight) * 100
+    const rawDeltaX = event.clientX - drag.startX
+    const rawDeltaY = event.clientY - drag.startY
+    if (drag.mode === 'move' && Math.abs(rawDeltaX) < 4 && Math.abs(rawDeltaY) < 4) return
+    const deltaX = (rawDeltaX / drag.stageWidth) * 100
+    const deltaY = (rawDeltaY / drag.stageHeight) * 100
     if (drag.mode === 'resize') {
       const nextWidth = Math.min(88, Math.max(8, drag.originWidth + deltaX))
       const nextHeight = event.shiftKey
@@ -7723,13 +12532,13 @@ function App() {
       updatePartnerShowcaseDesignItem(drag.id, {
         width: Number(nextWidth.toFixed(1)),
         height: Number(nextHeight.toFixed(1)),
-      })
+      }, { skipUndo: true })
       return
     }
     updatePartnerShowcaseDesignItem(drag.id, {
       x: Number(Math.min(96, Math.max(0, drag.originX + deltaX)).toFixed(1)),
       y: Number(Math.min(96, Math.max(0, drag.originY + deltaY)).toFixed(1)),
-    })
+    }, { skipUndo: true })
   }
 
   const endPartnerShowcaseDesignItemDrag = () => {
@@ -7737,38 +12546,250 @@ function App() {
   }
 
   useEffect(() => {
-    if (!merchantDesignEditMode || (!activeMerchantDesignItemId && !activeMerchantMediaZone)) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Delete' && event.key !== 'Backspace') return
-      const target = event.target as HTMLElement | null
-      if (target?.closest('input, textarea, select')) return
-      event.preventDefault()
-      if (activeMerchantDesignItemId) {
-        deleteMerchantDesignItem(activeMerchantDesignItemId)
-        return
-      }
-      if (activeMerchantMediaZone) {
-        updateMerchantDecorationDraft(activePartnerDetailSlug, activeMerchantMediaZone === 'hero' ? 'heroImage' : 'serviceImage', '')
-        setActiveMerchantMediaZone(null)
-        setActiveMerchantStageLayerId(null)
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [merchantDesignEditMode, activeMerchantDesignItemId, activeMerchantMediaZone, activeMerchantDecorationDraft.designItems])
+    activeMerchantDesignItemIdRef.current = activeMerchantDesignItemId
+  }, [activeMerchantDesignItemId])
 
   useEffect(() => {
-    if (!partnerShowcaseEditMode || !activePartnerShowcaseDesignItemId) return
+    activeMerchantMediaZoneRef.current = activeMerchantMediaZone
+  }, [activeMerchantMediaZone])
+
+  useEffect(() => {
+    activeMerchantStageLayerIdRef.current = activeMerchantStageLayerId
+  }, [activeMerchantStageLayerId])
+
+  useEffect(() => {
+    activePartnerShowcaseDesignItemIdRef.current = activePartnerShowcaseDesignItemId
+  }, [activePartnerShowcaseDesignItemId])
+
+  useEffect(() => {
+    activePartnerShowcaseTextFieldRef.current = activePartnerShowcaseTextField
+  }, [activePartnerShowcaseTextField])
+
+  useEffect(() => {
+    activePartnerShowcaseTemplateItemRef.current = activePartnerShowcaseTemplateItem
+  }, [activePartnerShowcaseTemplateItem])
+
+  useEffect(() => {
+    if (!merchantDesignEditMode) return
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Delete' && event.key !== 'Backspace') return
       const target = event.target as HTMLElement | null
-      if (target?.closest('input, textarea, select')) return
+      const isFormField = Boolean(target?.closest('input, textarea, select'))
+      const shortcutKey = event.key.toLowerCase()
+      const selectedItemId =
+        activeMerchantDesignItemIdRef.current ??
+        (activeMerchantStageLayerIdRef.current?.startsWith('design:')
+          ? activeMerchantStageLayerIdRef.current.replace('design:', '')
+          : null)
+      const selectedMediaZone = activeMerchantMediaZoneRef.current
+      const selectedStageLayerId = activeMerchantStageLayerIdRef.current
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        activeMerchantDesignItemIdRef.current = null
+        activeMerchantMediaZoneRef.current = null
+        activeMerchantStageLayerIdRef.current = null
+        setActiveMerchantTextEditor(null)
+        setMerchantTextPopoverAnchor(null)
+        setActiveMerchantDesignItemId(null)
+        setActiveMerchantMediaZone(null)
+        setActiveMerchantStageLayerId(null)
+        setMerchantDesignEditMode(false)
+        setMerchantDecorationNotice('已退出编辑模式，未保存的改动仍在草稿里，点保存后才会对外展示。')
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z') {
+        if (isFormField) return
+        event.preventDefault()
+        undoMerchantDetailLastChange()
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && shortcutKey === 'c') {
+        if (isFormField) return
+        event.preventDefault()
+        if (selectedItemId) {
+          copyMerchantDesignItem(selectedItemId)
+          return
+        }
+        if (selectedStageLayerId?.startsWith('text:')) {
+          copyMerchantTextLayer(selectedStageLayerId.replace('text:', '') as MerchantEditableTextField)
+          return
+        }
+        if (selectedMediaZone) {
+          copyMerchantMediaLayer(selectedMediaZone)
+        }
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && shortcutKey === 'v') {
+        if (isFormField || !merchantDesignItemClipboardRef.current) return
+        event.preventDefault()
+        pasteMerchantDesignItem()
+        return
+      }
+
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return
+      if (isFormField) return
+      if (!selectedItemId && !selectedMediaZone && !selectedStageLayerId?.startsWith('text:')) return
       event.preventDefault()
-      deletePartnerShowcaseDesignItem(activePartnerShowcaseDesignItemId)
+      if (selectedItemId) {
+        deleteMerchantDesignItem(selectedItemId)
+        return
+      }
+      if (selectedStageLayerId?.startsWith('text:')) {
+        deleteMerchantTextLayer(selectedStageLayerId.replace('text:', '') as MerchantEditableTextField)
+        return
+      }
+      if (selectedMediaZone) {
+        deleteMerchantMediaLayer(selectedMediaZone)
+      }
     }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [partnerShowcaseEditMode, activePartnerShowcaseDesignItemId, activePartnerMerchantDecorationDraft.designItems])
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [
+    merchantDesignEditMode,
+    activeMerchantTextEditor,
+    activeMerchantDesignItemId,
+    activeMerchantMediaZone,
+    activeMerchantStageLayerId,
+    activeMerchantDecorationDraft,
+    merchantTextPopoverAnchor,
+  ])
+
+  useEffect(() => {
+    if (!merchantDesignEditMode) return undefined
+    const handlePointerMove = (event: globalThis.PointerEvent) => {
+      if (!merchantImageDragRef.current && !merchantTextLayerDragRef.current && !merchantDesignItemDragRef.current) return
+      event.preventDefault()
+      if (merchantImageDragRef.current) moveMerchantDecorationImageDrag(event)
+      if (merchantTextLayerDragRef.current) moveMerchantTextLayerDrag(event)
+      if (merchantDesignItemDragRef.current) moveMerchantDesignItemDrag(event)
+    }
+    const handlePointerEnd = () => {
+      if (merchantImageDragRef.current) endMerchantDecorationImageDrag()
+      if (merchantTextLayerDragRef.current) endMerchantTextLayerDrag()
+      if (merchantDesignItemDragRef.current) endMerchantDesignItemDrag()
+    }
+    window.addEventListener('pointermove', handlePointerMove, { passive: false })
+    window.addEventListener('pointerup', handlePointerEnd)
+    window.addEventListener('pointercancel', handlePointerEnd)
+    window.addEventListener('blur', handlePointerEnd)
+    return () => {
+      handlePointerEnd()
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerEnd)
+      window.removeEventListener('pointercancel', handlePointerEnd)
+      window.removeEventListener('blur', handlePointerEnd)
+    }
+  }, [merchantDesignEditMode])
+
+  useEffect(() => {
+    if (!partnerShowcaseEditMode) return
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null
+      const isFormField = Boolean(target?.closest('input, textarea, select'))
+      const shortcutKey = event.key.toLowerCase()
+
+      if ((event.ctrlKey || event.metaKey) && shortcutKey === 'z') {
+        event.preventDefault()
+        undoPartnerShowcaseLastChange()
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && shortcutKey === 'c') {
+        const selectedItemId = activePartnerShowcaseDesignItemIdRef.current
+        const selectedTextField = activePartnerShowcaseTextFieldRef.current
+        const selectedTemplateItem = activePartnerShowcaseTemplateItemRef.current
+        if (isFormField || (!selectedItemId && !selectedTextField && !selectedTemplateItem)) return
+        event.preventDefault()
+        if (selectedItemId) {
+          copyPartnerShowcaseDesignItem(selectedItemId)
+          return
+        }
+        if (selectedTextField) {
+          copyPartnerShowcaseTextLayer(selectedTextField)
+          return
+        }
+        if (selectedTemplateItem) copyPartnerShowcaseTemplateItem(selectedTemplateItem)
+        return
+      }
+
+      if ((event.ctrlKey || event.metaKey) && shortcutKey === 'v') {
+        if (isFormField || !merchantDesignItemClipboardRef.current) return
+        event.preventDefault()
+        pastePartnerShowcaseDesignItem()
+        return
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        const hasSelection =
+          activePartnerShowcaseDesignItemIdRef.current ||
+          activePartnerShowcaseTextFieldRef.current ||
+          activePartnerShowcaseTemplateItemRef.current ||
+          activePartnerShowcaseTextEditor
+        if (hasSelection) {
+          clearPartnerShowcaseSelection()
+          setMerchantDecorationNotice('已取消选中。')
+        } else {
+          setPartnerShowcaseEditMode(false)
+          setMerchantDecorationNotice('已退出编辑模式。')
+        }
+        return
+      }
+
+      if (event.key === 'Enter' && !event.shiftKey) {
+        const selectedItemId = activePartnerShowcaseDesignItemIdRef.current
+        if (!selectedItemId && !activePartnerShowcaseTextEditor) return
+        event.preventDefault()
+        void (async () => {
+          const saved = await savePartnerShowcaseDecoration(false)
+          if (saved) clearPartnerShowcaseSelection()
+        })()
+        return
+      }
+
+      if (event.key !== 'Delete' && event.key !== 'Backspace') return
+      const selectedItemId = activePartnerShowcaseDesignItemIdRef.current
+      const selectedTextField = activePartnerShowcaseTextFieldRef.current
+      if (!selectedItemId && !selectedTextField) return
+      if (isFormField) return
+      event.preventDefault()
+      if (selectedItemId) {
+        deletePartnerShowcaseDesignItem(selectedItemId)
+        return
+      }
+      if (selectedTextField) {
+        updatePartnerShowcaseDecorationDraft(selectedTextField as keyof MerchantBrandDecoration, '' as never)
+        clearPartnerShowcaseSelection()
+        setMerchantDecorationNotice('已删除这个文本框内容。')
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown, true)
+    return () => window.removeEventListener('keydown', handleKeyDown, true)
+  }, [partnerShowcaseEditMode, activePartnerShowcaseTextEditor, activePartnerMerchantDecorationDraft])
+
+  useEffect(() => {
+    if (!partnerShowcaseEditMode) return undefined
+    const handlePointerMove = (event: globalThis.PointerEvent) => {
+      if (!partnerShowcaseItemDragRef.current) return
+      event.preventDefault()
+      movePartnerShowcaseDesignItemDrag(event)
+    }
+    const handlePointerEnd = () => {
+      if (!partnerShowcaseItemDragRef.current) return
+      endPartnerShowcaseDesignItemDrag()
+    }
+    window.addEventListener('pointermove', handlePointerMove, { passive: false })
+    window.addEventListener('pointerup', handlePointerEnd)
+    window.addEventListener('pointercancel', handlePointerEnd)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerEnd)
+      window.removeEventListener('pointercancel', handlePointerEnd)
+    }
+  }, [partnerShowcaseEditMode, activePartnerMerchantDecorationDraft.designItems])
 
   const renderMerchantDecorationImageEditor = (zone: 'hero' | 'service', title: string, description: string) => {
     const image = zone === 'hero' ? activeMerchantDecorationDraft.heroImage : activeMerchantDecorationDraft.serviceImage
@@ -7858,27 +12879,37 @@ function App() {
 
   const renderMerchantDesignItems = (zone: MerchantDesignZone, decoration?: MerchantBrandDecoration) => {
     const editable = canManageActivePartnerBrand && merchantDesignEditMode
-    const items = (decoration?.designItems ?? []).filter((item) => item.zone === zone)
+    const items = (decoration?.designItems ?? []).filter((item) => item.zone === zone && !isMerchantHeroBackgroundItem(item))
     if (!items.length && !editable) return null
     return (
       <div className="merchant-design-layer" aria-hidden={!editable}>
         {items.map((item) => {
           const selected = editable && activeMerchantStageLayerId === `design:${item.id}`
+          const itemKindClass = item.kind === 'media' ? 'is-media' : item.kind === 'panel' ? 'is-panel' : 'is-bubble'
           const itemStyle: CSSProperties = {
             left: `${item.x}%`,
             top: `${item.y}%`,
             width: `${item.width}%`,
-            minHeight: `${item.height}%`,
+            height: `${item.height}%`,
             zIndex: item.z,
             opacity: item.opacity,
             color: item.color,
             background: item.background,
+            ...(item.kind === 'panel' && item.mediaUrl
+              ? {
+                  backgroundImage: `linear-gradient(${item.background}, ${item.background}), url("${item.mediaUrl}")`,
+                  backgroundPosition: 'center',
+                  backgroundSize: 'cover',
+                }
+              : {}),
             fontSize: item.fontSize,
+            ...(item.textAlign ? { textAlign: item.textAlign } : {}),
+            ...(item.lineHeight ? { lineHeight: item.lineHeight } : {}),
           }
           return (
             <Fragment key={item.id}>
               <div
-                className={`merchant-design-item ${item.kind === 'media' ? 'is-media' : 'is-bubble'} ${selected ? 'is-selected' : ''}`}
+                className={`merchant-design-item ${itemKindClass} ${selected ? 'is-selected' : ''}`}
                 style={itemStyle}
               >
                 {item.kind === 'media' && item.mediaUrl ? (
@@ -7887,6 +12918,8 @@ function App() {
                   ) : (
                     <img alt="" draggable={false} src={item.mediaUrl} />
                   )
+                ) : item.kind === 'panel' ? (
+                  editable ? <span className="merchant-design-panel-label">背景板</span> : <span aria-hidden="true" />
                 ) : (
                   <span>{item.text}</span>
                 )}
@@ -7908,7 +12941,7 @@ function App() {
                     selectMerchantDesignLayer(item.id)
                   }}
                   onDoubleClick={(event) => {
-                    if (item.kind === 'media') return
+                    if (item.kind !== 'bubble') return
                     event.preventDefault()
                     event.stopPropagation()
                     const nextText = window.prompt('修改泡泡框文字', item.text)
@@ -7965,6 +12998,15 @@ function App() {
     )
   }
 
+  const deleteMerchantMediaLayer = (zone: 'hero' | 'service') => {
+    updateMerchantDecorationDraft(activePartnerDetailSlug, zone === 'hero' ? 'heroImage' : 'serviceImage', '')
+    activeMerchantMediaZoneRef.current = null
+    activeMerchantStageLayerIdRef.current = null
+    setActiveMerchantMediaZone(null)
+    setActiveMerchantStageLayerId(null)
+    setMerchantDecorationNotice(`${zone === 'hero' ? '主视觉' : '服务区'}素材已删除，保存后生效。`)
+  }
+
   const renderMerchantDecorationMedia = (zone: 'hero' | 'service', decoration?: MerchantBrandDecoration) => {
     const media = zone === 'hero' ? decoration?.heroImage : decoration?.serviceImage
     if (!media) return null
@@ -7974,8 +13016,9 @@ function App() {
         : 'partner-detail-floating-image partner-detail-floating-image-service'
     const style = getMerchantDecorationImageStyle(decoration, zone)
     const editable = canManageActivePartnerBrand && merchantDesignEditMode
+    const selected = editable && activeMerchantStageLayerId === `media:${zone}`
     const sharedProps = {
-      className: editable && activeMerchantStageLayerId === `media:${zone}` ? `${className} is-selected` : className,
+      className: selected ? `${className} is-selected` : className,
       draggable: false,
       style,
       onClick: (event: MouseEvent<HTMLElement>) => {
@@ -7998,10 +13041,60 @@ function App() {
       },
     }
 
-    return isVideoDataUrl(media) ? (
-      <video {...sharedProps} controls muted src={media} />
-    ) : (
-      <img {...sharedProps} alt="" src={media} />
+    return (
+      <Fragment>
+        {isVideoDataUrl(media) ? (
+          <video {...sharedProps} controls muted src={media} />
+        ) : (
+          <img {...sharedProps} alt="" src={media} />
+        )}
+        {editable && (
+          <div
+            aria-label={`${zone === 'hero' ? '主视觉' : '服务区'}图片视频层`}
+            className={`merchant-media-hitbox merchant-media-hitbox-${zone} ${selected ? 'is-selected' : ''}`}
+            role="button"
+            style={{
+              ...style,
+              zIndex: selected ? 235 : 34,
+            }}
+            tabIndex={0}
+            title="点击选中，拖动移动，Delete 删除，Alt 拖动复制"
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              selectMerchantMediaLayer(zone)
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return
+              event.preventDefault()
+              selectMerchantMediaLayer(zone)
+            }}
+            onPointerDown={(event) => startMerchantDecorationImageDrag(zone, event)}
+            onPointerMove={(event) => moveMerchantDecorationImageDrag(event)}
+            onPointerUp={endMerchantDecorationImageDrag}
+            onPointerCancel={endMerchantDecorationImageDrag}
+          >
+            <span className="merchant-media-tag">{zone === 'hero' ? '主视觉素材' : '服务区素材'}</span>
+            {selected && (
+              <button
+                className="merchant-design-delete merchant-media-delete"
+                type="button"
+                onPointerDown={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                }}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  deleteMerchantMediaLayer(zone)
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        )}
+      </Fragment>
     )
   }
 
@@ -8022,6 +13115,7 @@ function App() {
       'sectionThreeText',
       'caseOne',
       'caseTwo',
+      'serviceHeadingTitle',
       'showcaseArtTitle',
       'showcaseArtSubtitle',
     ].includes(field)
@@ -8039,6 +13133,8 @@ function App() {
     const activeTextLayerState = getTextLayerState(activeMerchantDecorationDraft, field)
     const explicitFontSize = activeTextLayerState.fontSize || 0
     const displayedFontSize = explicitFontSize || merchantTextPopoverAnchor?.fontSize || 0
+    const currentTextAlign = activeTextLayerState.textAlign ?? merchantTextPopoverAnchor?.textAlign ?? 'center'
+    const currentLineHeight = activeTextLayerState.lineHeight ?? merchantTextPopoverAnchor?.lineHeight
     const fontSizeOptions = Array.from(
       new Set([...MERCHANT_TEXT_FONT_SIZE_OPTIONS, explicitFontSize].filter((size) => Number.isFinite(size) && size >= 0)),
     ).sort((a, b) => a - b)
@@ -8100,6 +13196,12 @@ function App() {
               }
             />
           </label>
+          {renderTextAlignControls(currentTextAlign, (textAlign) =>
+            updateTextLayerStyle(activePartnerDetailSlug, activeMerchantDecorationDraft, field, { textAlign }),
+          )}
+          {renderLineHeightControl(currentLineHeight, (lineHeight) =>
+            updateTextLayerStyle(activePartnerDetailSlug, activeMerchantDecorationDraft, field, { lineHeight }),
+          )}
           <button type="button" onClick={() => {
             setActiveMerchantTextEditor(null)
             setMerchantTextPopoverAnchor(null)
@@ -8111,6 +13213,21 @@ function App() {
           </button>
           <button type="button" onClick={() => moveTextLayer(activePartnerDetailSlug, activeMerchantDecorationDraft, field, -1)}>
             图层下移
+          </button>
+          <button
+            className="is-danger"
+            type="button"
+            onPointerDown={(event) => {
+              event.stopPropagation()
+            }}
+            onClick={(event) => {
+              event.preventDefault()
+              event.stopPropagation()
+              deleteMerchantTextLayer(field)
+            }}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            删除文本框
           </button>
         </div>
       </div>
@@ -8144,9 +13261,13 @@ function App() {
     partnerShowcaseEditMode && canManageActivePartnerMerchant
       ? {
           'data-partner-showcase-editable': 'true',
-          'data-partner-showcase-active': activePartnerShowcaseTextEditor === field ? 'true' : undefined,
+          'data-partner-showcase-active':
+            activePartnerShowcaseTextEditor === field || activePartnerShowcaseTextField === field ? 'true' : undefined,
           'data-partner-showcase-text-field': field,
           onClick: (event: MouseEvent<HTMLElement>) => {
+            setActivePartnerShowcaseTextField(field)
+            setActivePartnerShowcaseTemplateItem(null)
+            setActivePartnerShowcaseDesignItemId(null)
             event.stopPropagation()
           },
           onDoubleClick: (event: MouseEvent<HTMLElement>) => {
@@ -8160,20 +13281,55 @@ function App() {
         }
       : {}
 
+  const getPartnerShowcaseLogoCopyProps = () =>
+    partnerShowcaseEditMode && canManageActivePartnerMerchant
+      ? {
+          'data-partner-showcase-template-item': 'logo',
+          'data-partner-showcase-template-active': activePartnerShowcaseTemplateItem === 'logo' ? 'true' : undefined,
+          onClick: (event: MouseEvent<HTMLElement>) => {
+            event.preventDefault()
+            event.stopPropagation()
+            setActivePartnerShowcaseTemplateItem('logo')
+            setActivePartnerShowcaseTextField(null)
+            setActivePartnerShowcaseTextEditor(null)
+            setActivePartnerShowcaseDesignItemId(null)
+          },
+          onPointerDown: (event: PointerEvent<HTMLElement>) => {
+            if (!event.altKey) return
+            const stageElement = event.currentTarget.closest<HTMLElement>('[data-partner-showcase-stage]')
+            if (!stageElement) return
+            event.preventDefault()
+            event.stopPropagation()
+            event.currentTarget.setPointerCapture(event.pointerId)
+            const item = getPartnerShowcaseLogoCopyItem(
+              event.currentTarget,
+              Math.max(20, ...activePartnerMerchantDecorationDraft.designItems.map((entry) => entry.z)) + 1,
+            )
+            if (item) addPartnerShowcaseDesignItemCopyForDrag(item, event, stageElement)
+          },
+        }
+      : {}
+
   const renderPartnerShowcaseTextEditor = (field: MerchantEditableTextField) => {
     if (!partnerShowcaseEditMode || activePartnerShowcaseTextEditor !== field) return null
-    const fieldLabel =
-      field === 'badge'
-        ? '展示标识'
-        : field === 'heroTitle'
-          ? '展示标题'
-          : field === 'intro'
-            ? '展示说明'
-            : field === 'showcaseArtTitle'
-              ? '右侧大字'
-              : field === 'showcaseArtSubtitle'
-                ? '右侧副标题'
-                : '展示文字'
+    const fieldLabels: Partial<Record<MerchantEditableTextField, string>> = {
+      badge: '展示标识',
+      showcaseCategory: '分类标签',
+      showcaseMerchantName: '商家名称',
+      heroTitle: '展示标题',
+      intro: '展示说明',
+      showcaseServiceTitle: '底部标题',
+      showcaseServiceSubtitle: '底部副标题',
+      showcaseTagOne: '服务标签',
+      showcaseTagTwo: '服务标签',
+      showcaseTagThree: '服务标签',
+      showcaseTagFour: '服务标签',
+      showcaseTagFive: '服务标签',
+      showcaseTagSix: '服务标签',
+      showcaseArtTitle: '右侧大字',
+      showcaseArtSubtitle: '右侧副标题',
+    }
+    const fieldLabel = fieldLabels[field] ?? '展示文字'
     const popoverStyle: CSSProperties | undefined = partnerShowcaseTextPopoverAnchor
       ? {
           bottom: 'auto',
@@ -8188,6 +13344,8 @@ function App() {
     const activeTextLayerState = getTextLayerState(activePartnerMerchantDecorationDraft, field)
     const explicitFontSize = activeTextLayerState.fontSize || 0
     const displayedFontSize = explicitFontSize || partnerShowcaseTextPopoverAnchor?.fontSize || 0
+    const currentTextAlign = activeTextLayerState.textAlign ?? partnerShowcaseTextPopoverAnchor?.textAlign ?? 'center'
+    const currentLineHeight = activeTextLayerState.lineHeight ?? partnerShowcaseTextPopoverAnchor?.lineHeight
     const fontSizeOptions = Array.from(
       new Set([...MERCHANT_TEXT_FONT_SIZE_OPTIONS, explicitFontSize].filter((size) => Number.isFinite(size) && size >= 0)),
     ).sort((a, b) => a - b)
@@ -8203,9 +13361,14 @@ function App() {
           {fieldLabel}
           <textarea
             value={String(activePartnerMerchantDecorationDraft[field] ?? '')}
-            onChange={(event) =>
-              updateMerchantDecorationDraft(activePartnerMerchantSlug, field as keyof MerchantBrandDecoration, event.target.value)
-            }
+            onChange={(event) => {
+              pushPartnerShowcaseUndoSnapshot(activePartnerMerchantSlug)
+              updateMerchantDecorationDraft(
+                activePartnerMerchantSlug,
+                field as keyof MerchantBrandDecoration,
+                event.target.value as MerchantBrandDecoration[keyof MerchantBrandDecoration],
+              )
+            }}
           />
         </label>
         <div className="partner-showcase-popover-controls">
@@ -8213,7 +13376,7 @@ function App() {
             字体
             <select
               value={activePartnerMerchantDecorationDraft.fontFamily}
-              onChange={(event) => updateMerchantDecorationDraft(activePartnerMerchantSlug, 'fontFamily', event.target.value)}
+              onChange={(event) => updatePartnerShowcaseDecorationDraft('fontFamily', event.target.value)}
             >
               <option value="">默认</option>
               <option value={'"Noto Sans SC", "Microsoft YaHei", sans-serif'}>现代黑体</option>
@@ -8250,14 +13413,18 @@ function App() {
               }
             />
           </label>
+          {renderTextAlignControls(currentTextAlign, (textAlign) =>
+            updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, { textAlign }),
+          )}
+          {renderLineHeightControl(currentLineHeight, (lineHeight) =>
+            updateTextLayerStyle(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, { lineHeight }),
+          )}
           <button
             type="button"
-            onClick={async () => {
-              const saved = await savePartnerShowcaseDecoration(false)
-              if (saved) {
-                setActivePartnerShowcaseTextEditor(null)
-                setPartnerShowcaseTextPopoverAnchor(null)
-              }
+            onClick={() => {
+              setActivePartnerShowcaseTextEditor(null)
+              setPartnerShowcaseTextPopoverAnchor(null)
+              void savePartnerShowcaseDecoration(false)
             }}
           >
             完成
@@ -8273,6 +13440,19 @@ function App() {
             onClick={() => moveTextLayer(activePartnerMerchantSlug, activePartnerMerchantDecorationDraft, field, -1)}
           >
             图层下移
+          </button>
+          <button
+            className="is-danger"
+            type="button"
+            onClick={() => {
+              updatePartnerShowcaseDecorationDraft(field as keyof MerchantBrandDecoration, '' as never)
+              setActivePartnerShowcaseTextEditor(null)
+              setPartnerShowcaseTextPopoverAnchor(null)
+              setMerchantDecorationNotice('已删除这个文本框内容。')
+            }}
+          >
+            <Trash2 size={15} aria-hidden="true" />
+            删除文本框
           </button>
         </div>
       </div>
@@ -8295,21 +13475,31 @@ function App() {
       <div className="partner-showcase-design-layer" aria-hidden={!editable}>
         {items.map((item) => {
           const selected = editable && activePartnerShowcaseDesignItemId === item.id
+          const itemKindClass = item.kind === 'media' ? 'is-media' : item.kind === 'panel' ? 'is-panel' : 'is-bubble'
           const itemStyle: CSSProperties = {
             left: `${item.x}%`,
             top: `${item.y}%`,
             width: `${item.width}%`,
-            minHeight: `${item.height}%`,
+            height: `${item.height}%`,
             zIndex: item.z,
             opacity: item.opacity,
             color: item.color,
             background: getPartnerShowcaseItemBackground(item),
+            ...(item.kind === 'panel' && item.mediaUrl
+              ? {
+                  backgroundImage: `linear-gradient(${item.background}, ${item.background}), url("${item.mediaUrl}")`,
+                  backgroundPosition: 'center',
+                  backgroundSize: 'cover',
+                }
+              : {}),
             fontSize: item.fontSize,
+            ...(item.textAlign ? { textAlign: item.textAlign } : {}),
+            ...(item.lineHeight ? { lineHeight: item.lineHeight } : {}),
           }
           return (
             <Fragment key={item.id}>
               <div
-                className={`partner-showcase-design-item ${item.kind === 'media' ? 'is-media' : 'is-bubble'} ${selected ? 'is-selected' : ''}`}
+                className={`partner-showcase-design-item ${itemKindClass} ${selected ? 'is-selected' : ''}`}
                 style={itemStyle}
               >
                 {item.kind === 'media' && item.mediaUrl ? (
@@ -8318,6 +13508,8 @@ function App() {
                   ) : (
                     <img alt="" draggable={false} src={item.mediaUrl} />
                   )
+                ) : item.kind === 'panel' ? (
+                  <span aria-hidden="true" />
                 ) : (
                   <span>{item.text}</span>
                 )}
@@ -8329,10 +13521,12 @@ function App() {
                   onClick={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
+                    setActivePartnerShowcaseTextField(null)
+                    setActivePartnerShowcaseTemplateItem(null)
                     setActivePartnerShowcaseDesignItemId(item.id)
                   }}
                   onDoubleClick={(event) => {
-                    if (item.kind === 'media') return
+                    if (item.kind !== 'bubble') return
                     event.preventDefault()
                     event.stopPropagation()
                     const nextText = window.prompt('修改文本框文字', item.text)
@@ -8348,7 +13542,6 @@ function App() {
                         return
                       }
                     }
-                    if (maybeStartPartnerShowcaseTextLayerFromPoint(item, event)) return
                     startPartnerShowcaseDesignItemDrag(item, 'move', event)
                   }}
                   onPointerMove={(event) => movePartnerShowcaseDesignItemDrag(event)}
@@ -8409,6 +13602,14 @@ function App() {
                               onChange={(event) => updatePartnerShowcaseDesignItem(item.id, { color: event.target.value })}
                             />
                           </label>
+                          {renderTextAlignControls(
+                            item.textAlign ?? 'center',
+                            (textAlign) => updatePartnerShowcaseDesignItem(item.id, { textAlign }),
+                            true,
+                          )}
+                          {renderLineHeightControl(item.lineHeight, (lineHeight) =>
+                            updatePartnerShowcaseDesignItem(item.id, { lineHeight }),
+                          )}
                           <label>
                             透明
                             <input
@@ -8464,7 +13665,7 @@ function App() {
         </label>
         <button
           type="button"
-          onClick={() => updateMerchantDecorationDraft(activePartnerDetailSlug, zone === 'hero' ? 'heroImage' : 'serviceImage', '')}
+          onClick={() => deleteMerchantMediaLayer(zone)}
         >
           删除
         </button>
@@ -8513,11 +13714,35 @@ function App() {
             <SquareDashedMousePointer size={18} aria-hidden="true" />
             服务区文本
           </button>
+          <span className="merchant-studio-tooltip-wrap">
+            <button
+              aria-describedby="merchant-hero-background-size-tip"
+              type="button"
+              onClick={() => merchantHeroPanelFileInputRef.current?.click()}
+            >
+              <UploadCloud size={18} aria-hidden="true" />
+              主视觉背景图
+            </button>
+            <span className="merchant-studio-size-tooltip" id="merchant-hero-background-size-tip" role="tooltip">
+              建议上传横版背景图：16:9 或 21:9，推荐 1920×1080 / 2560×1440。主体放中间，四周留安全边距。
+            </span>
+          </span>
+          <button type="button" onClick={() => addMerchantDesignPanel('service')}>
+            <Plus size={18} aria-hidden="true" />
+            服务区背景板
+          </button>
           <button type="button" onClick={() => setActiveMerchantTextEditor(null)}>
             <Pipette size={18} aria-hidden="true" />
             吸管
           </button>
         </div>
+        <input
+          accept="image/*"
+          hidden
+          ref={merchantHeroPanelFileInputRef}
+          type="file"
+          onChange={addMerchantHeroImagePanel}
+        />
         <label className="merchant-studio-file-button">
           <UploadCloud size={16} aria-hidden="true" />
           {activeMerchantDesignItem ? '上传到选中框' : activeMerchantMediaZone === 'hero' ? '上传到主视觉' : '上传到服务区'}
@@ -8578,6 +13803,7 @@ function App() {
       { id: 'text:sectionTwoText', kind: 'text', field: 'sectionTwoText', group: '说明卡片', title: '卡片 2 内容', preview: activeMerchantDecorationDraft.sectionTwoText },
       { id: 'text:sectionThreeTitle', kind: 'text', field: 'sectionThreeTitle', group: '说明卡片', title: '卡片 3 标题', preview: activeMerchantDecorationDraft.sectionThreeTitle },
       { id: 'text:sectionThreeText', kind: 'text', field: 'sectionThreeText', group: '说明卡片', title: '卡片 3 内容', preview: activeMerchantDecorationDraft.sectionThreeText },
+      { id: 'text:serviceHeadingTitle', kind: 'text', field: 'serviceHeadingTitle', group: '服务区', title: '服务区大标题', preview: activeMerchantDecorationDraft.serviceHeadingTitle },
       { id: 'text:caseOne', kind: 'text', field: 'caseOne', group: '服务区', title: '服务展示 1', preview: activeMerchantDecorationDraft.caseOne },
       { id: 'text:caseTwo', kind: 'text', field: 'caseTwo', group: '服务区', title: '服务展示 2', preview: activeMerchantDecorationDraft.caseTwo },
     ]
@@ -8610,8 +13836,16 @@ function App() {
         kind: 'design',
         item,
         group: item.zone === 'hero' ? '主视觉自定义' : '服务区自定义',
-        title: item.kind === 'media' ? `${item.mediaKind === 'video' ? '视频' : '图片'}图层` : '文本泡泡',
-        preview: item.kind === 'media' ? `位置 ${Math.round(item.x)}%, ${Math.round(item.y)}%` : item.text || '空文本框',
+        title:
+          item.kind === 'media'
+            ? `${item.mediaKind === 'video' ? '视频' : '图片'}图层`
+            : item.kind === 'panel'
+              ? '背景板'
+              : '文本泡泡',
+        preview:
+          item.kind === 'media' || item.kind === 'panel'
+            ? `位置 ${Math.round(item.x)}%, ${Math.round(item.y)}%`
+            : item.text || '空文本框',
       }))
     const stageLayers = [...textLayers, ...mediaLayers, ...designLayers]
     const selectedStageLayer = stageLayers.find((layer) => layer.id === activeMerchantStageLayerId)
@@ -8669,20 +13903,36 @@ function App() {
         <div className="merchant-studio-section">
           <div className="merchant-studio-heading is-small">
             <strong>选中对象</strong>
-            <span>{activeMerchantDesignItem ? activeMerchantDesignItem.kind === 'media' ? '图片/视频' : '文本泡泡' : '请选择舞台元素'}</span>
+            <span>
+              {activeMerchantDesignItem
+                ? activeMerchantDesignItem.kind === 'media'
+                  ? '图片/视频'
+                  : activeMerchantDesignItem.kind === 'panel'
+                    ? '背景板'
+                    : '文本泡泡'
+                : activeMerchantMediaZone
+                  ? activeMerchantMediaZone === 'hero'
+                    ? '主视觉素材'
+                    : '服务区素材'
+                  : selectedStageLayer?.kind === 'text'
+                    ? '原始文字'
+                : '请选择舞台元素'}
+            </span>
           </div>
           {activeMerchantDesignItem ? (
             <div className="merchant-studio-controls">
-              <label>
-                字号
-                <input
-                  max="72"
-                  min="12"
-                  type="range"
-                  value={activeMerchantDesignItem.fontSize}
-                  onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { fontSize: Number(event.target.value) })}
-                />
-              </label>
+              {activeMerchantDesignItem.kind === 'bubble' && (
+                <label>
+                  字号
+                  <input
+                    max="72"
+                    min="12"
+                    type="range"
+                    value={activeMerchantDesignItem.fontSize}
+                    onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { fontSize: Number(event.target.value) })}
+                  />
+                </label>
+              )}
               <label>
                 透明度
                 <input
@@ -8695,16 +13945,18 @@ function App() {
                 />
               </label>
               <div className="merchant-studio-color-grid">
+                {activeMerchantDesignItem.kind === 'bubble' && (
+                  <label>
+                    字色
+                    <input
+                      type="color"
+                      value={activeMerchantDesignItem.color}
+                      onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { color: event.target.value })}
+                    />
+                  </label>
+                )}
                 <label>
-                  字色
-                  <input
-                    type="color"
-                    value={activeMerchantDesignItem.color}
-                    onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { color: event.target.value })}
-                  />
-                </label>
-                <label>
-                  底色
+                  {activeMerchantDesignItem.kind === 'panel' ? '板色' : '底色'}
                   <input
                     type="color"
                     value={activeMerchantDesignItem.background.startsWith('#') ? activeMerchantDesignItem.background : '#fffdf7'}
@@ -8712,6 +13964,14 @@ function App() {
                   />
                 </label>
               </div>
+              {activeMerchantDesignItem.kind === 'bubble' &&
+                renderTextAlignControls(activeMerchantDesignItem.textAlign ?? 'center', (textAlign) =>
+                  updateMerchantDesignItem(activeMerchantDesignItem.id, { textAlign }),
+                )}
+              {activeMerchantDesignItem.kind === 'bubble' &&
+                renderLineHeightControl(activeMerchantDesignItem.lineHeight, (lineHeight) =>
+                  updateMerchantDesignItem(activeMerchantDesignItem.id, { lineHeight }),
+                )}
               <div className="merchant-studio-actions is-grid">
                 <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, 1)}>上移</button>
                 <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, -1)}>下移</button>
@@ -8721,6 +13981,40 @@ function App() {
                 </button>
               </div>
             </div>
+          ) : activeMerchantMediaZone ? (
+            <div className="merchant-studio-controls">
+              <label>
+                大小
+                <input
+                  max="2.4"
+                  min="0.35"
+                  step="0.05"
+                  type="range"
+                  value={
+                    activeMerchantMediaZone === 'hero'
+                      ? activeMerchantDecorationDraft.heroImageScale
+                      : activeMerchantDecorationDraft.serviceImageScale
+                  }
+                  onChange={(event) =>
+                    updateMerchantDecorationDraft(
+                      activePartnerDetailSlug,
+                      activeMerchantMediaZone === 'hero' ? 'heroImageScale' : 'serviceImageScale',
+                      Number(event.target.value),
+                    )
+                  }
+                />
+              </label>
+              <div className="merchant-studio-actions">
+                <button type="button" onClick={() => copyMerchantMediaLayer(activeMerchantMediaZone)}>复制</button>
+                <button type="button" onClick={() => deleteMerchantMediaLayer(activeMerchantMediaZone)}>
+                  <Trash2 size={15} aria-hidden="true" />
+                  删除
+                </button>
+              </div>
+              <p className="merchant-studio-tip">当前选中的是图片/视频素材层，可拖动位置，Delete 删除，Alt 拖动复制。</p>
+            </div>
+          ) : selectedStageLayer?.kind === 'text' ? (
+            <p className="merchant-studio-tip">当前选中的是原页面文字。双击文字可编辑，Delete 会清空这个文本，Alt 拖动可复制成独立文本框。</p>
           ) : (
             <p className="merchant-studio-tip">点选中间舞台里的泡泡框或素材后，这里会显示大小、颜色、透明度和图层设置。</p>
           )}
@@ -8869,25 +14163,18 @@ function App() {
     }
   }
 
-  const updateMerchantBrandDecoration = (brandId: string, patch: Partial<MerchantBrandDecoration>) => {
-    const previousDecoration =
-      appState.merchantBrandDecorations.find((decoration) => decoration.brandId === brandId) ??
-      normalizeMerchantBrandDecoration({ brandId })
-    const nextDecoration = normalizeMerchantBrandDecoration({
-      ...previousDecoration,
-      ...patch,
-      brandId,
-      updatedAt: new Date().toISOString(),
-    })
-    setAppState((state) => ({
-      ...state,
-      merchantBrandDecorations: mergeMerchantBrandDecorations([
-        ...state.merchantBrandDecorations.filter((decoration) => decoration.brandId !== brandId),
-        nextDecoration,
-      ]),
-    }))
-    if (adminToken) {
-      fetch(`/api/admin/merchant-brand-decorations/${encodeURIComponent(brandId)}`, {
+  const updateMerchantBrandDecoration = async (
+    brandId: string,
+    patch: Partial<MerchantBrandDecoration>,
+    successMessage = '商家头像审核状态已保存。',
+  ) => {
+    if (!adminToken) {
+      setMessage('请先登录管理员账号，商家头像审核需要保存到后台。')
+      return false
+    }
+    setMerchantLogoReviewBusyId(brandId)
+    try {
+      const response = await fetch(`/api/admin/merchant-brand-decorations/${encodeURIComponent(brandId)}`, {
         body: JSON.stringify(patch),
         headers: {
           authorization: `Bearer ${adminToken}`,
@@ -8895,15 +14182,30 @@ function App() {
         },
         method: 'PATCH',
       })
-        .then((response) => (response.ok ? response.json() : null))
-        .then((data: { merchantBrandDecorations?: Partial<MerchantBrandDecoration>[] } | null) => {
-          if (!data?.merchantBrandDecorations) return
-          setAppState((state) => ({
-            ...state,
-            merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations),
-          }))
-        })
-        .catch(() => setMessage('商家头像审核状态保存失败，请稍后重试。'))
+      const data = (await response.json().catch(() => null)) as {
+        merchantBrandDecorations?: Partial<MerchantBrandDecoration>[]
+        error?: string
+      } | null
+      if (response.status === 401) {
+        window.sessionStorage.removeItem(adminSessionKey)
+        setAdminToken('')
+        setAdminOpen(false)
+        setAdminLoginOpen(true)
+        throw new Error('管理员登录已过期，请重新登录后再审核商家头像。')
+      }
+      if (!response.ok) throw new Error(data?.error ?? '商家头像审核状态保存失败，请稍后重试。')
+      if (!data?.merchantBrandDecorations) throw new Error('后台没有返回最新头像审核状态，请刷新后重试。')
+      setAppState((state) => ({
+        ...state,
+        merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations),
+      }))
+      setMessage(successMessage)
+      return true
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '商家头像审核状态保存失败，请稍后重试。')
+      return false
+    } finally {
+      setMerchantLogoReviewBusyId('')
     }
   }
 
@@ -8934,6 +14236,123 @@ function App() {
     } catch {
       setMessage('内容已先保存到当前浏览器，线上保存失败，请稍后重试。')
     }
+  }
+
+  const persistManagedMerchant = async (
+    merchant: ManagedMerchant,
+    successMessage: string,
+    mode: 'create' | 'update' = 'update',
+  ) => {
+    if (!adminToken) {
+      setMessage('请先登录管理员账号，商家变更需要保存到后台。')
+      return false
+    }
+    try {
+      const endpoint =
+        mode === 'create'
+          ? '/api/admin/managed-merchants'
+          : `/api/admin/managed-merchants/${encodeURIComponent(merchant.id)}`
+      const response = await fetch(endpoint, {
+        body: JSON.stringify(merchant),
+        headers: {
+          authorization: `Bearer ${adminToken}`,
+          'content-type': 'application/json',
+        },
+        method: mode === 'create' ? 'POST' : 'PUT',
+      })
+      const data = (await response.json().catch(() => null)) as { managedMerchants?: ManagedMerchant[]; error?: string } | null
+      if (response.status === 401) {
+        window.sessionStorage.removeItem(adminSessionKey)
+        setAdminToken('')
+        setAdminLoginOpen(true)
+        throw new Error('管理员登录已过期，请重新登录后再添加或删除商家。')
+      }
+      if (!response.ok) throw new Error(data?.error ?? '商家设置保存失败，请稍后重试。')
+      if (!data?.managedMerchants) throw new Error('后台没有返回最新商家列表，请刷新后重试。')
+      setAppState((state) => ({ ...state, managedMerchants: data.managedMerchants! }))
+      setMessage(`${successMessage} 已保存到后台，刷新或重新打开后仍然生效。`)
+      return true
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '商家设置保存失败，请稍后重试。')
+      return false
+    }
+  }
+
+  const addManagedMerchant = async () => {
+    if (merchantManagerSaving) return
+    const name = merchantManagerDraft.name.trim()
+    const category = merchantManagerDraft.category.trim()
+    if (!name || !category) {
+      setMessage('请填写商家名称和类别。')
+      return
+    }
+    const now = new Date().toISOString()
+    const merchant: ManagedMerchant = {
+      id: createId('merchant'),
+      category,
+      name,
+      logo: merchantManagerDraft.logo.trim() || name.slice(0, 3) || '商家',
+      summary: merchantManagerDraft.summary.trim() || `${category}服务展示`,
+      description: merchantManagerDraft.description.trim() || `${name}已加入售业商家展示，可继续补充服务范围、价格区间和咨询边界。`,
+      tags: merchantManagerDraft.tags
+        .split(/[，,、]/)
+        .map((tag) => tag.trim())
+        .filter(Boolean)
+        .slice(0, 6),
+      verified: true,
+      location: merchantManagerDraft.location.trim() || '认证商家',
+      detailTone: `${category}服务展示`,
+      level: merchantManagerDraft.level,
+      logoImage: '',
+      status: 'active',
+      createdAt: now,
+      updatedAt: now,
+    }
+    setMerchantManagerSaving(true)
+    const saved = await persistManagedMerchant(merchant, '商家已添加，会按类别进入商家展示。', 'create')
+    if (saved) {
+      setMerchantManagerDraft({
+        category,
+        name: '',
+        logo: '',
+        summary: '',
+        description: '',
+        tags: '',
+        location: '',
+        level: 'normal',
+      })
+    }
+    setMerchantManagerSaving(false)
+  }
+
+  const hideManagedMerchant = async (entry: { showcase: PartnerShowcase; merchant: PartnerMerchant; slug: string }) => {
+    if (merchantManagerSaving) return
+    if (!window.confirm(`确定从商家展示中删除「${entry.merchant.name}」吗？`)) return
+    const now = new Date().toISOString()
+    const existing = appState.managedMerchants.find((merchant) => merchant.id === entry.slug)
+    const merchant: ManagedMerchant = {
+      ...(existing ?? {
+        id: entry.slug,
+        category: entry.showcase.type,
+        name: entry.merchant.name,
+        logo: entry.merchant.logo,
+        logoImage: getPartnerLogoImage(entry.merchant),
+        summary: entry.merchant.summary,
+        description: entry.merchant.description,
+        tags: entry.merchant.tags,
+        verified: entry.merchant.verified ?? true,
+        location: entry.merchant.location ?? '',
+        detailTone: entry.merchant.detailTone ?? `${entry.showcase.type}服务展示`,
+        level: entry.merchant.level ?? 'normal',
+        createdAt: now,
+        updatedAt: now,
+      }),
+      status: 'hidden',
+      updatedAt: now,
+    }
+    setMerchantManagerSaving(true)
+    await persistManagedMerchant(merchant, '商家已从展示中删除。')
+    setMerchantManagerSaving(false)
   }
 
   const resetSiteContentDraft = () => {
@@ -8992,6 +14411,13 @@ function App() {
     const response = await fetch('/api/admin/state', {
       headers: { authorization: `Bearer ${token}` },
     })
+    if (response.status === 401) {
+      window.sessionStorage.removeItem(adminSessionKey)
+      setAdminToken('')
+      setAdminOpen(false)
+      setAdminLoginOpen(true)
+      throw new Error('管理员登录已过期，请重新登录。')
+    }
     if (!response.ok) throw new Error('admin-state-failed')
     const data = (await response.json()) as {
       users: User[]
@@ -9000,10 +14426,12 @@ function App() {
       partnerApplications?: PartnerApplication[]
       merchantLeads?: MerchantLead[]
       merchantBrandDecorations?: Partial<MerchantBrandDecoration>[]
+      managedMerchants?: ManagedMerchant[]
       questionBounties?: QuestionBounty[]
       questionDisputes?: QuestionDispute[]
       pointOrders?: PointOrder[]
       withdrawalRequests?: WithdrawalRequest[]
+      renameRequests?: RenameRequest[]
       pointLedger?: PointLedger[]
       siteContent?: Partial<SiteContentSettings>
     }
@@ -9016,10 +14444,12 @@ function App() {
       partnerApplications: data.partnerApplications?.map(normalizePartnerApplication) ?? state.partnerApplications,
       merchantLeads: data.merchantLeads ?? state.merchantLeads,
       merchantBrandDecorations: mergeMerchantBrandDecorations(data.merchantBrandDecorations ?? state.merchantBrandDecorations),
+      managedMerchants: data.managedMerchants ?? state.managedMerchants,
       questionBounties: data.questionBounties ?? state.questionBounties,
       questionDisputes: data.questionDisputes ?? state.questionDisputes,
       pointOrders: data.pointOrders ?? state.pointOrders,
       withdrawalRequests: data.withdrawalRequests ?? state.withdrawalRequests,
+      renameRequests: data.renameRequests ?? state.renameRequests,
       pointLedger: data.pointLedger ?? state.pointLedger,
       siteContent: nextSiteContent,
     }))
@@ -9095,6 +14525,66 @@ function App() {
     }
   }
 
+  const submitRenameRequest = async () => {
+    if (!currentUser) {
+      setAuthMode('login')
+      setMessage('请先登录后再申请改名。')
+      return
+    }
+    if (renameRequestSubmitting) return
+    const requestedName = profileForm.name.trim()
+    if (requestedName.length < 2 || requestedName.length > 24) {
+      setMessage('新昵称需为 2-24 个字符。')
+      return
+    }
+    if (requestedName === currentUser.name) {
+      setMessage('新昵称和当前昵称相同，无需申请。')
+      return
+    }
+    if (currentUserPendingRenameRequest) {
+      setMessage('已有待审核改名申请，请等待管理员处理。')
+      return
+    }
+    if (currentUser.earningPoints < renameRequestCostEarningPoints) {
+      setMessage(`可提现积分不足，申请改名需要 ${renameRequestCostEarningPoints} 可提现积分。`)
+      return
+    }
+
+    setRenameRequestSubmitting(true)
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(currentUser.id)}/rename-requests`, {
+        body: JSON.stringify({ requestedName }),
+        headers: { 'content-type': 'application/json' },
+        method: 'POST',
+      })
+      const data = (await response.json().catch(() => null)) as
+        | { renameRequest?: RenameRequest; renameRequests?: RenameRequest[]; pointLedger?: PointLedger[]; users?: User[]; error?: string }
+        | null
+      if (!response.ok || !data?.renameRequest) {
+        setMessage(data?.error ?? '改名申请提交失败，请稍后重试。')
+        return
+      }
+      setAppState((state) => ({
+        ...state,
+        users: data.users ?? state.users,
+        pointLedger: data.pointLedger ?? state.pointLedger,
+        renameRequests: data.renameRequests
+          ? [
+              ...data.renameRequests,
+              ...state.renameRequests.filter(
+                (request) => request.userId !== currentUser.id && !data.renameRequests?.some((item) => item.id === request.id),
+              ),
+            ]
+          : [data.renameRequest!, ...state.renameRequests],
+      }))
+      setMessage(`改名申请已提交，已冻结 ${data.renameRequest.costEarningPoints} 可提现积分，审核通过后生效。`)
+    } catch {
+      setMessage('网络连接不稳定，改名申请提交失败。')
+    } finally {
+      setRenameRequestSubmitting(false)
+    }
+  }
+
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setAuthNotice('')
@@ -9108,9 +14598,17 @@ function App() {
       return
     }
 
-    if (!authForm.agreementAccepted) {
-      setMessage('请先阅读并勾选同意用户协议、隐私政策和未成年人个人信息保护规则。')
-      setAuthNotice('请先勾选同意《用户协议》《隐私政策》《未成年人个人信息保护规则》。')
+    if (authMode === 'register' && !authForm.agreementAccepted) {
+      setMessage(
+        authForm.userType === 'merchant'
+          ? '请先阅读并勾选同意用户协议、隐私政策和商家入驻相关规则。'
+          : '请先阅读并勾选同意用户服务协议和隐私政策。',
+      )
+      setAuthNotice(
+        authForm.userType === 'merchant'
+          ? '请先勾选同意《用户服务协议》《隐私政策》《商家入驻协议》《商家服务信息发布规范》《商家违规处理规则》。'
+          : '请先勾选同意《用户服务协议》和《隐私政策》。',
+      )
       return
     }
 
@@ -9272,6 +14770,7 @@ function App() {
       currentUserId: user.id,
       unlockedPostIds: { ...state.unlockedPostIds, [user.id]: [] },
     }))
+    recordLegalConsents('register', authLegalDocumentIds, user.id)
     setAuthMode(null)
     setPendingEmail('')
     setAuthNotice('')
@@ -9353,6 +14852,17 @@ function App() {
       setMessage('请先选择“我知道”或“我能做”。')
       return
     }
+    if (publishMode === 'skill' && !currentUserOfflineHelperQualified) {
+      requireHelperQualification('offline')
+      return
+    }
+    const publishLegalContext = publishMode === 'skill' ? 'skill-publish' : 'content-publish'
+    const publishLegalDocumentIds =
+      publishMode === 'skill' ? contentPublishLegalDocumentIds : Array.from(new Set([...contentPublishLegalDocumentIds, ...creatorLegalDocumentIds]))
+    if (!legalAcceptances[publishLegalContext]) {
+      setMessage('请先确认发布内容符合社区规范、内容授权和原创声明。')
+      return
+    }
 
     const price = Math.max(0, Number.parseInt(postForm.price, 10) || 0)
     if (!postForm.title.trim() || !postForm.body.trim()) {
@@ -9420,6 +14930,7 @@ function App() {
         user.id === currentUser.id ? { ...user, points: user.points + postApprovedBonusPoints } : user,
       ),
     }))
+    recordLegalConsents(publishLegalContext, publishLegalDocumentIds, currentUser.id)
     resetPostForm()
     closePublishModal()
     setMessage(
@@ -9452,6 +14963,10 @@ function App() {
     }
     if (rewardPoints > currentUser.points) {
       setMessage(`消费积分不足，最多可设置 ${currentUser.points} 积分悬赏。`)
+      return
+    }
+    if (!legalAcceptances['reward-qa-question']) {
+      setMessage('请先确认社区规范和悬赏问答规则。')
       return
     }
 
@@ -9495,6 +15010,7 @@ function App() {
       ...state,
       questions: [question, ...state.questions],
     }))
+    recordLegalConsents('reward-qa-question', rewardQaLegalDocumentIds, currentUser.id)
     setQuestionForm({
       title: '',
       category: '签证/滞留资格',
@@ -9509,6 +15025,222 @@ function App() {
     navigateToPath(`/questions/${question.id}`)
   }
 
+  const openHelpConversation = (candidate: HelpMatchCandidate) => {
+    if (!currentUser) {
+      setAuthMode('login')
+      setMessage('请先登录后再和帮助者打招呼。')
+      return
+    }
+
+    const needText = quickMatchInput.trim() || '我需要帮助'
+    const createdAt = new Date().toISOString()
+    setActiveHelpConversation({
+      id: createId('help-chat'),
+      needText,
+      providerName: candidate.providerName,
+      providerUserId: candidate.providerUserId,
+      providerType: candidate.type,
+      title: candidate.title,
+      messages: [
+        {
+          id: createId('help-message'),
+          sender: 'system',
+          text: `已根据“${needText}”匹配到 ${candidate.providerName}。建议先确认时间、地点、服务边界和是否需要线下见面。`,
+          createdAt,
+        },
+        {
+          id: createId('help-message'),
+          sender: 'seeker',
+          text: `你好，我需要帮助：${needText}。你现在方便接这个需求吗？`,
+          createdAt,
+        },
+      ],
+    })
+    setHelpChatInput('')
+    setHelpQuoteDraft(candidate.type === 'skill-post' && candidate.post.price > 0 ? String(candidate.post.price) : '100')
+  }
+
+  const sendHelpChatMessage = () => {
+    const text = helpChatInput.trim()
+    if (!text || !activeHelpConversation) return
+    setActiveHelpConversation((conversation) =>
+      conversation
+        ? {
+            ...conversation,
+            messages: [
+              ...conversation.messages,
+              { id: createId('help-message'), sender: 'seeker', text, createdAt: new Date().toISOString() },
+            ],
+          }
+        : conversation,
+    )
+    setHelpChatInput('')
+  }
+
+  const sendHelpQuote = () => {
+    if (!activeHelpConversation) return
+    const quotePoints = Math.max(1, Number.parseInt(helpQuoteDraft, 10) || 0)
+    setActiveHelpConversation((conversation) =>
+      conversation
+        ? {
+            ...conversation,
+            messages: [
+              ...conversation.messages,
+              {
+                id: createId('help-quote'),
+                sender: 'provider',
+                text: `${conversation.providerName} 报价 ${quotePoints} 积分。本次报价仅代表本次服务，需要求助人接受后再继续确认细节。`,
+                createdAt: new Date().toISOString(),
+                quotePoints,
+                quoteStatus: 'pending',
+              },
+            ],
+          }
+        : conversation,
+    )
+  }
+
+  const respondToHelpQuote = (messageId: string, status: 'accepted' | 'negotiating') => {
+    setActiveHelpConversation((conversation) =>
+      conversation
+        ? {
+            ...conversation,
+            messages: conversation.messages.map((message) =>
+              message.id === messageId ? { ...message, quoteStatus: status } : message,
+            ),
+          }
+        : conversation,
+    )
+  }
+
+  const handleHelperQualificationDocumentsUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (!files.length) return
+    try {
+      const documents = await Promise.all(
+        files.map(async (file) => ({
+          id: createId('helper-doc'),
+          name: file.name,
+          type:
+            helperQualificationMode === 'offline'
+              ? offlineHelperQualificationDocumentType
+              : onlineHelperQualificationDocumentType,
+          status: 'pending' as VerificationStatus,
+          uploadedAt: new Date().toISOString(),
+          dataUrl: await readCredentialFileToDataUrl(file),
+        })),
+      )
+      setHelperQualificationForm((form) => ({ ...form, documents: [...form.documents, ...documents] }))
+      setMessage('帮助资格材料已加入申请表，提交后进入后台审核。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '帮助资格材料读取失败，请换一个文件重试。')
+    }
+  }
+
+  const handleHelperQualificationSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (helperQualificationSubmitting) return
+    if (!currentUser) {
+      setAuthMode('login')
+      return
+    }
+    if (
+      helperQualificationMode === 'offline' &&
+      (!helperQualificationForm.realName.trim() ||
+        !helperQualificationForm.contact.trim() ||
+        !helperQualificationForm.identityNote.trim() ||
+        !helperQualificationForm.serviceScope.trim())
+    ) {
+      setMessage('线下帮助资格需要填写真实姓名、联系方式、身份说明和可提供帮助范围。')
+      return
+    }
+    if (!helperQualificationForm.documents.length) {
+      setMessage(
+        helperQualificationMode === 'offline'
+          ? '线下帮助资格必须上传外国人登录证正反面、学生证、护照或其他身份材料。'
+          : '线上解答资格需要上传学生证或能够证明在韩经验的材料。',
+      )
+      return
+    }
+    if (!helperQualificationForm.oath) {
+      setMessage('请先确认真实性承诺和帮助者安全条款。')
+      return
+    }
+
+    const summaryDocument: CredentialDocument = {
+      id: createId('helper-profile'),
+      name:
+        helperQualificationMode === 'offline'
+          ? `线下帮助资格申请：${helperQualificationForm.realName.trim()}`
+          : '线上解答资格申请',
+      type:
+        helperQualificationMode === 'offline'
+          ? `${offlineHelperQualificationDocumentType}/申请信息`
+          : `${onlineHelperQualificationDocumentType}/申请信息`,
+      status: 'pending',
+      uploadedAt: new Date().toISOString(),
+      dataUrl: `data:application/json;charset=utf-8,${encodeURIComponent(
+        JSON.stringify({
+          qualificationMode: helperQualificationMode,
+          realName: helperQualificationForm.realName.trim(),
+          contact: helperQualificationForm.contact.trim(),
+          identityNote: helperQualificationForm.identityNote.trim(),
+          serviceScope: helperQualificationForm.serviceScope.trim(),
+          oathAccepted: true,
+        }),
+      )}`,
+    }
+    const patch: Partial<User> = { documents: [summaryDocument, ...helperQualificationForm.documents] }
+
+    setHelperQualificationSubmitting(true)
+    setMessage('正在提交帮助资格申请，请稍候。')
+    try {
+      const response = await fetch(`/api/users/${encodeURIComponent(currentUser.id)}`, {
+        body: JSON.stringify(patch),
+        headers: { 'content-type': 'application/json' },
+        method: 'PATCH',
+      })
+      const data = (await response.json().catch(() => null)) as { user?: User; error?: string } | null
+      if (!response.ok || !data?.user) {
+        throw new Error(data?.error ?? '帮助资格申请提交失败，请稍后再试。')
+      }
+      setAppState((state) => ({
+        ...state,
+        users: state.users.map((user) => (user.id === currentUser.id ? data.user as User : user)),
+      }))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '帮助资格申请提交失败，请稍后再试。')
+      return
+    } finally {
+      setHelperQualificationSubmitting(false)
+    }
+
+    recordLegalConsents(`helper-qualification-${helperQualificationMode}`, ['privacy-policy', 'community-rules'], currentUser.id)
+    setHelperQualificationForm({
+      realName: '',
+      contact: '',
+      identityNote: '',
+      serviceScope: '',
+      documents: [],
+      oath: false,
+    })
+    setHelperQualificationOpen(false)
+    setMessage(
+      helperQualificationMode === 'offline'
+        ? '线下帮助资格申请已提交，审核通过后可以接线下求助任务。'
+        : '线上解答资格申请已提交，审核通过后可以回答悬赏问题。',
+    )
+  }
+
+  const handleConfirmOfflineTaskClaim = () => {
+    if (!selectedOfflineTask) return
+    setMessage(
+      `已记录「${selectedOfflineTask.title}」接单意向。请继续在平台内沟通、留痕和评价，避免私下结算风险。`,
+    )
+    setSelectedOfflineTask(null)
+  }
+
   const handleAnswerSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (!selectedQuestion) return
@@ -9521,9 +15253,17 @@ function App() {
       setMessage(currentUser.status === 'banned' ? '账号已被封号，不能回答问题。' : '账号已被禁言，暂时不能回答问题。')
       return
     }
+    if (!currentUserOnlineHelperQualified) {
+      requireHelperQualification('online')
+      return
+    }
     const content = answerForm.content.trim()
     if (content.length < 20) {
       setMessage('回答请至少写 20 个字，说明材料、流程或经验边界。')
+      return
+    }
+    if (!legalAcceptances['reward-qa-answer']) {
+      setMessage('请先确认社区规范、内容授权、原创声明和悬赏问答规则。')
       return
     }
 
@@ -9580,6 +15320,7 @@ function App() {
     }
 
     setAnswerForm({ content: '' })
+    recordLegalConsents('reward-qa-answer', rewardQaLegalDocumentIds, currentUser.id)
     setMessage('回答已提交，系统已奖励 5 消费积分。')
   }
 
@@ -9587,6 +15328,11 @@ function App() {
     event.preventDefault()
     if (!partnerForm.company.trim() || !partnerForm.contact.trim() || !partnerForm.phone.trim()) {
       setMessage('请填写机构名称、联系人和联系方式。')
+      return
+    }
+    const partnerLegalContext = getPartnerLegalContext()
+    if (!legalAcceptances[partnerLegalContext.key]) {
+      setMessage('请先确认本次申请对应的协议和规则。')
       return
     }
 
@@ -9630,25 +15376,44 @@ function App() {
       detail: '',
     })
     setPartnerOpen(false)
+    recordLegalConsents(partnerLegalContext.key, partnerLegalContext.documentIds)
     setMessage('合作申请已提交，团队会在后台跟进。')
   }
 
   const handleProfileSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (profileSaving) return
     if (!currentUser) {
       setAuthMode('login')
       return
     }
+    if (currentUserIsMerchant && profileHasNewVerificationDocuments && !legalAcceptances['merchant-verification']) {
+      setMessage('请先确认商家认证规则和隐私政策。')
+      return
+    }
 
+    const profileNameChanged = profileForm.name.trim() && profileForm.name.trim() !== currentUser.name
     const patch: Partial<User> = {
-      name: profileForm.name.trim() || currentUser.name,
+      name: currentUser.name,
       avatarUrl: profileForm.avatarUrl.trim(),
-      bio: profileForm.bio.trim(),
-      identity: profileForm.identity,
+      bio: serializeUserPublicBio(
+        serializeUserBrandAccess(
+          currentUser.bio,
+          currentUserBioSettings.managedBrandId ?? '',
+          currentUserBioSettings.managedBrandName ?? '',
+          currentUserBioSettings.managedBrandLevel ?? 'normal',
+          profileForm.businessCategories.length ? profileForm.businessCategories : [profileForm.businessCategory],
+          currentUserBioSettings.businessScopeLevels,
+        ),
+        profileForm.bio,
+      ),
+      identity: currentUserIsMerchant ? `商家 · ${profileForm.businessCategory}` : profileForm.identity,
       school: profileForm.school.trim() || currentUser.school,
       documents: profileForm.documents,
     }
 
+    setProfileSaving(true)
+    setMessage(profileForm.documents.length ? '正在提交资料和认证材料，请稍候。' : '正在保存个人信息，请稍候。')
     try {
       const response = await fetch(`/api/users/${encodeURIComponent(currentUser.id)}`, {
         body: JSON.stringify(patch),
@@ -9664,22 +15429,17 @@ function App() {
         ...state,
         users: state.users.map((user) => (user.id === currentUser.id ? data.user as User : user)),
       }))
-      setMessage('个人信息已保存。')
+      setProfileForm((form) => ({ ...form, documents: [] }))
+      if (currentUserIsMerchant && profileHasNewVerificationDocuments) {
+        recordLegalConsents('merchant-verification', merchantVerificationLegalDocumentIds, currentUser.id)
+      }
+      setMessage(profileNameChanged ? '个人信息已保存；昵称变更需要单独提交改名申请。' : '个人信息已保存。')
       return
-    } catch {
-      setAppState((state) => ({
-        ...state,
-        users: state.users.map((user) =>
-          user.id === currentUser.id
-            ? {
-                ...user,
-                ...patch,
-                documents: [...user.documents, ...(profileForm.documents ?? [])],
-              }
-            : user,
-        ),
-      }))
-      setMessage('个人信息已保存。')
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '个人信息保存失败，请检查网络后重试。')
+      return
+    } finally {
+      setProfileSaving(false)
     }
   }
 
@@ -9719,7 +15479,14 @@ function App() {
   const openMerchantBenefitBoard = () => {
     setShowPartnerCollectiveBoard(true)
     setPartnerShowcaseEditMode(false)
-    document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setPartnerAutoFlip(true)
+    if (currentPath !== '/') {
+      window.history.pushState(null, '', '/')
+      window.dispatchEvent(new PopStateEvent('popstate'))
+    }
+    window.setTimeout(() => {
+      document.getElementById('partners')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 0)
   }
 
   const openManagedBrandDetailEditor = () => {
@@ -9906,6 +15673,39 @@ function App() {
           : schoolRouteId
             ? 'school-route'
             : undefined
+  const languageSelector = (
+    <div className="language-selector" data-no-translate="true">
+      <button
+        className="header-language-globe"
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={languageMenuOpen}
+        aria-label="选择语言"
+        onClick={() => setLanguageMenuOpen((open) => !open)}
+      >
+        <Globe2 size={20} aria-hidden="true" />
+      </button>
+      {languageMenuOpen && (
+        <div className="language-menu" role="listbox" aria-label="语言选择">
+          {languageOptions.map((option) => (
+            <button
+              key={option.value}
+              className={selectedLanguage === option.value ? 'active' : ''}
+              type="button"
+              role="option"
+              aria-selected={selectedLanguage === option.value}
+              onClick={() => {
+                setSelectedLanguage(option.value)
+                setLanguageMenuOpen(false)
+              }}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 
   return (
     <main className={mainClassName}>
@@ -9959,22 +15759,58 @@ function App() {
                       onClick={() => openRegionSection(group.region)}
                     >
                       <span>{group.region}</span>
-                      <small>{group.schools.length} 所院校 · {group.summary}</small>
+                      <small>
+                        {formatSchoolCount(selectedLanguage, group.schools.length)} ·{' '}
+                        {translateSiteCopy(selectedLanguage, group.summary)}
+                      </small>
                     </button>
                   ))}
                 </div>
               </div>
             </div>
           </div>
-          <a
-            href="/questions"
-            onClick={(event) => {
-              event.preventDefault()
-              navigateToPath('/questions')
-            }}
-          >
-            我要提问/发布悬赏
-          </a>
+          <div className="nav-action-dropdown">
+            <a
+              href="/questions"
+              onClick={(event) => {
+                event.preventDefault()
+                navigateToPath('/questions')
+              }}
+            >
+              我要提问/发布悬赏
+            </a>
+            <div className="nav-action-menu" aria-label="提问和悬赏入口">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) {
+                    setAuthMode('login')
+                    setMessage('请先登录后再发布问题。')
+                    return
+                  }
+                  navigateToPath('/questions')
+                  setAskQuestionOpen(true)
+                }}
+              >
+                我要提问
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!currentUser) {
+                    setAuthMode('login')
+                    setMessage('请先登录后再发布悬赏。')
+                    return
+                  }
+                  setQuestionForm((form) => ({ ...form, rewardPoints: form.rewardPoints === '0' ? '100' : form.rewardPoints }))
+                  navigateToPath('/questions')
+                  setAskQuestionOpen(true)
+                }}
+              >
+                发布悬赏
+              </button>
+            </div>
+          </div>
           <a
             href="/solve"
             onClick={(event) => {
@@ -10021,33 +15857,71 @@ function App() {
             >
               积分充值/提现
             </button>
-            <div className="user-pill">
-              <span>{currentUser.name}</span>
-              <strong>{currentUser.points} 消费积分</strong>
+            <div className="account-menu">
               <button
+                className="account-trigger"
                 type="button"
                 onClick={() => {
                   setProfileForm({
                     name: currentUser.name,
                     avatarUrl: currentUser.avatarUrl,
-                    bio: currentUser.bio,
+                    bio: getUserPublicBio(currentUser.bio),
                     identity: currentUser.identity,
                     school: currentUser.school,
+                    businessCategory: normalizeBusinessCategory(currentUserBioSettings.businessCategory, currentUser.name),
+                    businessCategories: getUserBusinessCategories(currentUserBioSettings),
                     documents: [],
                   })
                   window.history.pushState(null, '', '/me')
                   window.dispatchEvent(new PopStateEvent('popstate'))
                 }}
               >
-                个人中心
+                <span className="account-avatar">
+                  {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.name.slice(0, 1)}
+                </span>
+                <span className="account-trigger-copy">
+                  <strong>{currentUser.name}</strong>
+                  <small>{currentUser.points} 消费积分</small>
+                </span>
+                <ChevronDown size={15} aria-hidden="true" />
               </button>
-              <button
-                type="button"
-                onClick={() => setAppState((state) => ({ ...state, currentUserId: null }))}
-              >
-                退出
-              </button>
+              <div className="account-dropdown">
+                <div className="account-dropdown-head">
+                  <span className="account-avatar large">
+                    {currentUser.avatarUrl ? <img src={currentUser.avatarUrl} alt="" /> : currentUser.name.slice(0, 1)}
+                  </span>
+                  <div>
+                    <strong>{currentUser.name}</strong>
+                    <small>{currentUser.email}</small>
+                    <em>{currentUser.points} 消费积分 · {currentUser.earningPoints} 可提现积分</em>
+                  </div>
+                </div>
+                <button type="button" onClick={() => navigateToPath('/me')}>
+                  个人中心
+                </button>
+                <button type="button" onClick={() => navigateToPath('/wallet')}>
+                  积分充值/提现
+                </button>
+                {currentUserIsMerchant && (
+                  <>
+                    <button type="button" disabled={!currentManagedBrandId} onClick={openManagedBrandDetailEditor}>
+                      编辑展示页
+                    </button>
+                    <button type="button" disabled={!currentManagedBrandId} onClick={openManagedBrandShowcaseEditor}>
+                      商铺页面编辑
+                    </button>
+                  </>
+                )}
+                <button
+                  className="account-dropdown-logout"
+                  type="button"
+                  onClick={() => setAppState((state) => ({ ...state, currentUserId: null }))}
+                >
+                  退出
+                </button>
+              </div>
             </div>
+            {languageSelector}
           </div>
         ) : (
           <div className="header-actions">
@@ -10058,6 +15932,7 @@ function App() {
               注册
               <UserPlus size={17} aria-hidden="true" />
             </button>
+            {languageSelector}
           </div>
         )}
       </header>
@@ -10360,6 +16235,129 @@ function App() {
             <span>{topic.summary}</span>
           </button>
         ))}
+      </section>
+
+      <section className="workspace-section" id="workspace">
+        <div className="section-heading">
+          <p className="eyebrow dark">登录后工作台</p>
+          <h2>{currentUser ? `${currentUser.name}，从这里开始处理你的售业事务。` : '登录后从这里开始：提问、助人、找商家和管理权益。'}</h2>
+          <p>
+            这不是内容页，而是一个快捷导航区。你可以直接进入提问、解决别人的求助、发布经验、查看商家福利、管理积分和商家展示页。
+          </p>
+        </div>
+        <div className="workspace-menu-board">
+          <nav className="workspace-nav" aria-label="账号工作台导航">
+            <button className="active" type="button" onClick={() => navigateToPath('/profile')}>
+              我的工作台
+            </button>
+            <button type="button" onClick={() => navigateToPath('/questions')}>
+              我要提问
+            </button>
+            <button type="button" onClick={() => navigateToPath('/solve')}>
+              我来解决
+            </button>
+            <button type="button" onClick={() => openPublishModal('knowledge')}>
+              发布经验
+            </button>
+            <div className="workspace-nav-item">
+              <button type="button" onClick={openMerchantBenefitBoard}>
+                商家服务
+                <ChevronDown size={16} aria-hidden="true" />
+              </button>
+              <div className="workspace-nav-dropdown">
+                <button type="button" onClick={openMerchantBenefitBoard}>查看商家鱼缸</button>
+                <button type="button" onClick={scrollToPartnerSection}>申请商家入驻</button>
+                <button type="button" disabled={!currentManagedBrandId} onClick={openManagedBrandDetailEditor}>
+                  编辑展示页
+                </button>
+                <button type="button" disabled={!currentManagedBrandId} onClick={openManagedBrandShowcaseEditor}>
+                  商铺页面编辑
+                </button>
+              </div>
+            </div>
+            <button type="button" onClick={() => navigateToPath('/rewards')}>
+              积分与成长
+            </button>
+          </nav>
+          <div className="workspace-subnav" aria-label="工作台二级入口">
+            <button className="active" type="button" onClick={() => navigateToPath('/profile')}>账号资料</button>
+            <button type="button" onClick={() => navigateToPath('/questions')}>我的提问</button>
+            <button type="button" onClick={() => openPublishModal('knowledge')}>经验发布</button>
+            <button type="button" onClick={openMerchantBenefitBoard}>商家福利</button>
+            <button type="button" onClick={() => navigateToPath('/wallet')}>积分账户</button>
+          </div>
+        </div>
+        <div className="workspace-grid">
+          <article className="workspace-panel workspace-account-panel">
+            <LogIn size={24} aria-hidden="true" />
+            <span className="workspace-step">01 · 账号</span>
+            <h3>{currentUser ? '我的账号与积分' : '先创建账号'}</h3>
+            {currentUser ? (
+              <>
+                <p>{currentUser.identity} · {currentUser.school}</p>
+                <strong>Lv{currentUserGrowthProfile?.userLevel ?? 1} · {currentUserGrowthProfile?.userTitle ?? '新人'}</strong>
+                <small>
+                  {currentUser.points} 消费积分 · {currentUser.earningPoints} 可提现积分 · 好评率 {currentUserGrowthProfile?.positiveRate ?? 100}%
+                </small>
+                <div className="workspace-button-row">
+                  <button type="button" onClick={() => navigateToPath('/profile')}>个人中心</button>
+                  <button type="button" onClick={() => navigateToPath('/wallet')}>积分充值/提现</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>登录后可以管理提问、经验、收藏、认证材料和商家权限。</p>
+                <button type="button" onClick={() => setAuthMode('register')}>注册账号</button>
+              </>
+            )}
+          </article>
+          <article className="workspace-panel">
+            <PenLine size={24} aria-hidden="true" />
+            <span className="workspace-step">02 · 内容</span>
+            <h3>我要提问或帮助别人</h3>
+            <p>有问题就去提问/发布悬赏；有经验就发帖；想赚积分就去解决别人发布的求助。</p>
+            <div className="workspace-button-row">
+              <button type="button" onClick={() => navigateToPath('/questions')}>去提问</button>
+              <button type="button" onClick={() => openPublishModal('knowledge')}>发布经验</button>
+              <button type="button" onClick={() => navigateToPath('/solve')}>我来解决</button>
+            </div>
+          </article>
+          <article className="workspace-panel">
+            <Building2 size={24} aria-hidden="true" />
+            <span className="workspace-step">03 · 商家</span>
+            <h3>找商家或管理商家页</h3>
+            <p>
+              {currentUserIsMerchant
+                ? '已认证商家可以进入展示页、商铺页和鱼缸曝光区，管理自己的对外展示。'
+                : '普通用户可以先看商家鱼缸找服务；机构或个人服务者可以申请入驻。'}
+            </p>
+            <div className="workspace-button-row">
+              <button type="button" onClick={openMerchantBenefitBoard}>商家鱼缸</button>
+              <button type="button" onClick={scrollToPartnerSection}>入驻申请</button>
+              {currentManagedBrandId && (
+                <button
+                  className="merchant-profile-entry-button"
+                  type="button"
+                  onClick={() => navigateToPath(`/partners/${currentManagedBrandId}`)}
+                >
+                  我的展示页
+                </button>
+              )}
+            </div>
+          </article>
+          <article className="workspace-panel">
+            <Coins size={24} aria-hidden="true" />
+            <span className="workspace-step">04 · 成长</span>
+            <h3>积分、等级和优惠券</h3>
+            <p>在平台内提问、回答、发布经验、评价商家，会累积等级、称号、好评和优惠券。</p>
+            <div className="workspace-mini-list">
+              <span>等级成长</span>
+              <span>优惠券</span>
+              <span>学校榜单</span>
+            </div>
+            <button type="button" onClick={() => navigateToPath('/rewards')}>查看收益规则</button>
+          </article>
+        </div>
       </section>
 
       <section className="community-home-section" id="questions">
@@ -10669,10 +16667,11 @@ function App() {
                     setMessage('请先登录后再发布问题。')
                     return
                   }
+                  setHelpIntentMode('knowledge')
                   setAskQuestionOpen((open) => !open)
                 }}
               >
-                我要提问
+                我想知道
                 <Plus size={18} aria-hidden="true" />
               </button>
               <button className="secondary-link-button" type="button" onClick={() => navigateToPath('/categories')}>
@@ -10681,6 +16680,88 @@ function App() {
               </button>
             </div>
           </div>
+          <div className="help-intent-panel" aria-label="求助分类">
+            <div className="help-intent-tabs" role="tablist">
+              {helpIntentOptions.map((option) => (
+                <button
+                  className={helpIntentMode === option.mode ? 'active' : ''}
+                  key={option.mode}
+                  type="button"
+                  onClick={() => {
+                    setHelpIntentMode(option.mode)
+                    if (option.mode === 'knowledge') setAskQuestionOpen(true)
+                  }}
+                >
+                  <strong>{option.label}</strong>
+                  <span>{option.title}</span>
+                </button>
+              ))}
+            </div>
+            <p>{helpIntentOptions.find((option) => option.mode === helpIntentMode)?.description}</p>
+          </div>
+          {helpIntentMode === 'service' && (
+            <section className="quick-match-panel" aria-label="快速匹配帮助者">
+              <div className="quick-match-copy">
+                <p className="eyebrow dark">快速匹配</p>
+                <h2>输入你需要别人实际帮忙做什么。</h2>
+                <p>AI 会先提炼关键词，优先匹配 `I CAN` 挂单；没有对应挂单时，改为匹配在线的验证帮助者。</p>
+              </div>
+              <div className="quick-match-search">
+                <textarea
+                  value={quickMatchInput}
+                  onChange={(event) => {
+                    setQuickMatchInput(event.target.value)
+                    setQuickMatchTouched(false)
+                  }}
+                  placeholder="例如：明天上午弘大附近帮我喂猫，或者陪我去出入境翻译办材料。"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setQuickMatchTouched(true)
+                    if (!quickMatchInput.trim()) setMessage('请先输入需要帮助的类型和场景。')
+                  }}
+                >
+                  <Sparkles size={18} aria-hidden="true" />
+                  快速匹配
+                </button>
+              </div>
+              {quickMatchTouched && quickMatchInput.trim() && (
+                <div className="quick-match-results">
+                  <div className="quick-match-keywords">
+                    <span>提炼关键词</span>
+                    {(quickMatchKeywords.length ? quickMatchKeywords : ['暂未识别明确关键词']).map((keyword) => (
+                      <em key={keyword}>{keyword}</em>
+                    ))}
+                  </div>
+                  {quickMatchCandidates.length ? (
+                    <div className="quick-match-list">
+                      {quickMatchCandidates.map((candidate) => (
+                        <article className="quick-match-card" key={`${candidate.type}-${candidate.id}`}>
+                          <div>
+                            <div className="tag-line">
+                              <span>{candidate.type === 'skill-post' ? 'I CAN 挂单' : '验证用户在线'}</span>
+                              <span>{candidate.category}</span>
+                              <span>匹配度 {candidate.score}</span>
+                            </div>
+                            <h3>{candidate.title}</h3>
+                            <p>{candidate.excerpt}</p>
+                            <small>{candidate.providerName} · {candidate.school}</small>
+                          </div>
+                          <button type="button" onClick={() => openHelpConversation(candidate)}>
+                            打招呼
+                            <MessageSquareText size={18} aria-hidden="true" />
+                          </button>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="admin-empty">暂时没有可匹配的挂单或在线验证用户，可以先发布悬赏问题。</p>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
           <div className="platform-policy-note">
             <strong>平台声明</strong>
             <p>{currencyExchangePolicyNotice}</p>
@@ -10756,6 +16837,16 @@ function App() {
                   placeholder="写清你的阶段、学校、时间线、已准备材料和卡住的点。"
                 />
               </label>
+              {renderLegalConsent(
+                'reward-qa-question',
+                rewardQaLegalDocumentIds,
+                '我已了解积分不是现金、不是虚拟货币，并同意《悬赏问答规则》。',
+                {
+                  notice:
+                    '签证、法律、医疗、金融类回答仅供参考，应以专业机构、官方机构和学校最新公告为准。发布求助或悬赏前，请同时阅读线下对接安全边界。',
+                  summaries: helpSeekerSafeguardClauses,
+                },
+              )}
               <button type="submit">发布问题</button>
             </form>
           )}
@@ -10835,7 +16926,7 @@ function App() {
               </span>
             </div>
             <h1>{selectedQuestion.title}</h1>
-            <p>{selectedQuestion.detail}</p>
+            <p>{foldContactInfo(selectedQuestion.detail, Boolean(currentUser))}</p>
             <div className="detail-stat-row">
               <span>悬赏 {selectedQuestion.rewardPoints} 积分</span>
               <span>{selectedQuestion.answersCount} 个回答</span>
@@ -10889,9 +16980,26 @@ function App() {
                 <div className="tag-line">
                   <span>{answer.author}</span>
                   <span>{answer.identity}</span>
+                  {(() => {
+                    const answerUser = appState.users.find((user) => user.name === answer.author)
+                    if (!answerUser) return null
+                    const answerUserSettings = parseUserBioSettings(answerUser.bio)
+                    const answerGrowth = calculateGrowthProfile(
+                      answerUser,
+                      appState.posts,
+                      appState.questions,
+                      appState.answers,
+                      answerUserSettings.userType === 'merchant',
+                    )
+                    return (
+                      <span>
+                        Lv{answerGrowth.userLevel} · {answerGrowth.userTitle} · 好评率 {answerGrowth.positiveRate}%
+                      </span>
+                    )
+                  })()}
                   {answer.accepted && <span className="solved-tag">已采纳</span>}
                 </div>
-                <p>{answer.content}</p>
+                <p>{foldContactInfo(answer.content, Boolean(currentUser))}</p>
                 {answer.accepted && selectedQuestionResources.length ? (
                   <div className="content-resource-links" aria-label="官方入口和材料下载">
                     {selectedQuestionResources.map((source, sourceIndex) => (
@@ -10919,6 +17027,15 @@ function App() {
           <form className="answer-entry form-stack" id="answer-entry" onSubmit={handleAnswerSubmit}>
             <h3>回答前请确认</h3>
             <p>平台奖励真实、有用、可验证的经验。请尽量写清材料、地点、时间线和你亲身经历的边界，政策类内容以官方最新公告为准。</p>
+            <div className="legal-consent-block">
+              <strong>提供帮助资格</strong>
+              <p className="legal-consent-notice">{getHelperQualificationStatusText('online')}</p>
+              {!currentUserOnlineHelperQualified && (
+                <button type="button" onClick={() => requireHelperQualification('online')}>
+                  申请线上解答资格
+                </button>
+              )}
+            </div>
             <label>
               回答内容
               <textarea
@@ -10927,6 +17044,15 @@ function App() {
                 placeholder="建议按材料、办理地点、时间线、风险提醒来写。"
               />
             </label>
+            {renderLegalConsent(
+              'reward-qa-answer',
+              rewardQaLegalDocumentIds,
+              '我确认回答符合《社区内容规范》，并同意《内容授权协议》《原创声明》和《悬赏问答规则》。',
+              {
+                notice:
+                  '签证、法律、医疗、金融类回答仅供参考，应以官方机构、专业机构和学校最新公告为准。',
+              },
+            )}
             <button type="submit">{currentUser ? '提交回答并获得 5 积分' : '登录后回答'}</button>
           </form>
         </section>
@@ -10940,6 +17066,29 @@ function App() {
             <p>
               这里集中展示别人用充值积分发布的悬赏问题，以及需要线下协助解决的任务。左侧看问题和要求，右侧直接看悬赏金额。
             </p>
+          </div>
+
+          <div className="legal-consent-block">
+            <strong>提供帮助前必须完成资格申请</strong>
+            <p className="legal-consent-notice">线上悬赏：{getHelperQualificationStatusText('online')}</p>
+            <p className="legal-consent-notice">线下求助：{getHelperQualificationStatusText('offline')}</p>
+            <ul className="legal-consent-summary">
+              {helperProviderSafeguardClauses.map((clause) => (
+                <li key={clause}>{clause}</li>
+              ))}
+            </ul>
+            <div className="quick-action-row">
+              {!currentUserOnlineHelperQualified && (
+                <button type="button" onClick={() => requireHelperQualification('online')}>
+                  申请线上解答资格
+                </button>
+              )}
+              {!currentUserOfflineHelperQualified && (
+                <button type="button" onClick={() => requireHelperQualification('offline')}>
+                  申请线下帮助资格
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="solve-summary-grid">
@@ -10997,7 +17146,8 @@ function App() {
         <section
           className={`info-page partner-detail-page ${
             merchantDesignEditMode && canManageActivePartnerBrand ? 'is-studio-editing' : ''
-          }`}
+          } ${activeMerchantHeroBackgroundImage ? 'has-merchant-hero-background' : ''}`}
+          style={activeMerchantHeroBackgroundStyle}
         >
           {renderMerchantStudioTools()}
           {renderMerchantStudioInspector()}
@@ -11107,10 +17257,11 @@ function App() {
                   style={activeMerchantAccentStyle}
                   {...getMerchantEditableTextProps('panelLabel')}
                 >
-                  {activeMerchantPreviewDecoration?.panelLabel ||
-                    ('detailTone' in activePartnerDetail.merchant
+                  {activeMerchantPreviewDecoration
+                    ? activeMerchantPreviewDecoration.panelLabel
+                    : 'detailTone' in activePartnerDetail.merchant
                       ? activePartnerDetail.merchant.detailTone
-                      : `${activePartnerDetail.showcase.type}服务展示`)}
+                      : `${activePartnerDetail.showcase.type}服务展示`}
                 </span>
                 {renderMerchantTextEditor('panelLabel')}
               </div>
@@ -11119,7 +17270,7 @@ function App() {
                   style={activeMerchantTitleStyle}
                   {...getMerchantEditableTextProps('panelTitle')}
                 >
-                  {activeMerchantPreviewDecoration?.panelTitle || activePartnerDetail.merchant.tags.join(' · ')}
+                  {activeMerchantPreviewDecoration ? activeMerchantPreviewDecoration.panelTitle : activePartnerDetail.merchant.tags.join(' · ')}
                 </strong>
                 {renderMerchantTextEditor('panelTitle')}
               </div>
@@ -11130,7 +17281,9 @@ function App() {
               >
                 {isWalaPartnerDetail
                   ? activeSiteContent.merchantWalaContactCopy
-                  : activeMerchantPreviewDecoration?.contactCopy ?? '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
+                  : activeMerchantPreviewDecoration
+                    ? activeMerchantPreviewDecoration.contactCopy
+                    : '联系前请先确认服务范围、价格区间、交付方式和售后规则。'}
               </p>
               {renderMerchantTextEditor('contactCopy')}
               </div>
@@ -11150,7 +17303,7 @@ function App() {
                   ? 'sectionTwoText'
                   : 'sectionThreeText') as MerchantEditableTextField
               return (
-              <article key={section.title}>
+              <article key={`${index}-${titleField}`}>
                 <div className="merchant-inline-edit-wrap" style={getTextLayerStyle(activeMerchantPreviewDecoration, titleField)}>
                   <span
                     style={activeMerchantAccentStyle}
@@ -11201,25 +17354,67 @@ function App() {
             {merchantDesignEditMode && canManageActivePartnerBrand && !activeMerchantPreviewDecoration?.serviceImage && (
               <span className="merchant-direct-drop-hint">拖入图片/视频到服务展示区</span>
             )}
-            <div>
+            <div className="merchant-service-heading-group">
               <p className="eyebrow dark" style={activeMerchantAccentStyle}>服务展示</p>
-              <h2 style={activeMerchantTitleStyle}>先看服务边界，再决定是否咨询。</h2>
-            </div>
-            {partnerDetailCases.map((item, index) => (
-              <article key={`${index}-${item}`} style={activeMerchantBodyStyle}>
+              {activeMerchantPreviewDecoration?.serviceHeadingTitle || (merchantDesignEditMode && canManageActivePartnerBrand) ? (
                 <div
                   className="merchant-inline-edit-wrap"
-                  style={getTextLayerStyle(activeMerchantPreviewDecoration, index === 0 ? 'caseOne' : 'caseTwo')}
+                  style={getTextLayerStyle(activeMerchantPreviewDecoration, 'serviceHeadingTitle')}
                 >
-                  <span
-                    {...getMerchantEditableTextProps(index === 0 ? 'caseOne' : 'caseTwo')}
+                  <h2
+                    className={!activeMerchantPreviewDecoration?.serviceHeadingTitle ? 'merchant-empty-text-placeholder' : undefined}
+                    style={activeMerchantTitleStyle}
+                    {...getMerchantEditableTextProps('serviceHeadingTitle')}
                   >
-                    {item}
-                  </span>
-                  {renderMerchantTextEditor(index === 0 ? 'caseOne' : 'caseTwo')}
+                    {activeMerchantPreviewDecoration?.serviceHeadingTitle || '点击编辑服务区大标题'}
+                  </h2>
+                  {renderMerchantTextEditor('serviceHeadingTitle')}
                 </div>
-              </article>
-            ))}
+              ) : null}
+            </div>
+            {partnerDetailCases
+              .map((item, index) => ({
+                field: (index === 0 ? 'caseOne' : 'caseTwo') as MerchantEditableTextField,
+                index,
+                item,
+              }))
+              .filter(({ item }) => String(item ?? '').trim())
+              .map(({ field, index, item }) => {
+                const isEmpty = !String(item ?? '').trim()
+                const placeholder = `点击编辑服务展示 ${index + 1}`
+                return (
+                  <article
+                    className={merchantDesignEditMode && canManageActivePartnerBrand ? `merchant-case-edit-card ${isEmpty ? 'is-empty' : ''}` : undefined}
+                    key={`${index}-${field}`}
+                    style={activeMerchantBodyStyle}
+                    onClick={(event) => {
+                      if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
+                      event.stopPropagation()
+                      selectMerchantTextLayer(field)
+                    }}
+                    onDoubleClick={(event) => {
+                      if (!merchantDesignEditMode || !canManageActivePartnerBrand) return
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const target = event.currentTarget.querySelector<HTMLElement>(`[data-merchant-text-field="${field}"]`)
+                      if (target) openMerchantTextEditor(field, target)
+                    }}
+                  >
+                    <div
+                      className="merchant-inline-edit-wrap"
+                      style={getTextLayerStyle(activeMerchantPreviewDecoration, field)}
+                    >
+                      <span
+                        className={isEmpty ? 'merchant-empty-text-placeholder' : undefined}
+                        {...getMerchantEditableTextProps(field)}
+                      >
+                        {isEmpty && merchantDesignEditMode && canManageActivePartnerBrand ? placeholder : item}
+                      </span>
+                      {renderMerchantTextEditor(field)}
+                    </div>
+                  </article>
+                )
+              })}
           </div>
 
           {canManageActivePartnerBrand && !merchantDesignEditMode && (
@@ -11387,25 +17582,29 @@ function App() {
                   </div>
                   <div className="merchant-design-item-panel">
                     <div>
-                      <strong>泡泡框和素材框</strong>
-                      <p>在展示区点击泡泡框后，可拖动、拉伸、调透明度、调层级或删除；也可以直接把图片/视频拖进泡泡框。</p>
+                      <strong>泡泡框、背景板和素材框</strong>
+                      <p>在展示区点击对象后，可拖动、拉伸、调透明度、调层级或删除；背景板适合做半透明遮罩。</p>
                     </div>
                     <div className="partner-brand-manager-actions">
                       <button type="button" onClick={() => addMerchantDesignBubble('hero')}>添加主视觉泡泡</button>
                       <button type="button" onClick={() => addMerchantDesignBubble('service')}>添加服务区泡泡</button>
+                      <button type="button" onClick={() => merchantHeroPanelFileInputRef.current?.click()}>上传主视觉背景图</button>
+                      <button type="button" onClick={() => addMerchantDesignPanel('service')}>添加服务区背景板</button>
                     </div>
                     {activeMerchantDesignItem ? (
                       <div className="merchant-design-item-controls">
-                        <label>
-                          字号
-                          <input
-                            max="72"
-                            min="12"
-                            type="range"
-                            value={activeMerchantDesignItem.fontSize}
-                            onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { fontSize: Number(event.target.value) })}
-                          />
-                        </label>
+                        {activeMerchantDesignItem.kind === 'bubble' && (
+                          <label>
+                            字号
+                            <input
+                              max="72"
+                              min="12"
+                              type="range"
+                              value={activeMerchantDesignItem.fontSize}
+                              onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { fontSize: Number(event.target.value) })}
+                            />
+                          </label>
+                        )}
                         <label>
                           透明度
                           <input
@@ -11417,22 +17616,32 @@ function App() {
                             onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { opacity: Number(event.target.value) })}
                           />
                         </label>
+                        {activeMerchantDesignItem.kind === 'bubble' && (
+                          <label>
+                            字色
+                            <input
+                              type="color"
+                              value={activeMerchantDesignItem.color}
+                              onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { color: event.target.value })}
+                            />
+                          </label>
+                        )}
                         <label>
-                          字色
-                          <input
-                            type="color"
-                            value={activeMerchantDesignItem.color}
-                            onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { color: event.target.value })}
-                          />
-                        </label>
-                        <label>
-                          底色
+                          {activeMerchantDesignItem.kind === 'panel' ? '板色' : '底色'}
                           <input
                             type="color"
                             value={activeMerchantDesignItem.background.startsWith('#') ? activeMerchantDesignItem.background : '#fffdf7'}
                             onChange={(event) => updateMerchantDesignItem(activeMerchantDesignItem.id, { background: event.target.value })}
                           />
                         </label>
+                        {activeMerchantDesignItem.kind === 'bubble' &&
+                          renderTextAlignControls(activeMerchantDesignItem.textAlign ?? 'center', (textAlign) =>
+                            updateMerchantDesignItem(activeMerchantDesignItem.id, { textAlign }),
+                          )}
+                        {activeMerchantDesignItem.kind === 'bubble' &&
+                          renderLineHeightControl(activeMerchantDesignItem.lineHeight, (lineHeight) =>
+                            updateMerchantDesignItem(activeMerchantDesignItem.id, { lineHeight }),
+                          )}
                         <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, 1)}>图层上移</button>
                         <button type="button" onClick={() => moveMerchantDesignItemLayer(activeMerchantDesignItem.id, -1)}>图层下移</button>
                         <button type="button" onClick={() => deleteMerchantDesignItem(activeMerchantDesignItem.id)}>删除</button>
@@ -11476,6 +17685,13 @@ function App() {
                   />
                 </label>
                 <label className="wide-field">
+                  服务区大标题
+                  <input
+                    value={activeMerchantDecorationDraft.serviceHeadingTitle}
+                    onChange={(event) => updateMerchantDecorationDraft(activePartnerDetailSlug, 'serviceHeadingTitle', event.target.value)}
+                  />
+                </label>
+                <label className="wide-field">
                   服务展示 1
                   <textarea
                     rows={2}
@@ -11510,6 +17726,9 @@ function App() {
             <h1>消费积分用来提问和解锁，可提现积分来自真实帮助。</h1>
             <p>
               平台把站内消费和创作者收益分开计算：充值得到消费积分；回答被采纳、完成悬赏、发布有效干货后，进入可提现积分。
+            </p>
+            <p className="legal-consent-notice">
+              使用积分前请阅读 {renderLegalDocumentLinks(['points-and-levels-rules'])}。积分不是现金、不是虚拟货币，平台第一版不承诺现金提现。
             </p>
           </div>
 
@@ -11639,37 +17858,95 @@ function App() {
             <h1>如何通过分享经验获得收益？</h1>
             <p>平台奖励的是“真实、有用、可验证的经验”，不是单纯发帖数量。</p>
           </div>
-          <div className="reward-rule-list">
-            <article>
-              <span>1</span>
-              <h3>回答悬赏问题</h3>
-              <p>回答被提问者采纳后，按问题难度和有效程度获得 +50～200 积分；无效回答、答非所问或无法验证的信息记 0 积分。</p>
-            </article>
-            <article>
-              <span>2</span>
-              <h3>发布高质量经验帖</h3>
-              <p>经验帖被审核为精华内容后可获得 +100～500 积分；收藏每满 10 次额外 +20 积分，点赞每满 20 次额外 +10 积分。</p>
-            </article>
-            <article>
-              <span>3</span>
-              <h3>贡献专题攻略</h3>
-              <p>签证、租房、打工、毕业等专题内容进入学校或分类专题库后，可获得额外积分奖励，并优先获得内容曝光。</p>
-            </article>
-            <article>
-              <span>4</span>
-              <h3>防止垃圾内容</h3>
-              <p>抄袭、AI水文、批量搬运、虚假经历或误导性答案会扣 50～200 积分，严重时可禁言、下架内容或封号。</p>
-            </article>
-            <article>
-              <span>5</span>
-              <h3>商家内容标注</h3>
-              <p>商家广告帖、软广、带联系方式的合作内容必须标注商家身份；未标注或伪装成普通经验帖的平台可下架。</p>
-            </article>
-            <article>
-              <span>6</span>
-              <h3>第一版积分激励</h3>
-              <p>当前 MVP 第一版优先验证积分激励和人工审核闭环；可提现积分需满足沉淀期、争议检查和后台审核后才进入结算，不承诺所有积分都可提现。</p>
-            </article>
+          <div className="reward-accordion-list">
+            <details open>
+              <summary>
+                <span>赚钱方式</span>
+                <strong>回答、经验帖、专题攻略和任务奖励</strong>
+              </summary>
+              <ul>
+                <li>回答被提问者采纳后，按问题难度和有效程度获得 +50～200 积分；无效回答、答非所问或无法验证的信息记 0 积分。</li>
+                <li>经验帖被审核为精华内容后可获得 +100～500 积分；收藏每满 10 次额外 +20 积分，点赞每满 20 次额外 +10 积分。</li>
+                <li>签证、租房、打工、毕业等专题内容进入学校或分类专题库后，可获得额外积分奖励，并优先获得内容曝光。</li>
+                <li>完成悬赏任务、商家推广任务或平台活动任务后，按任务规则获得对应积分奖励。</li>
+              </ul>
+            </details>
+            <details>
+              <summary>
+                <span>成长制度</span>
+                <strong>等级、称号、奖励系数和学校榜单</strong>
+              </summary>
+              <ul>
+                <li>用户会根据积分、被采纳次数、完成任务数和好评数，从 Lv1 新人成长到 Lv10 售业大师。</li>
+                <li>Lv3 奖励系数 105%，Lv5 为 110%，Lv7 为 120%，Lv10 为 130%，高等级用户会获得更高平台奖励系数。</li>
+                <li>学生称号包括租房避坑达人、签证专家、校园情报员、学校传奇、留学生之光等。</li>
+                <li>经常帮助同校用户会进入学校排行榜，获得专属称号、平台曝光、限定头像框或优惠券。</li>
+              </ul>
+            </details>
+            <details>
+              <summary>
+                <span>优惠券与好评</span>
+                <strong>求助用户也能获得平台权益</strong>
+              </summary>
+              <ul>
+                <li>连续签到、发布优质问题、完成评价、首次平台内交易或回答被采纳后，可获得商家折扣券、悬赏减免券、平台活动券和学校专区券。</li>
+                <li>回答质量、商家服务、经验真实性和是否靠谱都会进入信誉记录。</li>
+                <li>个人主页会展示等级、称号、好评率、被帮助人数、累计采纳和学校标签。</li>
+                <li>平台内沟通、评价和完成服务会留下成长记录；私下交易没有积分、好评、优惠券、排名和曝光收益。</li>
+              </ul>
+            </details>
+            <details>
+              <summary>
+                <span>商家规则</span>
+                <strong>认证商家、服务评价和曝光权益</strong>
+              </summary>
+              <ul>
+                <li>商家从新商家、校园服务者、靠谱商家成长到官方认证商家。</li>
+                <li>认证状态、好评、完成服务和用户评价会影响学校页推荐、商家排序、官方标识和优惠券合作资格。</li>
+                <li>商家广告帖、软广、带联系方式的合作内容必须标注商家身份；未标注或伪装成普通经验帖的平台可下架。</li>
+                <li>平台不强制用户走平台支付，但鼓励通过平台沟通、评价和信誉记录完成服务闭环。</li>
+              </ul>
+            </details>
+            <details>
+              <summary>
+                <span>惩罚规则</span>
+                <strong>无效回答、广告、抄袭和 AI 水文</strong>
+              </summary>
+              <ul>
+                <li>无效回答、答非所问或无法验证的信息不获得积分。</li>
+                <li>AI 水文、批量搬运、虚假经历或误导性内容会扣 50～200 积分。</li>
+                <li>恶意广告、未标注商家身份、抄袭或冒充经验内容可被下架、禁言或封号。</li>
+                <li>举报违规成功可获得 +20 积分，但恶意举报会影响账号信誉。</li>
+              </ul>
+            </details>
+            <details>
+              <summary>
+                <span>结算边界</span>
+                <strong>MVP 第一版只做积分激励</strong>
+              </summary>
+              <ul>
+                <li>当前 MVP 第一版优先验证积分激励、人工审核、内容质量和商家服务连接。</li>
+                <li>第一版不承诺直接现金提现，不做复杂金融系统，也不把平台包装成返利或赚钱项目。</li>
+                <li>未登录用户查看联系方式时会优先看到折叠提示；建议优先使用站内沟通与评价体系，保障双方信誉记录。</li>
+                <li>涉及结算、退款、争议或投诉的内容，以后台审核和平台最新规则为准。</li>
+              </ul>
+            </details>
+          </div>
+          <div className="reward-accordion-list compact">
+            <details>
+              <summary>
+                <span>学校排行榜</span>
+                <strong>本周学校贡献与曝光奖励</strong>
+              </summary>
+              <ul>
+                {schoolLeaderboards.map((board) => (
+                  <li key={board.id}>
+                    {board.title}：{board.metric}；奖励：{board.reward}。当前：
+                    {board.entries.map((entry, index) => `${index + 1}. ${entry.name} ${entry.score}分 · ${entry.title}`).join('；')}
+                  </li>
+                ))}
+              </ul>
+            </details>
           </div>
         </section>
       )}
@@ -11692,30 +17969,233 @@ function App() {
       )}
 
       {isAboutRoute && (
-        <section className="info-page">
+        <section className="info-page public-info-page">
           <div className="section-heading rewards-heading">
-            <p className="eyebrow dark">平台介绍</p>
+            <p className="eyebrow dark">关于售业</p>
             <h1>留学生经验分享与问题解决平台</h1>
             <p>
-              留学生的第一站，真实经验帮你少走弯路。这里不是普通论坛，而是把签证、入学、租房、打工、生活和就业经验沉淀成可搜索、可验证、可解决问题的社区。
+              售业面向在韩中国留学生和准留学生，整理真实经验、问题求助、悬赏回答、学校专题和认证商家服务信息，让用户在签证、入学、租房、打工、毕业和生活服务里少走弯路。
             </p>
           </div>
-          <div className="income-rule-grid">
+          <section className="legal-operator-card public-operator-card" aria-label="平台主体信息">
+            <div>
+              <p className="eyebrow dark">平台运营主体</p>
+              <h2>{publicLegalOperator.companyName}</h2>
+              <p>shouye.fun / 售业</p>
+            </div>
+            <dl>
+              <div>
+                <dt>统一社会信用代码</dt>
+                <dd>{publicLegalOperator.creditCode}</dd>
+              </div>
+              <div>
+                <dt>注册地址</dt>
+                <dd>{publicLegalOperator.address}</dd>
+              </div>
+              <div>
+                <dt>公开联系入口</dt>
+                <dd>{publicLegalOperator.contact}</dd>
+              </div>
+            </dl>
+          </section>
+          <div className="income-rule-grid public-trust-grid">
             <article>
               <Search size={22} aria-hidden="true" />
               <h3>先解决真实问题</h3>
-              <p>每条内容都围绕具体场景：要办什么、去哪办、准备什么、怎么避坑。</p>
+              <p>内容围绕具体场景：要办什么、去哪办、准备什么、怎么避坑，优先沉淀能被检索和复用的经验。</p>
             </article>
             <article>
               <ShieldCheck size={22} aria-hidden="true" />
-              <h3>保护分享者隐私</h3>
-              <p>平台会继续完善匿名展示、身份审核和敏感信息保护。</p>
+              <h3>审核和边界清楚</h3>
+              <p>平台会对商家、材料、举报和高风险内容进行后台处理；商家展示不等于平台担保服务结果。</p>
             </article>
             <article>
               <Coins size={22} aria-hidden="true" />
               <h3>让有用经验获得回报</h3>
               <p>高质量回答、被采纳答案和精华攻略会进入收益体系。</p>
             </article>
+            <article>
+              <MessageSquareText size={22} aria-hidden="true" />
+              <h3>联系与投诉有入口</h3>
+              <p>用户可通过内容页举报按钮或联系页提交投诉线索，平台按证据、风险等级和规则处理。</p>
+            </article>
+          </div>
+          <div className="public-link-panel">
+            <div>
+              <p className="eyebrow dark">公开文件</p>
+              <h2>协议、隐私与投诉规则集中展示</h2>
+              <p>注册、发帖、商家入驻、内容授权、积分规则和投诉处理，都可以在协议中心查看。</p>
+            </div>
+            <div className="public-action-links">
+              <button type="button" onClick={() => navigateToPath('/legal/user-agreement')}>
+                用户服务协议 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => navigateToPath('/legal/privacy-policy')}>
+                隐私政策 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => navigateToPath('/legal/report-complaint-rules')}>
+                投诉举报规则 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => navigateToPath('/contact')}>
+                联系平台 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {isContactRoute && (
+        <section className="info-page public-info-page contact-page">
+          <div className="section-heading rewards-heading">
+            <p className="eyebrow dark">联系与举报</p>
+            <h1>平台联系、投诉和举报入口</h1>
+            <p>
+              这里用于说明售业的公开联系路径、投诉举报范围和材料要求。涉及具体帖子、问题或商家内容时，请优先在对应页面点击“举报”，方便后台定位对象。
+            </p>
+          </div>
+          <div className="contact-entry-board">
+            <article>
+              <BadgeCheck size={24} aria-hidden="true" />
+              <h2>运营主体</h2>
+              <p>{publicLegalOperator.companyName}</p>
+              <small>统一社会信用代码：{publicLegalOperator.creditCode}</small>
+            </article>
+            <article>
+              <MessageSquareText size={24} aria-hidden="true" />
+              <h2>站内联系入口</h2>
+              <p>通过本页提交平台联系与投诉线索，或在内容详情页使用对应“举报”按钮。</p>
+              <button
+                className="primary-link"
+                type="button"
+                onClick={() =>
+                  setReportTarget({
+                    contentType: 'platform-contact',
+                    contentId: 'public-contact',
+                    title: publicContactEntryTitle,
+                  })
+                }
+              >
+                提交联系/举报
+                <ArrowRight size={18} aria-hidden="true" />
+              </button>
+            </article>
+          </div>
+          <div className="income-rule-grid public-trust-grid">
+            <article>
+              <ShieldCheck size={22} aria-hidden="true" />
+              <h3>可以提交什么</h3>
+              <p>违法违规内容、侵犯隐私、虚假商家、诈骗引流、账号异常、材料删除、商家服务纠纷和平台规则申诉。</p>
+            </article>
+            <article>
+              <LockKeyhole size={22} aria-hidden="true" />
+              <h3>请带上必要材料</h3>
+              <p>尽量提供页面链接、截图、对方账号、时间、金额、聊天记录和可联系到你的方式。敏感证件可遮挡无关号码。</p>
+            </article>
+            <article>
+              <Building2 size={22} aria-hidden="true" />
+              <h3>处理边界</h3>
+              <p>平台可以根据规则限制展示、记录证据、联系相关方或封禁账号，但不替代司法、仲裁、行政机关。</p>
+            </article>
+            <article>
+              <BookOpenCheck size={22} aria-hidden="true" />
+              <h3>先看规则</h3>
+              <p>投诉处理依据公开规则、平台记录、用户提交证据和法律法规要求综合判断。</p>
+            </article>
+          </div>
+          <div className="public-link-panel">
+            <div>
+              <p className="eyebrow dark">规则入口</p>
+              <h2>提交前建议先阅读对应规则</h2>
+              <p>如果是隐私、商家或内容相关问题，阅读规则能帮助你准备更完整的说明。</p>
+            </div>
+            <div className="public-action-links">
+              <button type="button" onClick={() => navigateToPath('/legal/report-complaint-rules')}>
+                投诉举报规则 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => navigateToPath('/legal/privacy-policy')}>
+                隐私政策 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => navigateToPath('/legal/merchant-violation-rules')}>
+                商家违规处理 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+              <button type="button" onClick={() => navigateToPath('/legal')}>
+                全部法律文件 <ArrowRight size={16} aria-hidden="true" />
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {activeJoinPage && (
+        <section className="info-page join-page">
+          <div className="join-page-shell">
+            <aside className="join-side-nav" aria-label="加入我们栏目">
+              <h2>加入我们</h2>
+              {publicJoinPages.map((page) => (
+                <button
+                  className={page.slug === activeJoinPage.slug ? 'active' : ''}
+                  key={page.slug}
+                  type="button"
+                  onClick={() => navigateToPath(`/join/${page.slug}`)}
+                >
+                  {page.eyebrow}
+                </button>
+              ))}
+            </aside>
+            <div className="join-page-main">
+              <div className="section-heading rewards-heading join-page-heading">
+                <p className="eyebrow dark">{activeJoinPage.eyebrow}</p>
+                <h1>{activeJoinPage.title}</h1>
+                <p>{activeJoinPage.lead}</p>
+              </div>
+              <div className="join-intro-panel">
+                <p>{activeJoinPage.intro}</p>
+                <div className="join-highlight-list" aria-label="计划亮点">
+                  {activeJoinPage.highlights.map((highlight) => (
+                    <span key={highlight}>{highlight}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="join-section-grid">
+                {activeJoinPage.sections.map((section) => (
+                  <article key={section.title}>
+                    <h2>{section.title}</h2>
+                    <p>{section.copy}</p>
+                    <ul>
+                      {section.items.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </article>
+                ))}
+              </div>
+              <section className="join-process-panel" aria-label="加入流程">
+                <div>
+                  <p className="eyebrow dark">流程</p>
+                  <h2>从提交到上线，尽量让每一步可追踪。</h2>
+                </div>
+                <ol>
+                  {activeJoinPage.process.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </section>
+              <div className="join-cta-strip">
+                <div>
+                  <strong>准备好继续了吗？</strong>
+                  <span>先进入对应入口，后续材料和审核会按平台规则处理。</span>
+                </div>
+                <div className="join-cta-actions">
+                  <button className="primary-link" type="button" onClick={() => navigateToPath(activeJoinPage.primaryPath)}>
+                    {activeJoinPage.primaryLabel}
+                    <ArrowRight size={18} aria-hidden="true" />
+                  </button>
+                  <button className="ghost-button" type="button" onClick={() => navigateToPath(activeJoinPage.secondaryPath)}>
+                    {activeJoinPage.secondaryLabel}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       )}
@@ -11757,7 +18237,106 @@ function App() {
         </section>
       )}
 
-      {activePolicyPage && (
+      {isLegalRoute && !activeLegalDocument && !privateLegalDocumentRequested && (
+        <section className="info-page legal-page">
+          <div className="section-heading rewards-heading">
+            <p className="eyebrow dark">协议中心</p>
+            <h1>平台协议与隐私规则</h1>
+            <p>以下文件面向用户、商家、创作者和校园合伙人公开适用，用于说明平台服务边界、内容规则、积分规则、商家展示和投诉处理方式。</p>
+            <p>公司治理、股权、印章、银行账户等内部文件不在公开页面展示。</p>
+          </div>
+          <section className="legal-operator-card" aria-label="平台运营主体">
+            <div>
+              <p className="eyebrow dark">平台运营主体</p>
+              <h2>{publicLegalOperator.companyName}</h2>
+              <p>统一社会信用代码：{publicLegalOperator.creditCode}</p>
+            </div>
+            <dl>
+              <div>
+                <dt>注册地址</dt>
+                <dd>{publicLegalOperator.address}</dd>
+              </div>
+              <div>
+                <dt>联系方式</dt>
+                <dd>{publicLegalOperator.contact}</dd>
+              </div>
+              <div>
+                <dt>规则生效</dt>
+                <dd>{publicLegalOperator.effectiveDate}</dd>
+              </div>
+            </dl>
+          </section>
+          <div className="legal-group-grid">
+            {legalDocumentGroups.map((group) => {
+              const groupDocuments = legalDocuments.filter(
+                (document) => document.isPublic && document.category[0] === group.category,
+              )
+              return (
+                <section className="legal-group-card" key={group.category}>
+                  <div>
+                    <p className="eyebrow dark">{group.title}</p>
+                    <h2>{group.description}</h2>
+                  </div>
+                  <div className="legal-document-list">
+                    {groupDocuments.map((document) => (
+                      <a
+                        href={document.route}
+                        key={document.id}
+                        onClick={(event) => {
+                          event.preventDefault()
+                          navigateToPath(document.route)
+                        }}
+                      >
+                        <strong>{document.titleZh}</strong>
+                        <span>{document.summary}</span>
+                        <small>
+                          {document.audience} · 当前版本 {formatLegalVersionForDisplay(document.version)}
+                        </small>
+                      </a>
+                    ))}
+                  </div>
+                </section>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {privateLegalDocumentRequested && (
+        <section className="info-page legal-page legal-document-page">
+          <div className="section-heading rewards-heading">
+            <button className="text-switch legal-back-link" type="button" onClick={() => navigateToPath('/legal')}>
+              返回协议中心
+            </button>
+            <p className="eyebrow dark">内部文件</p>
+            <h1>该文件不对外公开</h1>
+            <p>公司治理、股权、印章、银行账户等内部文件不在公开页面展示，也不适用于普通用户注册、发帖、购买、商家入驻或校园合伙人公开流程。</p>
+          </div>
+        </section>
+      )}
+
+      {activeLegalDocument && (
+        <section className="info-page legal-page legal-document-page">
+          <div className="section-heading rewards-heading">
+            <button
+              className="text-switch legal-back-link"
+              type="button"
+              onClick={() => navigateToPath('/legal')}
+            >
+              返回协议中心
+            </button>
+            <p className="eyebrow dark">
+              {activeLegalDocument.audience} · {getLegalCategoryLabel(activeLegalDocument.category)}
+            </p>
+            <h1>{activeLegalDocument.titleZh}</h1>
+            <p>{activeLegalDocument.summary}</p>
+            <p>当前版本：{formatLegalVersionForDisplay(activeLegalDocument.version)}</p>
+          </div>
+          <article className="legal-markdown-body">{activeLegalDocument.content}</article>
+        </section>
+      )}
+
+      {activePolicyPage && !activeLegalDocument && (
         <section className="info-page compliance-page">
           <div className="section-heading rewards-heading">
             <p className="eyebrow dark">{activePolicyPage.eyebrow}</p>
@@ -11787,19 +18366,74 @@ function App() {
           {currentUser ? (
             <div className="profile-layout">
               <form className="profile-panel form-stack" onSubmit={handleProfileSave}>
+                <div className="profile-account-summary">
+                  <div>
+                    <span>账户概览</span>
+                    <strong>{currentUser.name}</strong>
+                    <small>{currentUser.identity} · {currentUser.school}</small>
+                  </div>
+                  <div className="profile-points-pair">
+                    <span>{currentUser.points} 消费积分</span>
+                    <span>{currentUser.earningPoints} 可提现积分</span>
+                  </div>
+                </div>
+                {currentUserGrowthProfile && (
+                  <div className="profile-business-card">
+                    <span>成长体系</span>
+                    <div>
+                      <strong>
+                        Lv{currentUserGrowthProfile.userLevel} {currentUserGrowthProfile.levelName} · {currentUserGrowthProfile.userTitle}
+                      </strong>
+                      <small>
+                        好评率 {currentUserGrowthProfile.positiveRate}% · 被帮助人数 {currentUserGrowthProfile.helpedCount} · 累计采纳{' '}
+                        {currentUserGrowthProfile.acceptedAnswerCount}
+                      </small>
+                    </div>
+                    <p>
+                      奖励系数 {currentUserGrowthProfile.rewardMultiplier}% · {currentUserGrowthProfile.schoolRankLabel} · 距离
+                      {currentUserGrowthProfile.nextLevelName} {currentUserGrowthProfile.nextLevelProgress}%
+                    </p>
+                    <div className="credential-actions">
+                      {currentUserGrowthProfile.userCoupons.slice(0, 3).map((coupon) => (
+                        <span className="account-badge approved" key={coupon.id}>
+                          {coupon.title} · {coupon.valueLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <div className="profile-avatar-row">
                   <div className="profile-avatar">
                     {profileForm.avatarUrl ? <img src={profileForm.avatarUrl} alt="" /> : currentUser.name.slice(0, 1)}
                   </div>
                   <div className="profile-avatar-upload-copy">
                     <strong>个人头像</strong>
-                    <span>点击上传头像，保存后会展示在个人中心和你发布的内容旁。</span>
-                    <label className="merchant-logo-upload-button">
+                    <span>点击上传图片，保存后会展示在个人中心和你发布的内容旁。</span>
+                    <label className="profile-avatar-upload-button">
+                      <UploadCloud size={16} aria-hidden="true" />
                       上传头像
                       <input accept="image/*" type="file" onChange={handleProfileAvatarUpload} />
                     </label>
                   </div>
                 </div>
+                {currentUserIsMerchant && (
+                  <div className="profile-business-card">
+                    <span>商家资料</span>
+                    <div>
+                      <strong>{currentUserBioSettings.businessName || currentUser.name}</strong>
+                      <small>{currentUserBioSettings.businessCategory || currentUser.identity.replace('商家 · ', '')}</small>
+                    </div>
+                    <p>
+                      {currentUserBioSettings.country || currentUser.school.split(' · ')[0] || '未填写国家'} ·{' '}
+                      {currentUserBioSettings.city || currentUser.school.split(' · ')[1] || '未填写城市'}
+                    </p>
+                    <p>
+                      {currentManagedBrandId
+                        ? `已分配品牌：${currentUserBioSettings.managedBrandName || currentManagedBrandId}`
+                        : '后台分配品牌权限后，可在这里进入商家展示页编辑。'}
+                    </p>
+                  </div>
+                )}
                 <label>
                   昵称
                   <input
@@ -11807,37 +18441,133 @@ function App() {
                     onChange={(event) => setProfileForm({ ...profileForm, name: event.target.value })}
                   />
                 </label>
-                <div className="form-grid partner-form-grid">
-                  <label>
-                    身份
-                    <select
-                      value={profileForm.identity}
-                      onChange={(event) => setProfileForm({ ...profileForm, identity: event.target.value })}
+                <div className="profile-business-card">
+                  <span>改名申请</span>
+                  <div>
+                    <strong>
+                      {currentUserPendingRenameRequest
+                        ? `${currentUserPendingRenameRequest.oldName} → ${currentUserPendingRenameRequest.requestedName}`
+                        : `${renameRequestCostEarningPoints} 可提现积分 / 次`}
+                    </strong>
+                    <small>
+                      {currentUserPendingRenameRequest
+                        ? '管理员审核中，通过后新昵称会同步到账号和历史内容。'
+                        : '昵称不会直接保存，提交申请后先冻结积分，驳回会原路退回。'}
+                    </small>
+                  </div>
+                  {currentUserRenameRequests.length > 0 && (
+                    <p>
+                      最近申请：{currentUserRenameRequests[0].requestedName} ·{' '}
+                      {currentUserRenameRequests[0].status === 'pending'
+                        ? '待审核'
+                        : currentUserRenameRequests[0].status === 'approved'
+                          ? '已通过'
+                          : '已驳回'}
+                    </p>
+                  )}
+                  <div className="credential-actions">
+                    <button
+                      disabled={
+                        renameRequestSubmitting ||
+                        Boolean(currentUserPendingRenameRequest) ||
+                        profileForm.name.trim() === currentUser.name
+                      }
+                      onClick={submitRenameRequest}
+                      type="button"
                     >
-                      <option>准备申请</option>
-                      <option>已录取待入学</option>
-                      <option>语学院</option>
-                      <option>本科</option>
-                      <option>大学院</option>
-                      <option>已毕业</option>
-                      <option>商家</option>
-                    </select>
-                  </label>
-                  <label>
-                    学校 / 目标学校
-                    <input
-                      value={profileForm.school}
-                      onChange={(event) => setProfileForm({ ...profileForm, school: event.target.value })}
-                    />
-                  </label>
+                      {renameRequestSubmitting ? '提交中...' : '提交改名申请'}
+                    </button>
+                  </div>
                 </div>
+                {currentUserIsMerchant ? (
+                  <>
+                    <div className="form-grid partner-form-grid">
+                      <label>
+                        主营业务
+                        <select
+                          value={profileForm.businessCategory}
+                          onChange={(event) => {
+                            const nextCategory = event.target.value
+                            setProfileForm({
+                              ...profileForm,
+                              businessCategory: nextCategory,
+                              businessCategories: Array.from(new Set([nextCategory, ...profileForm.businessCategories])),
+                            })
+                          }}
+                        >
+                          {businessCategoryOptions.map((category) => (
+                            <option key={category}>{category}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        所在地
+                        <input
+                          value={profileForm.school}
+                          onChange={(event) => setProfileForm({ ...profileForm, school: event.target.value })}
+                          placeholder="例如：韩国 · 首尔"
+                        />
+                      </label>
+                    </div>
+                    <div className="profile-scope-editor">
+                      <span>营业范围</span>
+                      <div>
+                        {businessCategoryOptions.map((category) => (
+                          <label className="profile-scope-option" key={category}>
+                            <input
+                              checked={profileForm.businessCategories.includes(category)}
+                              type="checkbox"
+                              onChange={(event) => {
+                                const nextCategories = event.target.checked
+                                  ? Array.from(new Set([...profileForm.businessCategories, category]))
+                                  : profileForm.businessCategories.filter((item) => item !== category)
+                                setProfileForm({
+                                  ...profileForm,
+                                  businessCategories: nextCategories.length ? nextCategories : [profileForm.businessCategory],
+                                })
+                              }}
+                            />
+                            <span className="profile-scope-check" aria-hidden="true" />
+                            <span>{category}</span>
+                          </label>
+                        ))}
+                      </div>
+                      <small className="field-help">认证后，后台可按每个营业范围单独设置普通或置顶展示。</small>
+                    </div>
+                  </>
+                ) : (
+                  <div className="form-grid partner-form-grid">
+                    <label>
+                      身份
+                      <select
+                        value={profileForm.identity}
+                        onChange={(event) => setProfileForm({ ...profileForm, identity: event.target.value })}
+                      >
+                        <option>准备申请</option>
+                        <option>已录取待入学</option>
+                        <option>语学院</option>
+                        <option>本科</option>
+                        <option>大学院</option>
+                        <option>已毕业</option>
+                      </select>
+                    </label>
+                    <label>
+                      学校 / 目标学校
+                      <input
+                        value={profileForm.school}
+                        onChange={(event) => setProfileForm({ ...profileForm, school: event.target.value })}
+                      />
+                    </label>
+                  </div>
+                )}
                 <label>
-                  个人简介
+                  公开简介
                   <textarea
                     value={profileForm.bio}
                     onChange={(event) => setProfileForm({ ...profileForm, bio: event.target.value })}
-                    placeholder="写一下你的学校、专业、申请方向或可分享经验。"
+                    placeholder="写给其他用户看的简介，例如你的学校、专业、服务范围或可分享经验。"
                   />
+                  <small className="field-help">这里只填写公开展示文案；商家权限、品牌 ID 等系统信息不会显示在这里。</small>
                 </label>
                 <label>
                   认证材料
@@ -11869,7 +18599,22 @@ function App() {
                   />
                   <small className="field-help">材料会进入后台审核；提交前建议遮挡证件号码等非必要敏感信息。</small>
                 </label>
-                <button type="submit">保存个人信息</button>
+                {currentUserIsMerchant &&
+                  profileHasNewVerificationDocuments &&
+                  renderLegalConsent(
+                    'merchant-verification',
+                    merchantVerificationLegalDocumentIds,
+                    '我已了解认证不等于平台担保，并同意平台为认证审核处理我提交的认证资料。',
+                    {
+                      summaries: [
+                        '认证材料仅用于审核商家身份和服务资质，审核通过不代表平台担保服务结果。',
+                        '上传前请遮挡无关敏感信息；材料保存、使用和删除按隐私政策及认证规则处理。',
+                      ],
+                    },
+                  )}
+                <button type="submit" disabled={profileSaving}>
+                  {profileSaving ? '保存中...' : '保存个人信息'}
+                </button>
               </form>
               <div className="profile-panel">
                 {currentUserIsMerchant && (
@@ -11898,10 +18643,43 @@ function App() {
                       <div>
                         <strong>{document.name}</strong>
                         <small>{new Date(document.uploadedAt).toLocaleDateString('zh-CN')}</small>
+                        {document.status === 'rejected' && document.reviewNote && (
+                          <small>不通过理由：{document.reviewNote}</small>
+                        )}
                       </div>
                       <div className="credential-actions">
-                        <button type="button" onClick={() => openCredentialDocument(document, setMessage)}>
-                          查看材料
+                        <button
+                          type="button"
+                          disabled={credentialDocumentBusyId === document.id}
+                          onClick={() => handleOpenCredentialDocument(document, currentUser.id)}
+                        >
+                          {credentialDocumentBusyId === document.id ? '处理中...' : '查看材料'}
+                        </button>
+                        <label
+                          className={
+                            credentialDocumentBusyId === document.id
+                              ? 'credential-upload-action is-disabled'
+                              : 'credential-upload-action'
+                          }
+                        >
+                          重新上传
+                          <input
+                            type="file"
+                            disabled={credentialDocumentBusyId === document.id}
+                            onChange={(event) => {
+                              const file = event.currentTarget.files?.[0]
+                              event.currentTarget.value = ''
+                              if (file) void handleReplaceOwnCredentialDocument(document, file)
+                            }}
+                          />
+                        </label>
+                        <button
+                          className="danger-button"
+                          type="button"
+                          disabled={credentialDocumentBusyId === document.id}
+                          onClick={() => void handleDeleteOwnCredentialDocument(document)}
+                        >
+                          删除
                         </button>
                         <span className={`account-badge ${document.status}`}>
                           {verificationStatusLabel[document.status]}
@@ -12049,6 +18827,10 @@ function App() {
               {filteredPosts.length ? (
                 filteredPosts.map((post) => {
                   const unlocked = post.price === 0 || currentUnlocks.includes(post.id)
+                  const authorUser = appState.users.find((user) => user.id === post.authorId || user.name === post.author)
+                  const authorGrowth = authorUser
+                    ? calculateGrowthProfile(authorUser, appState.posts, appState.questions, appState.answers, false)
+                    : null
                   return (
                     <motion.article
                       className="social-post-card"
@@ -12078,6 +18860,11 @@ function App() {
                         </div>
                         <div className="post-footer">
                           <span>{post.author}</span>
+                          {authorGrowth && (
+                            <span>
+                              Lv{authorGrowth.userLevel} · {authorGrowth.userTitle} · 好评率 {authorGrowth.positiveRate}%
+                            </span>
+                          )}
                           <span>
                             <TrendingUp size={15} aria-hidden="true" />
                             {post.hot}
@@ -12158,7 +18945,7 @@ function App() {
             </button>
           </div>
           <article className="post-detail-body">
-            <p>{selectedPost.body}</p>
+            <p>{foldContactInfo(selectedPost.body, Boolean(currentUser))}</p>
             {selectedPost.sources?.length ? (
               <div className="content-resource-links" aria-label="官方入口和材料下载">
                 {selectedPost.sources.map((source, sourceIndex) => (
@@ -12551,9 +19338,12 @@ function App() {
                 <div className="submenu-intro">
                   <div>
                     <strong>{group.region}</strong>
-                    <span>{group.schools.length} 所院校 · 按 QS 2026 与申请热度排序</span>
+                    <span>
+                      {formatSchoolCount(selectedLanguage, group.schools.length)} ·{' '}
+                      {translateSiteCopy(selectedLanguage, '按 QS 2026 与申请热度排序')}
+                    </span>
                   </div>
-                  <p>{group.summary}</p>
+                  <p>{translateSiteCopy(selectedLanguage, group.summary)}</p>
                 </div>
                 <div className="submenu-grid">
                   {pageSchools.map((school, schoolIndex) => (
@@ -12758,14 +19548,14 @@ function App() {
                     className={`partner-merchant-bubble partner-tone-${entry.showcase.tone} ${
                       entry.merchant.level === 'pinned' ? 'is-pinned' : ''
                     }`}
-                    key={`${entry.showcase.type}-${entry.slug}`}
+                    key={entry.bubbleKey}
                     style={{
                       '--merchant-bubble-bg': entry.bubbleColor || undefined,
                       '--merchant-bubble-text-color': entry.bubbleTextColor || undefined,
                       '--merchant-bubble-meta-color': entry.bubbleMetaColor || undefined,
                       '--merchant-bubble-logo-bg': entry.bubbleLogoBackground || undefined,
-                      left: `${partnerBubblePositions[entry.slug]?.x ?? entry.seedX}%`,
-                      top: `${partnerBubblePositions[entry.slug]?.y ?? entry.seedY}%`,
+                      left: `${partnerBubblePositions[entry.bubbleKey]?.x ?? entry.seedX}%`,
+                      top: `${partnerBubblePositions[entry.bubbleKey]?.y ?? entry.seedY}%`,
                       zIndex: entry.merchant.level === 'pinned' ? 1000 : 5,
                     } as CSSProperties}
                     type="button"
@@ -12789,6 +19579,8 @@ function App() {
           <motion.article
             className={`partner-showcase-card partner-looseleaf-card partner-tone-${selectedPartnerShowcase.tone} ${
               partnerShowcaseEditMode && canManageActivePartnerMerchant ? 'is-showcase-editing' : ''
+            } ${
+              activePartnerMerchantSlug === 'tuzhuren-thesis' ? 'is-tuzhuren-showcase' : ''
             }`}
             data-partner-showcase-stage="true"
             key={`${selectedPartnerShowcase.type}-${activePartnerMerchant.name}`}
@@ -12811,6 +19603,14 @@ function App() {
               endPartnerShowcaseDesignItemDrag()
               endPartnerShowcaseTextLayerDrag()
             }}
+            onDoubleClickCapture={(event) => {
+              if (!partnerShowcaseEditMode || !canManageActivePartnerMerchant) return
+              const textLayer = findPartnerShowcaseTextLayerAtPoint(event.clientX, event.clientY)
+              if (!textLayer) return
+              event.preventDefault()
+              event.stopPropagation()
+              openPartnerShowcaseTextEditor(textLayer.field, textLayer.element)
+            }}
           >
             {canManageActivePartnerMerchant && (
               <div className="partner-showcase-edit-toolbar">
@@ -12821,6 +19621,8 @@ function App() {
                     if (partnerShowcaseEditMode) {
                       const saved = await savePartnerShowcaseDecoration(true)
                       if (saved) {
+                        setActivePartnerShowcaseTextField(null)
+                        setActivePartnerShowcaseTemplateItem(null)
                         setActivePartnerShowcaseTextEditor(null)
                         setPartnerShowcaseTextPopoverAnchor(null)
                         setActivePartnerShowcaseDesignItemId(null)
@@ -12839,6 +19641,9 @@ function App() {
                     </button>
                     <button type="button" onClick={addPartnerShowcaseTextBox}>
                       添加文本框
+                    </button>
+                    <button type="button" onClick={addPartnerShowcaseBackgroundPanel}>
+                      添加背景板
                     </button>
                     <input
                       accept="image/*,video/*"
@@ -12861,6 +19666,7 @@ function App() {
                     className={`partner-logo-mark ${selectedPartnerShowcase.tone} ${
                       activePartnerMerchantLogoImage ? 'has-image' : ''
                     }`}
+                    {...getPartnerShowcaseLogoCopyProps()}
                   >
                     {activePartnerMerchantLogoImage ? (
                       <img src={activePartnerMerchantLogoImage} alt={`${activePartnerMerchant.name} Logo`} />
@@ -12869,8 +19675,30 @@ function App() {
                     )}
                   </div>
                   <div>
-                    <span>{selectedPartnerShowcase.type}</span>
-                    <strong>{activePartnerMerchant.name}</strong>
+                    <span
+                      className="partner-showcase-text-wrap"
+                      style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseCategory')}
+                    >
+                      <span
+                        style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'showcaseCategory', activePartnerShowcaseAccentStyle)}
+                        {...getPartnerShowcaseEditableTextProps('showcaseCategory')}
+                      >
+                        {activePartnerShowcaseCategory}
+                      </span>
+                      {renderPartnerShowcaseTextEditor('showcaseCategory')}
+                    </span>
+                    <span
+                      className="partner-showcase-text-wrap"
+                      style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseMerchantName')}
+                    >
+                      <strong
+                        style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'showcaseMerchantName', activePartnerShowcaseTitleStyle)}
+                        {...getPartnerShowcaseEditableTextProps('showcaseMerchantName')}
+                      >
+                        {activePartnerShowcaseMerchantName}
+                      </strong>
+                      {renderPartnerShowcaseTextEditor('showcaseMerchantName')}
+                    </span>
                     <span
                       className="partner-showcase-text-wrap"
                       style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'badge')}
@@ -12950,13 +19778,52 @@ function App() {
             </div>
             <div className="partner-service-strip">
               <div className="partner-service-title">
-                <span>{selectedPartnerShowcase.type === '留学咨询' ? '专业留学规划与服务' : `${selectedPartnerShowcase.type}服务展示`}</span>
-                <strong>{activePartnerMerchant.name}</strong>
+                <span
+                  className="partner-showcase-text-wrap"
+                  style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseServiceTitle')}
+                >
+                  <span
+                    style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'showcaseServiceTitle', activePartnerShowcaseAccentStyle)}
+                    {...getPartnerShowcaseEditableTextProps('showcaseServiceTitle')}
+                  >
+                    {activePartnerShowcaseServiceTitle}
+                  </span>
+                  {renderPartnerShowcaseTextEditor('showcaseServiceTitle')}
+                </span>
+                <span
+                  className="partner-showcase-text-wrap"
+                  style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, 'showcaseServiceSubtitle')}
+                >
+                  <strong
+                    style={getTextContentStyle(activePartnerMerchantPreviewDecoration, 'showcaseServiceSubtitle', activePartnerShowcaseBodyStyle)}
+                    {...getPartnerShowcaseEditableTextProps('showcaseServiceSubtitle')}
+                  >
+                    {activePartnerShowcaseServiceSubtitle}
+                  </strong>
+                  {renderPartnerShowcaseTextEditor('showcaseServiceSubtitle')}
+                </span>
               </div>
               <div className="partner-service-items">
-                {activePartnerMerchant.tags.map((tag) => (
-                  <span key={tag}>{tag}</span>
-                ))}
+                {partnerShowcaseTagFields.map((field, index) => {
+                  const tag = activePartnerMerchant.tags[index] ?? ''
+                  const tagValue = activePartnerMerchantPreviewDecoration?.[field]?.trim() || tag
+                  if (!tagValue.trim() && !partnerShowcaseEditMode) return null
+                  return (
+                    <span
+                      className="partner-showcase-text-wrap"
+                      key={`${field}-${tag || index}`}
+                      style={getTextLayerStyle(activePartnerMerchantPreviewDecoration, field)}
+                    >
+                      <span
+                        style={getTextContentStyle(activePartnerMerchantPreviewDecoration, field, activePartnerShowcaseAccentStyle)}
+                        {...getPartnerShowcaseEditableTextProps(field)}
+                      >
+                        {tagValue}
+                      </span>
+                      {renderPartnerShowcaseTextEditor(field)}
+                    </span>
+                  )
+                })}
               </div>
             </div>
           </motion.article>
@@ -12999,58 +19866,6 @@ function App() {
             ))}
           </div>
         )}
-      </section>
-
-      <section className="workspace-section" id="workspace">
-        <div className="section-heading">
-          <p className="eyebrow dark">Community Account</p>
-          <h2>{currentUser ? `${currentUser.name}，管理你的提问、经验和认证。` : '为留学生设计清晰的提问、分享和认证入口。'}</h2>
-        </div>
-        <div className="workspace-grid">
-          <article className="workspace-panel">
-            <LogIn size={24} aria-hidden="true" />
-            <h3>{currentUser ? '社区账户' : '留学生账号'}</h3>
-            {currentUser ? (
-              <>
-                <p>{currentUser.identity} · {currentUser.school}</p>
-                <strong>{currentUser.points} 消费积分 · {currentUser.earningPoints} 可提现积分</strong>
-                <small>
-                  充值比例 1 元 = {rechargePointsPerYuan} 积分；收益满 {minimumCashoutPoints} 积分可申请提现，约 ¥
-                  {Math.floor(minimumCashoutPoints / cashoutPointsPerYuan)} 起。
-                </small>
-                <button type="button" onClick={() => navigateToPath('/wallet')}>
-                  充值/提现
-                </button>
-                {currentUserBioSettings.managedBrandId && (
-                  <button
-                    className="merchant-profile-entry-button"
-                    type="button"
-                    onClick={() => navigateToPath(`/partners/${currentUserBioSettings.managedBrandId}`)}
-                  >
-                    进入我的商家展示页
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <p>学生完成认证后，可提问、回答悬赏问题、匿名分享经验，并通过高质量内容获得收益。</p>
-                <button type="button" onClick={() => setAuthMode('register')}>创建社区账号</button>
-              </>
-            )}
-          </article>
-          <article className="workspace-panel">
-            <PenLine size={24} aria-hidden="true" />
-            <h3>机构合作申请</h3>
-            <p>留学机构、语学院、论文辅导、政府部门和职业规划机构可提交合作表单，由后台统一跟进。</p>
-            <button type="button" onClick={scrollToPartnerSection}>提交合作表单</button>
-          </article>
-          <article className="workspace-panel">
-            <Coins size={24} aria-hidden="true" />
-            <h3>资源与人才合作</h3>
-            <p>认证用户积累后，可为教育机构、跨境企业和韩企提供实习、招聘与校园服务入口。</p>
-            <button type="button" onClick={scrollToPartnerSection}>查看机构合作</button>
-          </article>
-        </div>
       </section>
 
       <section className="posts-section" id="posts">
@@ -13241,9 +20056,14 @@ function App() {
             <p className="eyebrow dark">后台管理</p>
             <h2>后台管理用户、内容和商家线索。</h2>
             {isAdminRoute && <p className="admin-page-url">后台网页：/admin</p>}
-            <button className="admin-logout-button" type="button" onClick={logoutAdmin}>
-              退出后台登录
-            </button>
+            <div className="admin-top-actions">
+              <button className="admin-logout-button" type="button" onClick={downloadAdminDocumentBackup}>
+                下载材料备份
+              </button>
+              <button className="admin-logout-button" type="button" onClick={logoutAdmin}>
+                退出后台登录
+              </button>
+            </div>
             <div className="admin-summary" aria-label="后台数据概览">
               <div>
                 <span>注册用户</span>
@@ -13277,8 +20097,19 @@ function App() {
                 <span>待处理举报</span>
                 <strong>{appState.reports.filter((report) => report.status === 'pending').length}</strong>
               </div>
+              <div>
+                <span>待办事项</span>
+                <strong>{adminTodoItems.length}</strong>
+              </div>
             </div>
             <div className="admin-tabs" role="tablist" aria-label="后台管理分类">
+              <button
+                className={adminTab === 'todos' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('todos')}
+              >
+                待办事项{adminTodoItems.length ? ` ${adminTodoItems.length}` : ''}
+              </button>
               <button
                 className={adminTab === 'users' ? 'active' : ''}
                 type="button"
@@ -13322,6 +20153,13 @@ function App() {
                 支付提现
               </button>
               <button
+                className={adminTab === 'merchants' ? 'active' : ''}
+                type="button"
+                onClick={() => setAdminTab('merchants')}
+              >
+                管理商家
+              </button>
+              <button
                 className={adminTab === 'reports' ? 'active' : ''}
                 type="button"
                 onClick={() => setAdminTab('reports')}
@@ -13337,7 +20175,122 @@ function App() {
               </button>
             </div>
 
-            {adminTab === 'users' ? (
+            {adminTab === 'todos' ? (
+              <div className="admin-table admin-todo-table">
+                <div className="admin-row admin-row-head">
+                  <span>待办内容</span>
+                  <span>类型</span>
+                  <span>相关账号 / 联系人</span>
+                  <span>提交时间</span>
+                  <span>处理入口</span>
+                </div>
+                {adminTodoItems.length === 0 ? (
+                  <p className="admin-empty">暂无待审核材料、合作申请或商家头像。</p>
+                ) : (
+                  adminTodoItems.map((item) => (
+                    <div className="admin-row" key={item.id}>
+                      <div>
+                        <strong>{item.title}</strong>
+                        <small>{item.detail}</small>
+                      </div>
+                      <span className="account-badge pending">{item.type}</span>
+                      <div>
+                        <strong>{item.userName}</strong>
+                        <small>{item.userEmail}</small>
+                      </div>
+                      <small>{new Date(item.createdAt).toLocaleString('zh-CN')}</small>
+                      <div className="admin-actions">
+                        {'document' in item ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                selectAdminUserForDetail(item.userId)
+                                setAdminTab('users')
+                              }}
+                            >
+                              查看账号
+                            </button>
+                            <button type="button" onClick={() => handleOpenCredentialDocument(item.document, item.userId)}>
+                              查看材料
+                            </button>
+                          </>
+                        ) : 'application' in item ? (
+                          <button type="button" onClick={() => setAdminTab('partners')}>
+                            查看合作申请
+                          </button>
+                        ) : 'renameRequest' in item ? (
+                          <>
+                            <button type="button" onClick={() => reviewRenameRequest(item.renameRequest.id, 'approved')}>
+                              通过改名
+                            </button>
+                            <button
+                              className="danger-button"
+                              type="button"
+                              onClick={() => reviewRenameRequest(item.renameRequest.id, 'rejected')}
+                            >
+                              驳回退分
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setPreviewCredentialDocument({
+                                  id: item.id,
+                                  name: `${item.title}待审核头像`,
+                                  type: 'image/*',
+                                  status: 'pending',
+                                  uploadedAt: item.createdAt,
+                                  dataUrl: item.decoration.pendingLogoImage,
+                                })
+                              }
+                            >
+                              查看头像
+                            </button>
+                            <button
+                              type="button"
+                              disabled={merchantLogoReviewBusyId === item.decoration.brandId}
+                              onClick={() =>
+                                void updateMerchantBrandDecoration(
+                                  item.decoration.brandId,
+                                  {
+                                    logoImage: item.decoration.pendingLogoImage,
+                                    pendingLogoImage: '',
+                                    logoReviewStatus: 'approved',
+                                  },
+                                  '商家头像已审核通过，会对外展示。',
+                                )
+                              }
+                            >
+                              通过
+                            </button>
+                            <button
+                              className="danger-button"
+                              type="button"
+                              disabled={merchantLogoReviewBusyId === item.decoration.brandId}
+                              onClick={() =>
+                                void updateMerchantBrandDecoration(
+                                  item.decoration.brandId,
+                                  {
+                                    pendingLogoImage: '',
+                                    logoReviewStatus: 'rejected',
+                                  },
+                                  '商家头像已审核不通过，商家可重新上传。',
+                                )
+                              }
+                            >
+                              不通过
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : adminTab === 'users' ? (
               <div className="admin-users-layout">
                 <div className="admin-table admin-user-table">
                   <div className="admin-row admin-row-head">
@@ -13413,7 +20366,7 @@ function App() {
                           }
                         />
                         <div className="admin-actions">
-                          <button type="button" onClick={() => setSelectedAdminUserId(user.id)}>
+                          <button type="button" onClick={() => selectAdminUserForDetail(user.id)}>
                             查看账号
                           </button>
                           <button
@@ -13442,7 +20395,7 @@ function App() {
                     ))
                   )}
                 </div>
-                <aside className="admin-account-detail">
+                <aside className="admin-account-detail" key={selectedAdminUser?.id ?? 'empty-admin-user'}>
                   {selectedAdminUser ? (
                     <>
                       <div className="admin-detail-head">
@@ -13457,11 +20410,11 @@ function App() {
                       </div>
                       <div className="admin-detail-grid">
                         <div>
-                          <span>身份</span>
-                          <strong>{selectedAdminUser.identity}</strong>
+                          <span>{selectedAdminUserIsMerchant ? '商家分类' : '身份'}</span>
+                          <strong>{selectedAdminUserIsMerchant ? selectedAdminUserBusinessCategoryLabel : selectedAdminUser.identity}</strong>
                         </div>
                         <div>
-                          <span>学校</span>
+                          <span>{selectedAdminUserIsMerchant ? '所在地' : '学校'}</span>
                           <strong>{selectedAdminUser.school}</strong>
                         </div>
                         <div>
@@ -13481,6 +20434,71 @@ function App() {
                           <strong>¥{Math.floor(selectedAdminUser.earningPoints / cashoutPointsPerYuan)}</strong>
                         </div>
                       </div>
+                      <div className="admin-password-reset-panel">
+                        <div>
+                          <span>登录密码</span>
+                          <strong>重置临时密码</strong>
+                          <small>只更新服务器密码哈希，不会显示或找回原密码。</small>
+                        </div>
+                        <div className="admin-password-reset-actions">
+                          <input
+                            aria-label={`${selectedAdminUser.name} 新临时密码`}
+                            autoComplete="new-password"
+                            placeholder="输入至少 6 位临时密码"
+                            type="text"
+                            value={adminPasswordDrafts[selectedAdminUser.id] ?? ''}
+                            onChange={(event) =>
+                              setAdminPasswordDrafts((drafts) => ({
+                                ...drafts,
+                                [selectedAdminUser.id]: event.target.value,
+                              }))
+                            }
+                          />
+                          <button
+                            className="danger-button"
+                            type="button"
+                            disabled={adminPasswordResetBusyId === selectedAdminUser.id}
+                            onClick={() => void resetUserPassword(selectedAdminUser.id)}
+                          >
+                            {adminPasswordResetBusyId === selectedAdminUser.id ? '重置中...' : '重置密码'}
+                          </button>
+                        </div>
+                      </div>
+                      {selectedAdminUserRenameRequests.length > 0 && (
+                        <div className="admin-brand-access-note">
+                          <span>改名申请</span>
+                          {selectedAdminUserRenameRequests.slice(0, 3).map((request) => (
+                            <div key={request.id}>
+                              <strong>
+                                {request.oldName} → {request.requestedName}
+                              </strong>
+                              <small>
+                                {request.status === 'pending'
+                                  ? '待审核'
+                                  : request.status === 'approved'
+                                    ? '已通过'
+                                    : '已驳回'}
+                                · {request.costEarningPoints} 可提现积分 ·{' '}
+                                {new Date(request.createdAt).toLocaleString('zh-CN')}
+                              </small>
+                              {request.status === 'pending' && (
+                                <div className="admin-actions detail-actions">
+                                  <button type="button" onClick={() => reviewRenameRequest(request.id, 'approved')}>
+                                    通过改名
+                                  </button>
+                                  <button
+                                    className="danger-button"
+                                    type="button"
+                                    onClick={() => reviewRenameRequest(request.id, 'rejected')}
+                                  >
+                                    驳回退分
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                       <div className="admin-control-row">
                         <label>
                           账号状态
@@ -13517,23 +20535,26 @@ function App() {
                         <label>
                           商家品牌装饰权限
                           <select
-                            value={selectedAdminUserControlSettings?.managedBrandId ?? ''}
+                            value={selectedAdminManagedBrandSelectValue}
                             onChange={(event) => {
+                              const nextBrand = manageablePartnerBrands.find((brand) => brand.id === event.target.value)
+                              const currentCategories = selectedAdminUserControlSettings?.businessCategories ?? []
                               updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
                                 managedBrandId: event.target.value,
+                                businessCategories: currentCategories.length ? currentCategories : nextBrand ? [nextBrand.type] : [],
                               })
                             }}
                           >
                             <option value="">不分配品牌</option>
                             {manageablePartnerBrands.map((brand) => (
                               <option key={brand.id} value={brand.id}>
-                                {brand.name}品牌的管理商家 · {brand.type}
+                                {brand.name}品牌的管理商家
                               </option>
                             ))}
                           </select>
                         </label>
                         <label>
-                          商家级别
+                          默认商家级别
                           <select
                             value={selectedAdminUserControlSettings?.managedBrandLevel ?? 'normal'}
                             onChange={(event) => {
@@ -13557,10 +20578,51 @@ function App() {
                               : '未分配'}
                           </strong>
                           <small>
-                            账号认证状态为“已通过”后，商家才能在对应详情页装饰自己的品牌；置顶商家会优先显示。
+                            品牌只分配装饰权限；经营范围和每个范围是否置顶，在下方单独勾选保存。
                           </small>
                         </div>
                       </div>
+                      {selectedAdminUserControlSettings?.managedBrandId && (
+                        <div className="admin-business-scope-editor">
+                          <div>
+                            <span>经营范围管理</span>
+                            <small>勾选后商家才会出现在对应展示分类里；每个经营范围可单独设置普通或置顶。</small>
+                          </div>
+                          <div className="admin-scope-option-list">
+                            {businessCategoryOptions.map((category) => {
+                              const checked = selectedAdminUserControlSettings.businessCategories.includes(category)
+                              return (
+                                <label className="admin-scope-option" key={category}>
+                                  <input
+                                    checked={checked}
+                                    type="checkbox"
+                                    onChange={(event) => updateSelectedAdminUserBusinessScope(category, event.target.checked)}
+                                  />
+                                  <strong>{category}</strong>
+                                  <select
+                                    value={
+                                      selectedAdminUserControlSettings.businessScopeLevels[category] ??
+                                      selectedAdminUserControlSettings.managedBrandLevel
+                                    }
+                                    disabled={!checked}
+                                    onChange={(event) => {
+                                      updateSelectedAdminUserSettingDraft(selectedAdminUser.id, {
+                                        businessScopeLevels: {
+                                          ...selectedAdminUserControlSettings.businessScopeLevels,
+                                          [category]: event.target.value as MerchantLevel,
+                                        },
+                                      })
+                                    }}
+                                  >
+                                    <option value="normal">普通</option>
+                                    <option value="pinned">置顶</option>
+                                  </select>
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
                       <div className="admin-actions detail-actions">
                         <button type="button" onClick={saveSelectedAdminUserSettings}>
                           保存商家状态
@@ -13572,41 +20634,91 @@ function App() {
                           <span>{selectedAdminUser.documents.length} 份</span>
                         </div>
                         {selectedAdminUser.documents.length ? (
-                          selectedAdminUser.documents.map((document) => (
-                            <div className="credential-item" key={document.id}>
-                              <div>
-                                <strong>{document.name}</strong>
-                                <small>
-                                  {document.type} · {new Date(document.uploadedAt).toLocaleDateString('zh-CN')}
-                                </small>
+                          selectedAdminUser.documents.map((document) => {
+                            const reviewKey = `${selectedAdminUser.id}:${document.id}`
+                            const isRejecting = rejectingCredentialDocumentId === reviewKey
+                            const documentStatus =
+                              selectedAdminUserControlSettings?.verificationStatus === 'approved' && document.status === 'pending'
+                                ? 'approved'
+                                : document.status
+                            const canReviewDocument = documentStatus !== 'approved'
+                            return (
+                              <div className="credential-item" key={document.id}>
+                                <div>
+                                  <strong>{document.name}</strong>
+                                  <small>
+                                    {document.type} · {new Date(document.uploadedAt).toLocaleDateString('zh-CN')}
+                                  </small>
+                                  {document.reviewNote && <small>不通过理由：{document.reviewNote}</small>}
+                                </div>
+                                <div className="credential-actions">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenCredentialDocument(document, selectedAdminUser.id)}
+                                    disabled={credentialDocumentBusyId === document.id}
+                                  >
+                                    查看材料
+                                  </button>
+                                  {canReviewDocument && (
+                                    <>
+                                      <button
+                                        type="button"
+                                        onClick={() => reviewUserDocument(selectedAdminUser.id, document.id, 'approved')}
+                                        disabled={credentialDocumentBusyId === document.id}
+                                      >
+                                        通过
+                                      </button>
+                                      <button
+                                        className="danger-button"
+                                        type="button"
+                                        onClick={() => {
+                                          setRejectingCredentialDocumentId(reviewKey)
+                                          setCredentialRejectDrafts((drafts) => ({
+                                            ...drafts,
+                                            [reviewKey]: drafts[reviewKey] ?? document.reviewNote ?? '',
+                                          }))
+                                        }}
+                                        disabled={credentialDocumentBusyId === document.id}
+                                      >
+                                        不通过
+                                      </button>
+                                    </>
+                                  )}
+                                  <span className={`account-badge ${documentStatus}`}>
+                                    {verificationStatusLabel[documentStatus]}
+                                  </span>
+                                  {canReviewDocument && isRejecting && (
+                                    <>
+                                      <textarea
+                                        rows={2}
+                                        value={credentialRejectDrafts[reviewKey] ?? ''}
+                                        onChange={(event) =>
+                                          setCredentialRejectDrafts((drafts) => ({
+                                            ...drafts,
+                                            [reviewKey]: event.target.value,
+                                          }))
+                                        }
+                                        placeholder="填写不通过理由，用户侧可看到。"
+                                      />
+                                      <button
+                                        className="danger-button"
+                                        type="button"
+                                        onClick={() => reviewUserDocument(selectedAdminUser.id, document.id, 'rejected')}
+                                        disabled={credentialDocumentBusyId === document.id}
+                                      >
+                                        确认不通过
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
                               </div>
-                              <div className="credential-actions">
-                                <button type="button" onClick={() => openCredentialDocument(document, setMessage)}>
-                                  查看材料
-                                </button>
-                                <span className={`account-badge ${document.status}`}>
-                                  {verificationStatusLabel[document.status]}
-                                </span>
-                              </div>
-                            </div>
-                          ))
+                            )
+                          })
                         ) : (
                           <p className="admin-empty">该账号暂未上传认证材料。</p>
                         )}
                       </div>
                       <div className="admin-actions detail-actions">
-                        <button
-                          type="button"
-                          onClick={() => updateUserDocuments(selectedAdminUser.id, 'approved', 'approved')}
-                        >
-                          审核通过
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updateUserDocuments(selectedAdminUser.id, 'rejected', 'rejected')}
-                        >
-                          驳回材料
-                        </button>
                         <button type="button" onClick={() => updateUserAccount(selectedAdminUser.id, { status: 'muted' })}>
                           禁言
                         </button>
@@ -13938,6 +21050,143 @@ function App() {
                   </>
                 )}
               </div>
+            ) : adminTab === 'merchants' ? (
+              <div className="admin-content-panel">
+                <div className="admin-content-head">
+                  <div>
+                    <p className="eyebrow dark">商家分类管理</p>
+                    <h3>添加或删除商家，前台会按类别展示。</h3>
+                  </div>
+                  <div className="admin-content-actions">
+                    <button className="primary-admin-button" type="button" onClick={addManagedMerchant} disabled={merchantManagerSaving}>
+                      {merchantManagerSaving ? '保存中...' : '添加商家'}
+                    </button>
+                  </div>
+                </div>
+                <div className="admin-content-grid">
+                  <label>
+                    商家类别
+                    <select
+                      value={merchantManagerDraft.category}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, category: event.target.value }))}
+                    >
+                      {adminMerchantCategoryOptions.map((category) => (
+                        <option key={category}>{category}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    商家名称
+                    <input
+                      value={merchantManagerDraft.name}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, name: event.target.value }))}
+                      placeholder="例如：土著人"
+                    />
+                  </label>
+                  <label>
+                    气泡文字
+                    <input
+                      value={merchantManagerDraft.logo}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, logo: event.target.value }))}
+                      placeholder="不填默认取名称前三字"
+                    />
+                  </label>
+                  <label>
+                    商家级别
+                    <select
+                      value={merchantManagerDraft.level}
+                      onChange={(event) =>
+                        setMerchantManagerDraft((draft) => ({ ...draft, level: event.target.value as MerchantLevel }))
+                      }
+                    >
+                      <option value="normal">普通</option>
+                      <option value="pinned">置顶</option>
+                    </select>
+                  </label>
+                  <label className="wide-field">
+                    摘要
+                    <textarea
+                      rows={2}
+                      value={merchantManagerDraft.summary}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, summary: event.target.value }))}
+                      placeholder="一句话说明主营服务"
+                    />
+                  </label>
+                  <label className="wide-field">
+                    详情说明
+                    <textarea
+                      rows={3}
+                      value={merchantManagerDraft.description}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, description: event.target.value }))}
+                      placeholder="写清服务范围、适合人群、价格边界或咨询前准备"
+                    />
+                  </label>
+                  <label>
+                    标签
+                    <input
+                      value={merchantManagerDraft.tags}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, tags: event.target.value }))}
+                      placeholder="用逗号分隔"
+                    />
+                  </label>
+                  <label>
+                    地区
+                    <input
+                      value={merchantManagerDraft.location}
+                      onChange={(event) => setMerchantManagerDraft((draft) => ({ ...draft, location: event.target.value }))}
+                      placeholder="例如：韩国 · 首尔"
+                    />
+                  </label>
+                </div>
+                <div className="admin-table admin-merchant-table">
+                  {adminMerchantGroups.map((group) => (
+                    <Fragment key={group.type}>
+                      <div className="admin-row admin-row-head">
+                        <span>{group.type}</span>
+                        <span>商家</span>
+                        <span>摘要</span>
+                        <span>标签</span>
+                        <span>操作</span>
+                      </div>
+                      {group.merchants.map((merchant) => {
+                        const slug = getPartnerMerchantSlug(merchant)
+                        const entry = partnerMerchantEntries.find(
+                          (item) => item.slug === slug && item.showcase.type === group.type,
+                        )
+                        const merchantTags = merchant.tags.map(decodeUrlLikeText).filter(Boolean)
+                        return (
+                          <div className="admin-row" key={`${group.type}-${slug}`}>
+                            <div>
+                              <strong>{group.type}</strong>
+                              <small>{merchant.level === 'pinned' ? '置顶商家' : '普通商家'}</small>
+                            </div>
+                            <div>
+                              <strong>{decodeUrlLikeText(merchant.name)}</strong>
+                              <small>{getAdminMerchantMeta(merchant, slug)}</small>
+                            </div>
+                            <p className="admin-partner-detail">{decodeUrlLikeText(merchant.summary)}</p>
+                            <div className="admin-merchant-tags">
+                              {merchantTags.length ? merchantTags.map((tag) => <span key={tag}>{tag}</span>) : <span>未设置标签</span>}
+                            </div>
+                            <div className="admin-actions">
+                              {entry && (
+                                <button
+                                  className="danger-button"
+                                  type="button"
+                                  onClick={() => hideManagedMerchant(entry)}
+                                  disabled={merchantManagerSaving}
+                                >
+                                  删除商家
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </Fragment>
+                  ))}
+                </div>
+              </div>
             ) : adminTab === 'reports' ? (
               <div className="admin-table admin-report-table">
                 <div className="admin-row admin-row-head">
@@ -14080,12 +21329,17 @@ function App() {
                           <div className="admin-actions">
                             <button
                               type="button"
+                              disabled={merchantLogoReviewBusyId === decoration.brandId}
                               onClick={() =>
-                                updateMerchantBrandDecoration(decoration.brandId, {
-                                  logoImage: decoration.pendingLogoImage,
-                                  pendingLogoImage: '',
-                                  logoReviewStatus: 'approved',
-                                })
+                                void updateMerchantBrandDecoration(
+                                  decoration.brandId,
+                                  {
+                                    logoImage: decoration.pendingLogoImage,
+                                    pendingLogoImage: '',
+                                    logoReviewStatus: 'approved',
+                                  },
+                                  '商家头像已审核通过，会对外展示。',
+                                )
                               }
                             >
                               通过
@@ -14093,11 +21347,16 @@ function App() {
                             <button
                               className="danger-button"
                               type="button"
+                              disabled={merchantLogoReviewBusyId === decoration.brandId}
                               onClick={() =>
-                                updateMerchantBrandDecoration(decoration.brandId, {
-                                  pendingLogoImage: '',
-                                  logoReviewStatus: 'rejected',
-                                })
+                                void updateMerchantBrandDecoration(
+                                  decoration.brandId,
+                                  {
+                                    pendingLogoImage: '',
+                                    logoReviewStatus: 'rejected',
+                                  },
+                                  '商家头像已审核不通过，商家可重新上传。',
+                                )
                               }
                             >
                               不通过
@@ -14328,6 +21587,46 @@ function App() {
         </div>
       )}
 
+      {previewCredentialDocument && (
+        <div className="modal-backdrop credential-preview-backdrop" role="presentation">
+          <section className="modal-sheet wide-modal credential-preview-modal" aria-label="材料预览">
+            <button className="close-button" type="button" onClick={() => setPreviewCredentialDocument(null)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">材料预览</p>
+            <h2>{previewCredentialDocument.name}</h2>
+            <div className="credential-preview-meta">
+              <span>{previewCredentialMimeType}</span>
+              <span>{verificationStatusLabel[previewCredentialDocument.status]}</span>
+              <span>{new Date(previewCredentialDocument.uploadedAt).toLocaleString('zh-CN')}</span>
+            </div>
+            <div className="credential-preview-frame">
+              {!previewCredentialDocument.dataUrl ? (
+                <p className="admin-empty">这份材料没有保存文件内容，请让用户重新上传后再查看。</p>
+              ) : previewCredentialIsImage ? (
+                <img src={previewCredentialDocument.dataUrl} alt={previewCredentialDocument.name} />
+              ) : previewCredentialIsPdf ? (
+                <iframe src={previewCredentialDocument.dataUrl} title={previewCredentialDocument.name} />
+              ) : previewCredentialText ? (
+                <pre>{previewCredentialText}</pre>
+              ) : (
+                <p className="admin-empty">当前文件类型无法直接预览，可用下方按钮在新窗口打开或下载查看。</p>
+              )}
+            </div>
+            {previewCredentialDocument.dataUrl && (
+              <div className="credential-preview-actions">
+                <a href={previewCredentialDocument.dataUrl} target="_blank" rel="noreferrer">
+                  新窗口打开
+                </a>
+                <a href={previewCredentialDocument.dataUrl} download={previewCredentialDocument.name}>
+                  下载材料
+                </a>
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
       {authMode && (
         <div className="modal-backdrop" role="presentation">
           <section className="modal-sheet" aria-label={authMode === 'login' ? '登录' : '注册'}>
@@ -14503,51 +21802,30 @@ function App() {
                   />
                 </label>
               )}
-              <label className="agreement-check">
-                <span className="agreement-copy">
-                  <span className="agreement-copy-line">
-                    <input
-                      type="checkbox"
-                      checked={authForm.agreementAccepted}
-                      onChange={(event) => setAuthForm({ ...authForm, agreementAccepted: event.target.checked })}
-                    />
-                    <span>我已阅读并同意</span>
-                    <a
-                      href="/terms"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setAuthMode(null)
-                        setAccountRecoveryOpen(false)
-                        navigateToPath('/terms')
-                      }}
-                    >
-                      《用户协议》
-                    </a>
-                    <a
-                      href="/privacy"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setAuthMode(null)
-                        setAccountRecoveryOpen(false)
-                        navigateToPath('/privacy')
-                      }}
-                    >
-                      《隐私政策》
-                    </a>
-                    <a
-                      href="/minor-privacy"
-                      onClick={(event) => {
-                        event.preventDefault()
-                        setAuthMode(null)
-                        setAccountRecoveryOpen(false)
-                        navigateToPath('/minor-privacy')
-                      }}
-                    >
-                      《未成年人个人信息保护规则》
-                    </a>
-                  </span>
-                </span>
-              </label>
+              {authMode === 'register' && (
+                <div className="legal-consent-block auth-legal-consent">
+                  <label className="agreement-check">
+                    <span className="agreement-copy">
+                      <span className="agreement-copy-line">
+                        <input
+                          type="checkbox"
+                          checked={authForm.agreementAccepted}
+                          onChange={(event) => setAuthForm({ ...authForm, agreementAccepted: event.target.checked })}
+                        />
+                        <span>
+                          {authForm.userType === 'merchant'
+                            ? '我确认已阅读并同意商家入驻相关协议：'
+                            : '我已阅读并同意'}
+                        </span>
+                        {renderLegalDocumentLinks(authLegalDocumentIds)}
+                      </span>
+                    </span>
+                  </label>
+                  <p className="legal-consent-notice">
+                    注册后发布内容、评论和回答时还需遵守 {renderLegalDocumentLinks(['community-rules'])}。
+                  </p>
+                </div>
+              )}
               <button type="submit">{authMode === 'login' ? '登录' : '注册并领取初始积分'}</button>
             </form>
             {authMode === 'login' && (
@@ -14625,14 +21903,16 @@ function App() {
             {!publishMode ? (
               <div className="publish-choice">
                 <p className="eyebrow dark">发布内容</p>
-                <h2>你要发布“我知道”，还是“我能做”？</h2>
+                <h2>选择 `I KNOW` 或 `I CAN`。</h2>
                 <div className="publish-choice-grid">
                   <button type="button" onClick={() => setPublishMode('knowledge')}>
-                    <strong>我知道</strong>
+                    <strong>I KNOW</strong>
+                    <em>我知道</em>
                     <span>发布经验、流程、材料清单、避坑攻略和学校生活复盘。</span>
                   </button>
                   <button type="button" onClick={() => setPublishMode('skill')}>
-                    <strong>我能做</strong>
+                    <strong>I CAN</strong>
+                    <em>我能做</em>
                     <span>发布可接的技能服务：跑腿、排队、地陪、宠物照看、同校辅导等。</span>
                   </button>
                 </div>
@@ -14646,8 +21926,8 @@ function App() {
                   <p className="eyebrow dark">{publishMode === 'skill' ? '发布技能' : '发布经验'}</p>
                   <h2>
                     {publishMode === 'skill'
-                      ? '发布你能提供的技能和帮助。'
-                      : '发布可检索、可审核、可加精的留学经验。'}
+                      ? 'I CAN：发布你能提供的技能和帮助。'
+                      : 'I KNOW：发布可检索、可审核、可加精的留学经验。'}
                   </h2>
                 </div>
                 <form className="form-stack" onSubmit={handlePublish}>
@@ -14752,10 +22032,271 @@ function App() {
                       }
                     />
                   </label>
+                  {publishMode === 'skill' && (
+                    <div className="legal-consent-block">
+                      <strong>提供帮助资格</strong>
+                      <p className="legal-consent-notice">{getHelperQualificationStatusText('offline')}</p>
+                      {!currentUserOfflineHelperQualified && (
+                        <button type="button" onClick={() => requireHelperQualification('offline')}>
+                          申请线下帮助资格
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {renderLegalConsent(
+                    publishMode === 'skill' ? 'skill-publish' : 'content-publish',
+                    publishMode === 'skill'
+                      ? contentPublishLegalDocumentIds
+                      : Array.from(new Set([...contentPublishLegalDocumentIds, ...creatorLegalDocumentIds])),
+                    publishMode === 'skill'
+                      ? '我确认发布技能/服务信息符合《社区内容规范》，并同意《内容授权协议》和《原创声明》。'
+                      : '我确认发布内容符合《社区内容规范》，并同意《内容授权协议》和《原创声明》。',
+                    {
+                      notice:
+                        '签证、法律、医疗、金融类内容仅供参考，应以专业机构、官方机构和学校最新公告为准。',
+                    },
+                  )}
                   <button type="submit">{publishMode === 'skill' ? '保存并发布技能' : '保存并发布'}</button>
                 </form>
               </>
             )}
+          </section>
+        </div>
+      )}
+
+      {selectedOfflineTask && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-sheet wide-modal" aria-label="线下任务接单确认">
+            <button className="close-button" type="button" onClick={() => setSelectedOfflineTask(null)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">线下任务接单</p>
+            <h2>确认联系这个线下求助任务。</h2>
+            <div className="legal-consent-block">
+              <strong>{selectedOfflineTask.title}</strong>
+              <p className="legal-consent-notice">{selectedOfflineTask.detail}</p>
+              <div className="tag-line">
+                <span>{selectedOfflineTask.category}</span>
+                <span>{selectedOfflineTask.school}</span>
+                <span>{selectedOfflineTask.city}</span>
+                <span>{Math.round(selectedOfflineTask.amountYuan * cashoutPointsPerYuan)} 可提现积分</span>
+              </div>
+              <small>截止 {selectedOfflineTask.deadline}</small>
+            </div>
+            <div className="legal-consent-block">
+              <strong>接单前安全提示</strong>
+              <ul className="legal-consent-summary">
+                {helpSeekerSafeguardClauses.map((clause) => (
+                  <li key={clause}>{clause}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="quick-action-row">
+              <button type="button" onClick={() => setSelectedOfflineTask(null)}>
+                先不接
+              </button>
+              <button type="button" onClick={handleConfirmOfflineTaskClaim}>
+                确认联系接单
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {activeHelpConversation && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-sheet wide-modal help-chat-modal" aria-label="帮助者对话">
+            <button className="close-button" type="button" onClick={() => setActiveHelpConversation(null)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">站内对话</p>
+            <h2>{activeHelpConversation.providerName}</h2>
+            <p className="help-chat-need">需求：{activeHelpConversation.needText}</p>
+            <div className="help-chat-thread">
+              {activeHelpConversation.messages.map((chatMessage) => (
+                <article className={`help-chat-bubble ${chatMessage.sender}`} key={chatMessage.id}>
+                  <span>
+                    {chatMessage.sender === 'provider'
+                      ? activeHelpConversation.providerName
+                      : chatMessage.sender === 'system'
+                        ? '系统'
+                        : currentUser?.name || '我'}
+                  </span>
+                  <p>{chatMessage.text}</p>
+                  {chatMessage.quotePoints ? (
+                    <div className="help-quote-actions">
+                      <strong>{chatMessage.quotePoints} 积分</strong>
+                      <button type="button" onClick={() => respondToHelpQuote(chatMessage.id, 'accepted')}>
+                        接受报价
+                      </button>
+                      <button type="button" onClick={() => respondToHelpQuote(chatMessage.id, 'negotiating')}>
+                        议价
+                      </button>
+                      {chatMessage.quoteStatus && (
+                        <em>
+                          {chatMessage.quoteStatus === 'accepted'
+                            ? '已接受'
+                            : chatMessage.quoteStatus === 'negotiating'
+                              ? '议价中'
+                              : '等待反馈'}
+                        </em>
+                      )}
+                    </div>
+                  ) : null}
+                </article>
+              ))}
+            </div>
+            <div className="help-chat-compose">
+              <input
+                value={helpChatInput}
+                onChange={(event) => setHelpChatInput(event.target.value)}
+                placeholder="补充时间、地点、预算或需要对方确认的边界。"
+              />
+              <button type="button" onClick={sendHelpChatMessage}>
+                发送
+              </button>
+            </div>
+            <div className="help-quote-box">
+              <label>
+                帮助者报价
+                <input
+                  min="1"
+                  type="number"
+                  value={helpQuoteDraft}
+                  onChange={(event) => setHelpQuoteDraft(event.target.value)}
+                />
+              </label>
+              <button type="button" onClick={sendHelpQuote}>
+                报价
+                <CircleDollarSign size={18} aria-hidden="true" />
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {helperQualificationOpen && (
+        <div className="modal-backdrop" role="presentation">
+          <section className="modal-sheet wide-modal" aria-label="申请提供帮助资格">
+            <button className="close-button" type="button" onClick={() => setHelperQualificationOpen(false)}>
+              <X size={20} aria-hidden="true" />
+            </button>
+            <p className="eyebrow dark">帮助资格申请</p>
+            <h2>{helperQualificationMode === 'offline' ? '申请线下帮助资格。' : '申请线上解答资格。'}</h2>
+            <p>
+              {helperQualificationMode === 'offline'
+                ? '为保护求助人和帮助者的面见安全，涉及线下见面、陪同办理、跑腿代办、材料协助等场景时，平台要求填写真实姓名、联系方式、身份说明和可提供帮助范围，并上传必要身份材料。'
+                : '线上解答不要求提交登录证、护照等强身份材料。你只需上传学生证、在韩学习/生活经历或其他能够证明相关经验的材料，平台审核通过后即可回答悬赏问题。'}
+            </p>
+            <form className="form-stack" onSubmit={handleHelperQualificationSubmit}>
+              {helperQualificationMode === 'offline' ? (
+                <>
+                  <div className="form-grid partner-form-grid">
+                    <label>
+                      真实姓名
+                      <input
+                        required
+                        value={helperQualificationForm.realName}
+                        onChange={(event) =>
+                          setHelperQualificationForm({ ...helperQualificationForm, realName: event.target.value })
+                        }
+                        placeholder="请填写本人真实姓名"
+                      />
+                    </label>
+                    <label>
+                      联系方式
+                      <input
+                        required
+                        value={helperQualificationForm.contact}
+                        onChange={(event) =>
+                          setHelperQualificationForm({ ...helperQualificationForm, contact: event.target.value })
+                        }
+                        placeholder="电话 / 邮箱 / 카톡 / 微信"
+                      />
+                    </label>
+                  </div>
+                  <label>
+                    身份说明
+                    <input
+                      required
+                      value={helperQualificationForm.identityNote}
+                      onChange={(event) =>
+                        setHelperQualificationForm({ ...helperQualificationForm, identityNote: event.target.value })
+                      }
+                      placeholder="例如：在韩本科生、大学院在读、毕业生、商家工作人员"
+                    />
+                  </label>
+                  <label>
+                    可提供帮助范围
+                    <textarea
+                      required
+                      value={helperQualificationForm.serviceScope}
+                      onChange={(event) =>
+                        setHelperQualificationForm({ ...helperQualificationForm, serviceScope: event.target.value })
+                      }
+                      placeholder="写清你能提供哪些帮助、适合的区域、是否涉及线下见面，以及你不接的事项。"
+                    />
+                  </label>
+                </>
+              ) : (
+                <label>
+                  在韩经验说明（可选）
+                  <textarea
+                    value={helperQualificationForm.identityNote}
+                    onChange={(event) =>
+                      setHelperQualificationForm({ ...helperQualificationForm, identityNote: event.target.value })
+                    }
+                    placeholder="例如：韩国本科在读、已办理过 D-2 延签、在首尔租过 one-room，可回答对应经验。"
+                  />
+                </label>
+              )}
+              <label>
+                {helperQualificationMode === 'offline'
+                  ? '上传个人登录证正反面 / 学生证 / 护照等材料'
+                  : '上传学生证 / 在韩经验证明材料'}
+                <input multiple type="file" onChange={handleHelperQualificationDocumentsUpload} />
+                <small className="field-help">
+                  {helperQualificationMode === 'offline'
+                    ? '线下帮助可能涉及见面安全，需提交外国人登录证正反面、学生证、护照或其他足以核验身份与在韩状态的材料。提交前建议遮挡证件号码等非必要敏感信息。'
+                    : '线上解答只需证明你有相关在韩学习、生活或办理经验；不要求提交登录证正反面、护照等强身份材料。'}
+                </small>
+              </label>
+              {helperQualificationForm.documents.length ? (
+                <div className="credential-item">
+                  <div>
+                    <strong>已选择 {helperQualificationForm.documents.length} 份材料</strong>
+                    <small>{helperQualificationForm.documents.map((document) => document.name).join('、')}</small>
+                  </div>
+                </div>
+              ) : null}
+              <div className="legal-consent-block">
+                <strong>申请条款</strong>
+                <ul className="legal-consent-summary">
+                  {helperProviderSafeguardClauses.map((clause) => (
+                    <li key={clause}>{clause}</li>
+                  ))}
+                </ul>
+                <label className="agreement-check legal-consent-check">
+                  <input
+                    checked={helperQualificationForm.oath}
+                    onChange={(event) => setHelperQualificationForm({ ...helperQualificationForm, oath: event.target.checked })}
+                    type="checkbox"
+                  />
+                  <span>
+                    {helperQualificationMode === 'offline'
+                      ? '本人郑重承诺：以上真实姓名、联系方式、身份说明、可提供帮助范围和上传材料均真实、合法、有效；如有虚假、冒用、伪造或隐瞒重要事实，本人愿依法承担由此产生的全部责任。'
+                      : '本人郑重承诺：以上学生证或在韩经验证明材料真实、合法、有效；如有虚假、冒用、伪造或隐瞒重要事实，本人愿依法承担由此产生的相应责任。'}
+                  </span>
+                </label>
+              </div>
+              <button type="submit" disabled={helperQualificationSubmitting}>
+                {helperQualificationSubmitting
+                  ? '提交中...'
+                  : helperQualificationMode === 'offline'
+                    ? '提交线下帮助资格申请'
+                    : '提交线上解答资格申请'}
+              </button>
+            </form>
           </section>
         </div>
       )}
@@ -14839,6 +22380,28 @@ function App() {
                   placeholder="请写一下你们想入驻的内容、目标学生群体、主推学校/专业、希望获取的线索或合作方式。"
                 />
               </label>
+              {renderLegalConsent(
+                getPartnerLegalContext().key,
+                getPartnerLegalContext().documentIds,
+                getPartnerLegalContext().label,
+                {
+                  summaries:
+                    getPartnerLegalContext().key === 'campus-ambassador'
+                      ? [
+                          '校园合伙人不是公司员工、股东或代理人。',
+                          '不得代表公司签合同、私收费用、冒充官方或对外承诺收益。',
+                        ]
+                      : getPartnerLegalContext().key === 'advertising'
+                        ? [
+                            '广告必须标注商家身份，平台不承诺点击量、咨询量或成交量。',
+                            '禁止冒充学校、政府、平台官方，禁止承诺签证、录取、工作或收益结果。',
+                          ]
+                        : [
+                            '平台不是服务实际提供方，商家自行承担服务履约责任。',
+                            '不得发布虚假房源、虚假宣传、诱导黑工、假材料或虚假签证信息。',
+                          ],
+                },
+              )}
               <button type="submit">提交合作申请</button>
             </form>
           </section>
@@ -14901,11 +22464,78 @@ function App() {
                   placeholder="邮箱、微信或电话，便于平台核实"
                 />
               </label>
+              {renderLegalConsent(
+                'report-complaint',
+                reportLegalDocumentIds,
+                '我确认举报内容真实，并已了解平台不替代司法、仲裁、行政机关。',
+              )}
               <button type="submit">提交举报</button>
             </form>
           </section>
         </div>
       )}
+      <footer className="site-legal-footer shouye-footer" aria-label="网站页脚">
+        <div className="shouye-footer-inner">
+          <div className="shouye-footer-main">
+            <div className="shouye-footer-columns">
+              <section>
+                <h2>关于售业</h2>
+                <a href="/about" onClick={(event) => { event.preventDefault(); navigateToPath('/about') }}>平台介绍</a>
+                <a href="/legal/user-agreement" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/user-agreement') }}>用户服务协议</a>
+                <a href="/legal/privacy-policy" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/privacy-policy') }}>隐私政策</a>
+                <a href="/contact" onClick={(event) => { event.preventDefault(); navigateToPath('/contact') }}>联系与举报</a>
+              </section>
+              <section>
+                <h2>留学内容</h2>
+                <a href="/posts" onClick={(event) => { event.preventDefault(); navigateToPath('/posts') }}>精华经验</a>
+                <a href="/questions" onClick={(event) => { event.preventDefault(); navigateToPath('/questions') }}>问答求助</a>
+                <a href="/categories" onClick={(event) => { event.preventDefault(); navigateToPath('/categories') }}>问题分类</a>
+                <a href="/#school-browser" onClick={(event) => { event.preventDefault(); navigateToSchoolBrowser() }}>院校入口</a>
+              </section>
+              <section>
+                <h2>平台规则</h2>
+                <a href="/legal/community-rules" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/community-rules') }}>社区内容规范</a>
+                <a href="/legal/report-complaint-rules" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/report-complaint-rules') }}>投诉举报规则</a>
+                <a href="/legal/points-and-levels-rules" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/points-and-levels-rules') }}>积分与等级规则</a>
+                <a href="/legal" onClick={(event) => { event.preventDefault(); navigateToPath('/legal') }}>全部法律文件</a>
+              </section>
+              <section>
+                <h2>商家服务</h2>
+                <a href="/legal/merchant-onboarding-agreement" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/merchant-onboarding-agreement') }}>商家入驻协议</a>
+                <a href="/legal/merchant-verification-rules" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/merchant-verification-rules') }}>商家认证规则</a>
+                <a href="/legal/advertising-agreement" onClick={(event) => { event.preventDefault(); navigateToPath('/legal/advertising-agreement') }}>广告投放规则</a>
+                <a href="/how-it-works" onClick={(event) => { event.preventDefault(); navigateToPath('/how-it-works') }}>平台如何运转</a>
+              </section>
+              <section>
+                <h2>加入我们</h2>
+                <a href="/join/creator-program" onClick={(event) => { event.preventDefault(); navigateToPath('/join/creator-program') }}>内容创作者计划</a>
+                <a href="/join/helper-program" onClick={(event) => { event.preventDefault(); navigateToPath('/join/helper-program') }}>答主与助人计划</a>
+                <a href="/join/campus-ambassador" onClick={(event) => { event.preventDefault(); navigateToPath('/join/campus-ambassador') }}>校园合伙人计划</a>
+                <a href="/join/merchant-onboarding" onClick={(event) => { event.preventDefault(); navigateToPath('/join/merchant-onboarding') }}>商家入驻合作</a>
+                <a href="/join/brand-cooperation" onClick={(event) => { event.preventDefault(); navigateToPath('/join/brand-cooperation') }}>广告与品牌合作</a>
+                <a href="/join/feedback" onClick={(event) => { event.preventDefault(); navigateToPath('/join/feedback') }}>反馈与联系</a>
+              </section>
+            </div>
+            <div className="shouye-footer-brand" aria-label="售业品牌">
+              <img src="/brand/shouye-logo-wordmark-light.png" alt="售业" />
+              <span>留学生经验分享与问题解决平台</span>
+            </div>
+          </div>
+          <div className="shouye-footer-bottom">
+            <div className="shouye-footer-legal">
+              <span>经营主体：{publicLegalOperator.companyName}</span>
+              <span>统一社会信用代码：{publicLegalOperator.creditCode}</span>
+              <span>ICP备案号：取得后展示</span>
+              <span>公安联网备案号：取得后展示</span>
+              <span>Copyright 2026 {publicLegalOperator.companyName}. All Rights Reserved</span>
+            </div>
+            <div className="shouye-trust-slot" aria-label="网站认证标识预留位">
+              <strong>网站认证</strong>
+              <span>取得后展示</span>
+            </div>
+          </div>
+        </div>
+      </footer>
     </main>
   )
 }

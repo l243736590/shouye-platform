@@ -1,8 +1,8 @@
 <view class="page publish-page">
   <view class="mode-row">
     <button class="mode-chip {{mode === 'question' ? 'active' : ''}}" data-mode="question" bindtap="chooseMode">我要提问/悬赏</button>
-    <button class="mode-chip {{mode === 'experience' ? 'active' : ''}}" data-mode="experience" bindtap="chooseMode">我知道</button>
-    <button class="mode-chip {{mode === 'skill' ? 'active gold-mode' : ''}}" data-mode="skill" bindtap="chooseMode">我能做</button>
+    <button class="mode-chip {{mode === 'experience' ? 'active' : ''}}" data-mode="experience" bindtap="chooseMode">I KNOW 我知道</button>
+    <button class="mode-chip {{mode === 'skill' ? 'active gold-mode' : ''}}" data-mode="skill" bindtap="chooseMode">I CAN 我能做</button>
   </view>
 
   <view class="section-head page-head">
@@ -39,7 +39,7 @@
         <input class="input" type="number" data-field="rewardPoints" value="{{form.rewardPoints}}" bindinput="onInput" placeholder="0" />
       </view>
       <view class="field" wx:if="{{mode !== 'question'}}">
-        <text class="label">{{mode === 'skill' ? '服务积分' : '解锁积分'}}</text>
+        <text class="label">{{mode === 'skill' ? '服务积分' : '解锁积分（0为免费）'}}</text>
         <input class="input" type="number" data-field="price" value="{{form.price}}" bindinput="onInput" placeholder="0" />
       </view>
       <view class="field" wx:if="{{mode === 'skill'}}">
@@ -60,6 +60,10 @@
 
     <view class="notice" wx:if="{{mode === 'skill'}}">
       发布技能服务请写清边界。平台不允许代写、代考、替课、伪造材料、非法换汇或其他违规服务。
+    </view>
+
+    <view class="notice" wx:if="{{mode === 'experience'}}">
+      解锁积分填 0 时，这篇经验会进入免费可见内容；被点赞后可累计经验成长。
     </view>
 
     <button class="primary-button submit-button" loading="{{submitting}}" bindtap="submit">{{config.submitText}}</button>

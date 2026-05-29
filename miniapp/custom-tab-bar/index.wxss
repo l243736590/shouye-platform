@@ -38,15 +38,24 @@
   align-items: center;
 }
 
+.ask-tab {
+  align-items: center;
+}
+
 .post-pill {
   width: 128rpx;
   height: 72rpx;
   line-height: 72rpx;
   border-radius: 22rpx;
-  background: #d82f3f;
+  background: #c99a2e;
   color: #fffdf7;
   text-align: center;
   font-size: 24rpx;
   font-weight: 950;
-  box-shadow: 0 12rpx 28rpx rgba(216, 47, 63, 0.28);
+  box-shadow: 0 12rpx 28rpx rgba(201, 154, 46, 0.32);
+}
+
+.ask-pill {
+  background: #e34c5b;
+  box-shadow: 0 12rpx 28rpx rgba(227, 76, 91, 0.28);
 }

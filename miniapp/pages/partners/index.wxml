@@ -8,48 +8,70 @@
     </view>
   </view>
 
-  <view class="merchant-fishbowl">
-    <view class="fishbowl-water"></view>
-    <view class="fishbowl-copy">
-      <text class="fishbowl-kicker">商家福利总览</text>
-      <text class="fishbowl-title">先看入驻商家，再按服务分类刷。</text>
-      <text class="fishbowl-desc">点击气泡可进入商家展示页，也可以点下方分类直接看对应类别。</text>
-    </view>
-    <view
-      class="merchant-bubble {{item.bubbleClass}}"
-      style="{{item.bubbleStyle}}"
-      wx:for="{{fishbowlCards}}"
-      wx:key="id"
-      data-id="{{item.id}}"
-      bindtap="contactMerchant"
-    >
-      <view class="bubble-logo">
-        <image wx:if="{{item.logoImage}}" src="{{item.logoImage}}" mode="aspectFill" />
-        <text wx:else>{{item.logo}}</text>
-      </view>
-      <view class="bubble-copy">
-        <text class="bubble-name">{{item.author}}</text>
-        <text class="bubble-type">{{item.type}}</text>
-      </view>
-    </view>
-    <view class="fish-category-row">
-      <button
-        wx:for="{{fishCategoryTabs}}"
-        wx:key="*this"
-        data-type="{{item}}"
-        bindtap="chooseFishCategory"
-      >
-        {{item}} →
-      </button>
-    </view>
-  </view>
-
-  <view class="feed-cat-shell">
+  <view class="feed-cat-shell partner-cat-shell">
     <view class="feed-cat-cue left" wx:if="{{showLeftCatCue}}" bindtap="scrollCatsLeft">‹</view>
     <scroll-view class="feed-cats" scroll-x enable-flex enhanced show-scrollbar="{{false}}" scroll-left="{{catScrollLeft}}" bindscroll="onCatScroll">
       <button class="feed-cat {{item.className}}" wx:for="{{categoryTabs}}" wx:key="name" data-name="{{item.name}}" bindtap="chooseCategory">{{item.name}}</button>
     </scroll-view>
     <view class="feed-cat-cue right" bindtap="scrollCatsRight">›</view>
+  </view>
+
+  <view class="merchant-fishbowl {{activeFishMode === 'calendar' ? 'is-calendar-mode' : ''}}">
+    <view class="fishbowl-water"></view>
+
+    <block wx:if="{{activeFishMode === 'overview'}}">
+      <view
+        class="merchant-bubble {{item.bubbleClass}}"
+        style="{{item.bubbleStyle}}"
+        wx:for="{{fishbowlCards}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="contactMerchant"
+      >
+        <view class="bubble-logo">
+          <image wx:if="{{item.logoImage}}" src="{{item.logoImage}}" mode="aspectFill" />
+          <text wx:else>{{item.logo}}</text>
+        </view>
+        <view class="bubble-copy">
+          <text class="bubble-name">{{item.author}}</text>
+          <text class="bubble-type">{{item.type}}</text>
+        </view>
+      </view>
+    </block>
+
+    <view class="fish-calendar-wrap" wx:if="{{activeFishMode === 'calendar' && activeFishCard}}">
+      <view class="fish-calendar-card {{activeFishCard.level === 'pinned' ? 'pinned' : ''}}" data-id="{{activeFishCard.id}}" bindtap="contactMerchant">
+        <view class="calendar-ring-row">
+          <view><text></text></view>
+          <view><text></text></view>
+          <view><text></text></view>
+        </view>
+        <view class="calendar-brand-row">
+          <view class="calendar-logo">
+            <image wx:if="{{activeFishCard.logoImage}}" src="{{activeFishCard.logoImage}}" mode="aspectFill" />
+            <text wx:else>{{activeFishCard.logo}}</text>
+          </view>
+          <view>
+            <text class="calendar-type">{{activeFishCard.type}}</text>
+            <text class="calendar-name">{{activeFishCard.author}}</text>
+          </view>
+        </view>
+        <text class="calendar-title">{{activeFishCard.title}}</text>
+        <text class="calendar-subtitle">{{activeFishCard.subtitle}}</text>
+        <view class="calendar-tags">
+          <text wx:for="{{activeFishCard.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+        </view>
+        <view class="calendar-footer">
+          <text>点击查看商家详情</text>
+          <text>→</text>
+        </view>
+      </view>
+
+      <view class="fish-calendar-controls" wx:if="{{fishCalendarCards.length > 1}}">
+        <button bindtap="showPreviousFishCard">↑</button>
+        <button bindtap="showNextFishCard">↓</button>
+      </view>
+    </view>
   </view>
 
   <view class="feed-search-box">

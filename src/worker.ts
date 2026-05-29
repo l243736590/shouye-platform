@@ -9,6 +9,10 @@ type Env = {
   SENDGRID_API_KEY?: string
   MAILGUN_API_KEY?: string
   MAILGUN_DOMAIN?: string
+  SMS_PROVIDER?: string
+  SMS_API_URL?: string
+  SMS_API_TOKEN?: string
+  SMS_FROM?: string
   WECHAT_MINIAPP_APP_ID?: string
   WECHAT_MINIAPP_APP_SECRET?: string
 }
@@ -21,6 +25,7 @@ type CredentialDocument = {
   name: string
   type: string
   status: VerificationStatus
+  reviewNote?: string
   uploadedAt: string
   dataUrl?: string
 }
@@ -45,6 +50,8 @@ type UserBioSettings = {
   userType?: 'student' | 'merchant'
   businessName?: string
   businessCategory?: string
+  businessCategories?: string[]
+  businessScopeLevels?: Record<string, 'normal' | 'pinned'>
   country?: string
   city?: string
   managedBrandId?: string
@@ -88,10 +95,30 @@ type MerchantLeadRecord = {
   updatedAt: string
 }
 
+type ManagedMerchantRecord = {
+  id: string
+  category: string
+  name: string
+  logo: string
+  summary: string
+  description: string
+  tags: string[]
+  verified: boolean
+  location: string
+  detailTone: string
+  level: 'normal' | 'pinned'
+  logoImage: string
+  status: 'active' | 'hidden'
+  createdAt: string
+  updatedAt: string
+}
+
+type MerchantTextAlignRecord = 'left' | 'center' | 'right'
+
 type MerchantDesignItemRecord = {
   id: string
   zone: 'hero' | 'service' | 'showcase'
-  kind: 'bubble' | 'media'
+  kind: 'bubble' | 'media' | 'panel'
   text: string
   mediaUrl: string
   mediaKind: 'image' | 'video'
@@ -104,6 +131,8 @@ type MerchantDesignItemRecord = {
   fontSize: number
   color: string
   background: string
+  textAlign?: MerchantTextAlignRecord
+  lineHeight?: number
 }
 
 type MerchantTextLayerStyleRecord = {
@@ -112,6 +141,8 @@ type MerchantTextLayerStyleRecord = {
   z: number
   fontSize: number
   color: string
+  textAlign?: MerchantTextAlignRecord
+  lineHeight?: number
 }
 
 type MerchantBrandDecorationRecord = {
@@ -131,6 +162,16 @@ type MerchantBrandDecorationRecord = {
   sectionThreeText: string
   caseOne: string
   caseTwo: string
+  showcaseCategory: string
+  showcaseMerchantName: string
+  showcaseServiceTitle: string
+  showcaseServiceSubtitle: string
+  showcaseTagOne: string
+  showcaseTagTwo: string
+  showcaseTagThree: string
+  showcaseTagFour: string
+  showcaseTagFive: string
+  showcaseTagSix: string
   showcaseArtTitle: string
   showcaseArtSubtitle: string
   logoImage: string
@@ -212,6 +253,19 @@ type WithdrawalRequestRecord = {
   createdAt: string
   updatedAt: string
   paidAt?: string
+}
+
+type RenameRequestRecord = {
+  id: string
+  userId: string
+  oldName: string
+  requestedName: string
+  costEarningPoints: number
+  status: 'pending' | 'approved' | 'rejected'
+  reason: string
+  adminNote: string
+  createdAt: string
+  reviewedAt?: string
 }
 
 type PointLedgerRecord = {
@@ -346,9 +400,8 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
   {
     brandId: 'tuzhuren-thesis',
     badge: '认证商家展示页',
-    heroTitle: '韩国论文流程、毕业审查、韩文发表和延毕节点支持',
-    intro:
-      '土著人面向在韩本科、大学院和毕业阶段学生，展示论文流程说明、毕业材料检查、韩文表达校对和发表准备等合规学业支持服务。',
+    heroTitle: '论文开题、数据、写作到翻译润色、排版定稿的一站式支持',
+    intro: '所有翻译与精修均由母语级老师人工完成，拒绝机翻，反复修改直至导师认可',
     contactCopy: '咨询前建议先整理学校、专业、毕业要求、论文阶段、导师反馈、提交节点和目前遇到的具体卡点。',
     panelLabel: '土著人品牌的管理商家',
     panelTitle: '论文流程・毕业审查・韩文发表',
@@ -360,15 +413,25 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
     sectionThreeText: '只展示合规学业支持边界，不提供代写、代投、替考、伪造材料等服务；毕业要求以学校和学院最新通知为准。',
     caseOne: '论文与毕业：论文格式检查、引用规范提醒、毕业材料节点梳理、延毕风险和学校窗口沟通准备。',
     caseTwo: '韩文发表与表达：摘要、发表稿、课堂发表和教授沟通表达优化；不提供代写、代投或替考类服务。',
+    showcaseCategory: '论文与毕业',
+    showcaseMerchantName: '土著人',
+    showcaseServiceTitle: '论文与毕业服务展示',
+    showcaseServiceSubtitle: '土著人',
+    showcaseTagOne: '论文流程',
+    showcaseTagTwo: '毕业审查',
+    showcaseTagThree: '韩文发表',
+    showcaseTagFour: '',
+    showcaseTagFive: '',
+    showcaseTagSix: '',
     showcaseArtTitle: '土著人',
-    showcaseArtSubtitle: '开启世界视野 · 成就未来可能',
-    logoImage: '',
+    showcaseArtSubtitle: '韩国论文一站式辅导',
+    logoImage: '/merchant-logos/native-education.png',
     pendingLogoImage: '',
     logoReviewStatus: 'approved',
     fontFamily: '',
-    titleColor: '',
-    bodyColor: '',
-    accentColor: '',
+    titleColor: '#0e315a',
+    bodyColor: '#5f6767',
+    accentColor: '#ef5a3c',
     heroImage: '',
     heroImageX: 50,
     heroImageY: 50,
@@ -377,7 +440,17 @@ const defaultMerchantBrandDecorations: MerchantBrandDecorationRecord[] = [
     serviceImageX: 50,
     serviceImageY: 50,
     serviceImageScale: 1,
-    textLayerStyles: {},
+    textLayerStyles: {
+      showcaseCategory: { x: 0, y: 0, z: 72, fontSize: 0, color: '#ef5a3c' },
+      showcaseMerchantName: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      badge: { x: 0, y: 0, z: 72, fontSize: 0, color: '#6b7d8f' },
+      heroTitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      intro: { x: 0, y: 0, z: 72, fontSize: 0, color: '#5f6767' },
+      showcaseArtTitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      showcaseArtSubtitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#0e315a' },
+      showcaseServiceTitle: { x: 0, y: 0, z: 72, fontSize: 0, color: '#f8d795' },
+      showcaseServiceSubtitle: { x: 0, y: 0, z: 72, fontSize: 0, color: 'rgba(255,253,247,0.88)' },
+    },
     designItems: [],
     bubbleColor: 'rgba(194, 151, 62, 0.92)',
     bubbleTextColor: '#12345a',
@@ -432,13 +505,26 @@ const clampNumber = (value: unknown, fallback: number, min: number, max: number)
   return Number.isFinite(numericValue) ? Math.min(max, Math.max(min, numericValue)) : fallback
 }
 
+const normalizeMerchantTextAlign = (value: unknown): MerchantTextAlignRecord | undefined => {
+  if (value === 'left' || value === 'center' || value === 'right') return value
+  if (value === 'start') return 'left'
+  if (value === 'end') return 'right'
+  return undefined
+}
+
+const normalizeMerchantLineHeight = (value: unknown): number | undefined => {
+  const numericValue = Number(value)
+  if (numericValue === 1.5 || numericValue === 2) return numericValue
+  return undefined
+}
+
 const normalizeMerchantDesignItems = (items?: Partial<MerchantDesignItemRecord>[]): MerchantDesignItemRecord[] =>
   (Array.isArray(items) ? items : [])
     .filter((item) => item && typeof item === 'object')
     .map((item, index): MerchantDesignItemRecord => ({
       id: typeof item.id === 'string' && item.id ? item.id : `merchant-item-${index}`,
       zone: item.zone === 'service' ? 'service' : item.zone === 'showcase' ? 'showcase' : 'hero',
-      kind: item.kind === 'media' ? 'media' : 'bubble',
+      kind: item.kind === 'media' ? 'media' : item.kind === 'panel' ? 'panel' : 'bubble',
       text: typeof item.text === 'string' ? item.text : '新内容',
       mediaUrl: typeof item.mediaUrl === 'string' ? item.mediaUrl : '',
       mediaKind: item.mediaKind === 'video' ? 'video' : 'image',
@@ -451,6 +537,8 @@ const normalizeMerchantDesignItems = (items?: Partial<MerchantDesignItemRecord>[
       fontSize: clampNumber(item.fontSize, 18, 12, 72),
       color: typeof item.color === 'string' && item.color ? item.color : '#10201d',
       background: typeof item.background === 'string' && item.background ? item.background : 'rgba(255, 253, 247, 0.84)',
+      textAlign: normalizeMerchantTextAlign(item.textAlign),
+      lineHeight: normalizeMerchantLineHeight(item.lineHeight),
     }))
     .slice(0, 30)
 
@@ -478,6 +566,8 @@ const normalizeMerchantTextLayerStyles = (
         z: clampNumber(style?.z, 20, 1, 120),
         fontSize: clampNumber(style?.fontSize, 0, 0, 120),
         color: typeof style?.color === 'string' ? style.color : '',
+        textAlign: normalizeMerchantTextAlign(style?.textAlign),
+        lineHeight: normalizeMerchantLineHeight(style?.lineHeight),
       },
     ]),
   )
@@ -508,8 +598,8 @@ const normalizeMerchantBrandDecoration = (
   heroTitle: decoration.heroTitle ?? fallback?.heroTitle ?? '',
   intro: decoration.intro ?? fallback?.intro ?? '',
   contactCopy: decoration.contactCopy ?? fallback?.contactCopy ?? '',
-  panelLabel: decoration.panelLabel || fallback?.panelLabel || '认证商家展示',
-  panelTitle: decoration.panelTitle || fallback?.panelTitle || '',
+  panelLabel: decoration.panelLabel ?? fallback?.panelLabel ?? '认证商家展示',
+  panelTitle: decoration.panelTitle ?? fallback?.panelTitle ?? '',
   sectionOneTitle: decoration.sectionOneTitle ?? fallback?.sectionOneTitle ?? '服务说明',
   sectionOneText: decoration.sectionOneText ?? fallback?.sectionOneText ?? '',
   sectionTwoTitle: decoration.sectionTwoTitle ?? fallback?.sectionTwoTitle ?? '对比建议',
@@ -518,6 +608,16 @@ const normalizeMerchantBrandDecoration = (
   sectionThreeText: decoration.sectionThreeText ?? fallback?.sectionThreeText ?? '',
   caseOne: decoration.caseOne ?? fallback?.caseOne ?? '',
   caseTwo: decoration.caseTwo ?? fallback?.caseTwo ?? '',
+  showcaseCategory: decoration.showcaseCategory ?? fallback?.showcaseCategory ?? '',
+  showcaseMerchantName: decoration.showcaseMerchantName ?? fallback?.showcaseMerchantName ?? '',
+  showcaseServiceTitle: decoration.showcaseServiceTitle ?? fallback?.showcaseServiceTitle ?? '',
+  showcaseServiceSubtitle: decoration.showcaseServiceSubtitle ?? fallback?.showcaseServiceSubtitle ?? '',
+  showcaseTagOne: decoration.showcaseTagOne ?? fallback?.showcaseTagOne ?? '',
+  showcaseTagTwo: decoration.showcaseTagTwo ?? fallback?.showcaseTagTwo ?? '',
+  showcaseTagThree: decoration.showcaseTagThree ?? fallback?.showcaseTagThree ?? '',
+  showcaseTagFour: decoration.showcaseTagFour ?? fallback?.showcaseTagFour ?? '',
+  showcaseTagFive: decoration.showcaseTagFive ?? fallback?.showcaseTagFive ?? '',
+  showcaseTagSix: decoration.showcaseTagSix ?? fallback?.showcaseTagSix ?? '',
   showcaseArtTitle: decoration.showcaseArtTitle ?? fallback?.showcaseArtTitle ?? '',
   showcaseArtSubtitle: decoration.showcaseArtSubtitle ?? fallback?.showcaseArtSubtitle ?? '',
   logoImage: decoration.logoImage ?? fallback?.logoImage ?? '',
@@ -568,13 +668,52 @@ const parseUserBioSettings = (bio?: string): UserBioSettings => {
   }
 }
 
+const securityHeaders = {
+  'content-security-policy': [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data:",
+    "connect-src 'self' https:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join('; '),
+  'cross-origin-opener-policy': 'same-origin-allow-popups',
+  'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()',
+  'referrer-policy': 'strict-origin-when-cross-origin',
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+} as const
+
+const securedHeaders = (headersInit?: HeadersInit, options: { noStore?: boolean } = {}) => {
+  const headers = new Headers(headersInit)
+  Object.entries(securityHeaders).forEach(([key, value]) => {
+    if (!headers.has(key)) headers.set(key, value)
+  })
+  if (options.noStore && !headers.has('cache-control')) headers.set('cache-control', 'no-store, max-age=0')
+  return headers
+}
+
+const withSecurityHeaders = (response: Response, options: { noStore?: boolean } = {}) =>
+  new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: securedHeaders(response.headers, options),
+  })
+
 const json = (data: unknown, init: ResponseInit = {}) =>
   new Response(JSON.stringify(data), {
     ...init,
-    headers: {
+    headers: securedHeaders(
+      {
       'content-type': 'application/json; charset=utf-8',
       ...init.headers,
-    },
+      },
+      { noStore: true },
+    ),
   })
 
 const siteOrigin = 'https://shouye.fun'
@@ -583,19 +722,19 @@ const shareImageUrl = `${siteOrigin}/wechat-share-card.jpg?v=20260507`
 const xml = (body: string, init: ResponseInit = {}) =>
   new Response(body, {
     ...init,
-    headers: {
+    headers: securedHeaders({
       'content-type': 'application/xml; charset=utf-8',
       ...init.headers,
-    },
+    }),
   })
 
 const text = (body: string, init: ResponseInit = {}) =>
   new Response(body, {
     ...init,
-    headers: {
+    headers: securedHeaders({
       'content-type': 'text/plain; charset=utf-8',
       ...init.headers,
-    },
+    }),
   })
 
 const escapeHtml = (value: string) =>
@@ -636,24 +775,28 @@ const pageMeta = (pathname: string): PageMeta => {
 
   const postSeoMap: Record<string, { title: string; description: string }> = {
     '/posts/korea-rent-deposit-guide': {
-      title: '韩国租房保证金和合同避坑指南 - 留学生首页',
+      title: '韩国租房保证金和合同避坑指南 - 售业首页',
       description: '韩国留学生租房保证金、one-room 合同、看房、退租和地址申报检查清单。',
     },
     '/posts/d2-visa-extension-guide': {
-      title: 'D-2 签证延长准备指南 - 留学生首页',
+      title: 'D-2 签证延长准备指南 - 售业首页',
       description: '韩国 D-2 留学生签证延长材料、学校证明、HiKorea 预约和补件注意事项。',
     },
     '/posts/alien-registration-card-guide': {
-      title: '外国人登录证办理与地址信息检查 - 留学生首页',
+      title: '外国人登录证办理与地址信息检查 - 售业首页',
       description: '韩国外国人登录证办理、住所证明、领取核对、地址变更和后续认证注意事项。',
     },
     '/posts/korea-bank-account-guide': {
-      title: '韩国银行卡开户与本人认证攻略 - 留学生首页',
+      title: '韩国银行卡开户与本人认证攻略 - 售业首页',
       description: '韩国留学生银行卡开户、手机本人认证、转账限额和账户用途说明准备指南。',
     },
     '/posts/korea-part-time-work-guide': {
-      title: '韩国留学生打工许可与工资留证指南 - 留学生首页',
+      title: '韩国留学生打工许可与工资留证指南 - 售业首页',
       description: '韩国留学生时间制就业许可、学校同意、劳动合同、工资拖欠和证据保存指南。',
+    },
+    '/posts/korea-f2-f5-residency-guide': {
+      title: '韩国 F-2 / F-5 长期居留与永驻申请指南 - 售业首页',
+      description: '韩国留学生毕业后从 D-10、E-7、F-2 到 F-5 永驻的路线、材料、收入纳税、KIIP 和避坑清单。',
     },
   }
 
@@ -665,9 +808,44 @@ const pageMeta = (pathname: string): PageMeta => {
     }
   }
 
+  const joinSeoMap: Record<string, { title: string; description: string }> = {
+    '/join/creator-program': {
+      title: '内容创作者计划 - 售业加入我们',
+      description: '售业内容创作者计划面向在韩留学生、毕业生和经验分享者，收录签证、租房、入学、论文、打工和生活攻略。',
+    },
+    '/join/helper-program': {
+      title: '答主与助人计划 - 售业加入我们',
+      description: '售业答主与助人计划面向愿意回答留学生问题、参与悬赏问答、提供线上经验帮助和合规线下帮助的用户。',
+    },
+    '/join/campus-ambassador': {
+      title: '校园合伙人计划 - 售业加入我们',
+      description: '售业校园合伙人计划面向熟悉韩国院校、语学院和学校周边生活的学生与毕业生，共建学校专题和校园信息。',
+    },
+    '/join/merchant-onboarding': {
+      title: '商家入驻合作 - 售业加入我们',
+      description: '售业商家入驻合作面向为在韩留学生提供留学、论文、搬家、通信、住宿、翻译、家政和生活服务的商家。',
+    },
+    '/join/brand-cooperation': {
+      title: '广告与品牌合作 - 售业加入我们',
+      description: '售业广告与品牌合作提供场景广告、品牌专题、置顶展示和留学生服务曝光，要求明确广告身份和合规边界。',
+    },
+    '/join/feedback': {
+      title: '反馈与联系 - 售业加入我们',
+      description: '售业反馈与联系入口用于提交平台建议、账号问题、内容投诉、隐私请求、商家纠纷、材料删除和合作咨询。',
+    },
+  }
+
+  if (joinSeoMap[pathname]) {
+    return {
+      title: joinSeoMap[pathname].title,
+      description: joinSeoMap[pathname].description,
+      keywords: `${defaultKeywords}, 售业加入我们, 留学生合作`,
+    }
+  }
+
   if (pathname === '/schools/konkuk' || pathname === '/school/konkuk') {
     return {
-      title: '建国大学留学生生活攻略 - 留学生首页',
+      title: '建国大学留学生生活攻略 - 售业首页',
       description:
         '建国大学留学生生活攻略，整理建国大学入学、选课、租房、签证、外国人登录证、打工、医院、银行卡和校园生活相关经验。',
       keywords: `${defaultKeywords}, 建国大学, Konkuk University`,
@@ -676,7 +854,7 @@ const pageMeta = (pathname: string): PageMeta => {
 
   if (pathname === '/schools/chungang' || pathname === '/school/chungang') {
     return {
-      title: '中央大学留学生生活攻略 - 留学生首页',
+      title: '中央大学留学生生活攻略 - 售业首页',
       description:
         '中央大学留学生生活攻略，整理中央大学入学、选课、租房、签证、打工、语学院、大学院、毕业和韩国生活经验。',
       keywords: `${defaultKeywords}, 中央大学, Chung-Ang University`,
@@ -685,7 +863,7 @@ const pageMeta = (pathname: string): PageMeta => {
 
   if (pathname === '/schools/korea' || pathname === '/school/korea') {
     return {
-      title: '高丽大学留学生生活攻略 - 留学生首页',
+      title: '高丽大学留学生生活攻略 - 售业首页',
       description:
         '高丽大学留学生生活攻略，整理高丽大学入学、选课、租房、签证、打工、大学院、毕业和首尔安岩生活经验。',
       keywords: `${defaultKeywords}, 高丽大学, Korea University`,
@@ -694,7 +872,7 @@ const pageMeta = (pathname: string): PageMeta => {
 
   if (pathname === '/schools/yonsei' || pathname === '/school/yonsei') {
     return {
-      title: '延世大学留学生生活攻略 - 留学生首页',
+      title: '延世大学留学生生活攻略 - 售业首页',
       description:
         '延世大学留学生生活攻略，整理延世大学入学、选课、租房、签证、打工、语学堂、大学院和新村生活经验。',
       keywords: `${defaultKeywords}, 延世大学, Yonsei University`,
@@ -707,6 +885,24 @@ const pageMeta = (pathname: string): PageMeta => {
       description:
         '了解留学生首页的内容收益规则：回答悬赏问题、发布高质量经验帖、精华攻略奖励和积分机制。',
       keywords: defaultKeywords,
+    }
+  }
+
+  if (pathname === '/about') {
+    return {
+      title: '关于售业 - 平台主体信息与留学生问题解决服务',
+      description:
+        '了解售业平台定位、运营主体、留学生经验分享、问答求助、商家展示、审核边界和公开协议入口。',
+      keywords: `${defaultKeywords}, 售业, 平台主体, 关于我们`,
+    }
+  }
+
+  if (pathname === '/contact') {
+    return {
+      title: '联系与举报 - 售业平台投诉举报入口',
+      description:
+        '售业平台联系、投诉、举报和隐私处理入口，说明违法违规内容、虚假商家、账号异常和材料删除等提交方式。',
+      keywords: `${defaultKeywords}, 投诉举报, 联系我们, 隐私保护`,
     }
   }
 
@@ -747,7 +943,7 @@ const pageMeta = (pathname: string): PageMeta => {
   }
 
   return {
-    title: '留学生首页 - 留学生经验分享与问题解决平台',
+    title: '售业首页',
     description:
       '留学生首页是一个面向留学生的经验分享与问答社区，提供签证、租房、入学、打工、保险、银行卡、毕业和就业等真实经验，帮助留学生少走弯路。',
     keywords: defaultKeywords,
@@ -840,6 +1036,7 @@ const routeSeoContent = (pathname: string) => {
             <li>韩国留学生租房避坑指南</li>
             <li>D-2签证延长完整流程</li>
             <li>外国人登录证办理流程</li>
+            <li>韩国 F-2 / F-5 长期居留与永驻申请指南</li>
             <li>韩国毕业论文流程整理</li>
           </ul>
         </main>
@@ -862,6 +1059,94 @@ const routeSeoContent = (pathname: string) => {
               <li>复制内容、AI水文、无效回答不会获得奖励，严重时会扣分或限制账号。</li>
             </ul>
           </section>
+        </main>
+      </noscript>`
+  }
+
+  if (pathname === '/about') {
+    return `
+      <noscript id="seo-prerender-about">
+        <main>
+          <h1>关于售业</h1>
+          <p>售业是面向在韩中国留学生和准留学生的经验分享、问题求助、悬赏回答、学校专题和认证商家服务信息平台。</p>
+          ${seoLinks}
+          <section>
+            <h2>平台运营主体</h2>
+            <p>滨州售业网络科技有限公司，统一社会信用代码 91371602MAKEPCG8U2Y。</p>
+          </section>
+          <section>
+            <h2>公开规则</h2>
+            <p>平台公开展示用户服务协议、隐私政策、社区内容规范、商家入驻协议和投诉举报规则。</p>
+          </section>
+        </main>
+      </noscript>`
+  }
+
+  if (pathname === '/contact') {
+    return `
+      <noscript id="seo-prerender-contact">
+        <main>
+          <h1>联系与举报</h1>
+          <p>售业提供站内联系、投诉和举报入口，用于处理违法违规内容、隐私问题、虚假商家、账号异常和材料删除等请求。</p>
+          ${seoLinks}
+          <section>
+            <h2>处理边界</h2>
+            <p>平台会根据公开规则、用户提交证据和后台记录处理投诉举报，但不替代司法、仲裁或行政机关。</p>
+          </section>
+        </main>
+      </noscript>`
+  }
+
+  const joinFallbackMap: Record<string, { id: string; title: string; copy: string; items: string[] }> = {
+    '/join/creator-program': {
+      id: 'creator-program',
+      title: '内容创作者计划',
+      copy: '面向愿意分享签证、租房、入学、论文、打工、就业和韩国生活经验的留学生、毕业生与创作者。',
+      items: ['精华帖奖励', '原创署名', '学校专题收录', '长期曝光'],
+    },
+    '/join/helper-program': {
+      id: 'helper-program',
+      title: '答主与助人计划',
+      copy: '面向愿意回答问题、参与悬赏、提供线上经验帮助或合规线下辅助服务的用户。',
+      items: ['悬赏回答', '采纳奖励', '助人等级', '线下资格审核'],
+    },
+    '/join/campus-ambassador': {
+      id: 'campus-ambassador',
+      title: '校园合伙人计划',
+      copy: '面向熟悉某所韩国院校、语学院、专业方向或周边生活的在校生、毕业生和学生组织成员。',
+      items: ['学校专题维护', '校园反馈', '内容共建', '合作奖励'],
+    },
+    '/join/merchant-onboarding': {
+      id: 'merchant-onboarding',
+      title: '商家入驻合作',
+      copy: '面向为在韩留学生提供留学申请、论文、搬家、通信、住宿、翻译、家政、餐饮等服务的商家。',
+      items: ['商家展示页', '分类曝光', '资质审核', '鱼缸气泡展示'],
+    },
+    '/join/brand-cooperation': {
+      id: 'brand-cooperation',
+      title: '广告与品牌合作',
+      copy: '面向希望触达留学生群体的品牌、服务商、校园活动方和长期合作伙伴。',
+      items: ['场景广告', '品牌专题', '置顶展示', '合规标识'],
+    },
+    '/join/feedback': {
+      id: 'feedback',
+      title: '反馈与联系',
+      copy: '用于平台建议、账号问题、内容投诉、隐私请求、商家纠纷、材料删除和合作咨询。',
+      items: ['平台建议', '账号申诉', '隐私请求', '投诉举报'],
+    },
+  }
+
+  if (joinFallbackMap[pathname]) {
+    const page = joinFallbackMap[pathname]
+    return `
+      <noscript id="seo-prerender-join-${page.id}">
+        <main>
+          <h1>${page.title}</h1>
+          <p>${page.copy}</p>
+          ${seoLinks}
+          <ul>
+            ${page.items.map((item) => `<li>${item}</li>`).join('')}
+          </ul>
         </main>
       </noscript>`
   }
@@ -985,12 +1270,40 @@ const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>${siteOrigin}/questions</loc></url>
   <url><loc>${siteOrigin}/posts</loc></url>
   <url><loc>${siteOrigin}/rewards</loc></url>
+  <url><loc>${siteOrigin}/about</loc></url>
+  <url><loc>${siteOrigin}/contact</loc></url>
+  <url><loc>${siteOrigin}/join/creator-program</loc></url>
+  <url><loc>${siteOrigin}/join/helper-program</loc></url>
+  <url><loc>${siteOrigin}/join/campus-ambassador</loc></url>
+  <url><loc>${siteOrigin}/join/merchant-onboarding</loc></url>
+  <url><loc>${siteOrigin}/join/brand-cooperation</loc></url>
+  <url><loc>${siteOrigin}/join/feedback</loc></url>
   <url><loc>${siteOrigin}/how-it-works</loc></url>
   <url><loc>${siteOrigin}/categories</loc></url>
   <url><loc>${siteOrigin}/terms</loc></url>
   <url><loc>${siteOrigin}/privacy</loc></url>
   <url><loc>${siteOrigin}/minor-privacy</loc></url>
   <url><loc>${siteOrigin}/content-rules</loc></url>
+  <url><loc>${siteOrigin}/legal</loc></url>
+  <url><loc>${siteOrigin}/legal/user-agreement</loc></url>
+  <url><loc>${siteOrigin}/legal/privacy-policy</loc></url>
+  <url><loc>${siteOrigin}/legal/community-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/content-license-agreement</loc></url>
+  <url><loc>${siteOrigin}/legal/originality-statement</loc></url>
+  <url><loc>${siteOrigin}/legal/points-and-levels-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/reward-qa-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/report-complaint-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/merchant-onboarding-agreement</loc></url>
+  <url><loc>${siteOrigin}/legal/merchant-content-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/merchant-violation-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/merchant-verification-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/advertising-agreement</loc></url>
+  <url><loc>${siteOrigin}/legal/creator-agreement</loc></url>
+  <url><loc>${siteOrigin}/legal/featured-content-buyout-revenue-share</loc></url>
+  <url><loc>${siteOrigin}/legal/campus-ambassador-agreement</loc></url>
+  <url><loc>${siteOrigin}/legal/nda</loc></url>
+  <url><loc>${siteOrigin}/legal/campus-reward-settlement-rules</loc></url>
+  <url><loc>${siteOrigin}/legal/non-shareholder-statement</loc></url>
   <url><loc>${siteOrigin}/partners/wala-study</loc></url>
   <url><loc>${siteOrigin}/partners/tuzhuren-thesis</loc></url>
   <url><loc>${siteOrigin}/schools/konkuk</loc></url>
@@ -1002,6 +1315,7 @@ const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
   <url><loc>${siteOrigin}/posts/alien-registration-card-guide</loc></url>
   <url><loc>${siteOrigin}/posts/korea-bank-account-guide</loc></url>
   <url><loc>${siteOrigin}/posts/korea-part-time-work-guide</loc></url>
+  <url><loc>${siteOrigin}/posts/korea-f2-f5-residency-guide</loc></url>
 </urlset>`
 
 const robotsTxt = `User-agent: *
@@ -1098,12 +1412,12 @@ const injectSeoHtml = (html: string, requestUrl: URL) => {
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDescription}" />
     <meta name="twitter:image" content="${shareImageUrl}" />
-    <meta name="application-name" content="留学生首页" />
-    <meta name="apple-mobile-web-app-title" content="留学生首页" />
+    <meta name="application-name" content="售业首页" />
+    <meta name="apple-mobile-web-app-title" content="售业首页" />
     <script type="application/ld+json">${JSON.stringify({
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: '留学生首页',
+      name: '售业首页',
       url: siteOrigin,
       image: shareImageUrl,
       description: meta.description,
@@ -1125,11 +1439,11 @@ const serveHtmlWithSeo = async (request: Request, env: Env, requestUrl: URL, ass
   if (!response.ok) return response
   const html = await response.text()
   return new Response(injectSeoHtml(html, requestUrl), {
-    headers: {
+    headers: securedHeaders({
       'cache-control': 'no-store, max-age=0',
       'content-type': 'text/html; charset=utf-8',
       'x-shouye-build': 'mobile-app-shell-2026-05-05',
-    },
+    }),
   })
 }
 
@@ -1143,6 +1457,17 @@ const hashText = async (value: string) => {
 }
 
 const emailCodeHash = (email: string, code: string) => hashText(`${email}:${code}`)
+const phoneCodeHash = (phone: string, code: string) => hashText(`${phone}:${code}`)
+
+const normalizePhoneNumber = (value = '') => value.trim().replace(/[^\d+]/g, '')
+
+const isValidPhoneNumber = (phone: string) => /^\+?\d{8,15}$/.test(phone)
+
+const maskIdentityNumber = (value = '') => {
+  const normalized = value.trim().replace(/\s+/g, '')
+  if (normalized.length <= 4) return normalized
+  return `${normalized.slice(0, 2)}${'*'.repeat(Math.max(2, normalized.length - 4))}${normalized.slice(-2)}`
+}
 
 const rowToUser = (row: Record<string, unknown>, documents: CredentialDocument[] = []): UserRecord => ({
   id: String(row.id),
@@ -1180,8 +1505,35 @@ const rowToDocument = (row: Record<string, unknown>): CredentialDocument => ({
   name: String(row.name),
   type: String(row.type),
   status: String(row.status) as VerificationStatus,
+  reviewNote: String(row.review_note ?? ''),
   uploadedAt: String(row.uploaded_at),
   dataUrl: row.data_url ? String(row.data_url) : undefined,
+})
+
+const safeJsonParse = <T,>(value: string, fallback: T): T => {
+  try {
+    return JSON.parse(value) as T
+  } catch {
+    return fallback
+  }
+}
+
+const rowToManagedMerchant = (row: Record<string, unknown>): ManagedMerchantRecord => ({
+  id: String(row.id),
+  category: String(row.category ?? ''),
+  name: String(row.name ?? ''),
+  logo: String(row.logo ?? ''),
+  summary: String(row.summary ?? ''),
+  description: String(row.description ?? ''),
+  tags: safeJsonParse<string[]>(String(row.tags_json ?? '[]'), []),
+  verified: Boolean(row.verified ?? true),
+  location: String(row.location ?? ''),
+  detailTone: String(row.detail_tone ?? ''),
+  level: String(row.level ?? 'normal') === 'pinned' ? 'pinned' : 'normal',
+  logoImage: String(row.logo_image ?? ''),
+  status: String(row.status ?? 'active') === 'hidden' ? 'hidden' : 'active',
+  createdAt: String(row.created_at ?? ''),
+  updatedAt: String(row.updated_at ?? row.created_at ?? ''),
 })
 
 const rowToPartnerApplication = (row: Record<string, unknown>): PartnerApplicationRecord => ({
@@ -1231,6 +1583,16 @@ const rowToMerchantBrandDecoration = (row: Record<string, unknown>): MerchantBra
   sectionThreeText: String(row.section_three_text ?? ''),
   caseOne: String(row.case_one ?? ''),
   caseTwo: String(row.case_two ?? ''),
+  showcaseCategory: String(row.showcase_category ?? ''),
+  showcaseMerchantName: String(row.showcase_merchant_name ?? ''),
+  showcaseServiceTitle: String(row.showcase_service_title ?? ''),
+  showcaseServiceSubtitle: String(row.showcase_service_subtitle ?? ''),
+  showcaseTagOne: String(row.showcase_tag_one ?? ''),
+  showcaseTagTwo: String(row.showcase_tag_two ?? ''),
+  showcaseTagThree: String(row.showcase_tag_three ?? ''),
+  showcaseTagFour: String(row.showcase_tag_four ?? ''),
+  showcaseTagFive: String(row.showcase_tag_five ?? ''),
+  showcaseTagSix: String(row.showcase_tag_six ?? ''),
   showcaseArtTitle: String(row.showcase_art_title ?? ''),
   showcaseArtSubtitle: String(row.showcase_art_subtitle ?? ''),
   logoImage: String(row.logo_image ?? ''),
@@ -1312,6 +1674,19 @@ const rowToWithdrawalRequest = (row: Record<string, unknown>): WithdrawalRequest
   createdAt: String(row.created_at),
   updatedAt: String(row.updated_at ?? row.created_at),
   paidAt: row.paid_at ? String(row.paid_at) : undefined,
+})
+
+const rowToRenameRequest = (row: Record<string, unknown>): RenameRequestRecord => ({
+  id: String(row.id),
+  userId: String(row.user_id),
+  oldName: String(row.old_name ?? ''),
+  requestedName: String(row.requested_name ?? ''),
+  costEarningPoints: Number(row.cost_earning_points ?? 60),
+  status: String(row.status ?? 'pending') as RenameRequestRecord['status'],
+  reason: String(row.reason ?? ''),
+  adminNote: String(row.admin_note ?? ''),
+  createdAt: String(row.created_at),
+  reviewedAt: row.reviewed_at ? String(row.reviewed_at) : undefined,
 })
 
 const rowToPointLedger = (row: Record<string, unknown>): PointLedgerRecord => ({
@@ -1486,6 +1861,87 @@ const enforceRateLimit = async (
   return null
 }
 
+const allowedMethods = new Set(['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
+const maxRequestBodyBytes = 6 * 1024 * 1024
+
+const suspiciousPathPatterns = [
+  /\.\./,
+  /%2e/i,
+  /%2f/i,
+  /\/\.env(?:$|[/?#])/i,
+  /\/wp-(admin|login|content)/i,
+  /\/xmlrpc\.php/i,
+  /\/phpmyadmin/i,
+  /\/vendor\/phpunit/i,
+  /\/actuator/i,
+  /\/server-status/i,
+  /\/cgi-bin/i,
+]
+
+const isSuspiciousRequestUrl = (url: URL) => {
+  const target = `${url.pathname}${url.search}`
+  return suspiciousPathPatterns.some((pattern) => pattern.test(target))
+}
+
+const securityRateLimitRule = (pathname: string, method: string) => {
+  if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') return null
+  if (pathname === '/api/admin/login') return { action: 'security:admin-login', maxCount: 5, windowSeconds: 15 * 60 }
+  if (pathname === '/api/auth/login') return { action: 'security:login', maxCount: 12, windowSeconds: 10 * 60 }
+  if (pathname === '/api/auth/send-code' || pathname === '/api/auth/send-email-code') {
+    return { action: 'security:email-code', maxCount: 8, windowSeconds: 60 * 60 }
+  }
+  if (pathname === '/api/auth/send-phone-code') {
+    return { action: 'security:phone-code', maxCount: 8, windowSeconds: 60 * 60 }
+  }
+  if (pathname === '/api/auth/register') return { action: 'security:register', maxCount: 5, windowSeconds: 60 * 60 }
+  if (pathname === '/api/auth/register-phone') return { action: 'security:phone-register', maxCount: 5, windowSeconds: 60 * 60 }
+  if (pathname === '/api/auth/wechat-miniapp') return { action: 'security:wechat-miniapp', maxCount: 30, windowSeconds: 10 * 60 }
+  if (pathname.startsWith('/api/admin/')) return { action: 'security:admin-api', maxCount: 160, windowSeconds: 60 }
+  if (pathname.startsWith('/api/')) {
+    const bucket = pathname.split('/').slice(0, 3).join('/')
+    return { action: `security:api:${bucket}`, maxCount: 80, windowSeconds: 60 }
+  }
+  return null
+}
+
+const enforceSecurityGate = async (request: Request, env: Env, url: URL) => {
+  if (!allowedMethods.has(request.method)) {
+    return text('Method Not Allowed', {
+      status: 405,
+      headers: { allow: Array.from(allowedMethods).join(', ') },
+    })
+  }
+
+  if (isSuspiciousRequestUrl(url)) return text('Not found', { status: 404 })
+
+  const hasBody = request.method === 'POST' || request.method === 'PUT' || request.method === 'PATCH'
+  const contentLength = Number(request.headers.get('content-length') || 0)
+  if (hasBody && contentLength > maxRequestBodyBytes) {
+    return json({ error: '请求内容过大，请压缩图片或减少内容后再试。' }, { status: 413 })
+  }
+
+  if (url.pathname.startsWith('/api/') && hasBody) {
+    const contentType = request.headers.get('content-type') || ''
+    if (contentType && !contentType.includes('application/json') && !contentType.includes('multipart/form-data')) {
+      return json({ error: '请求格式不正确。' }, { status: 415 })
+    }
+  }
+
+  const rule = securityRateLimitRule(url.pathname, request.method)
+  if (!rule) return null
+  const rateError = await enforceRateLimit(env, {
+    actorKey: await getRequestDeviceKey(request),
+    action: rule.action,
+    maxCount: rule.maxCount,
+    windowSeconds: rule.windowSeconds,
+  })
+  if (rateError) {
+    return json({ error: '请求过于频繁，请稍后再试。' }, { status: 429, headers: { 'retry-after': '60' } })
+  }
+
+  return null
+}
+
 const complianceSensitiveRules = [
   { terms: ['私人换汇', '私下换汇', '换钱广告', '换米广告', '帮换钱', '帮换米', '代换汇'], reason: '平台禁止发布换钱/换米撮合、广告或帮助信息。' },
   { terms: ['代写论文', '代写作业', '代考', '替考', '替课', '买答案'], reason: '平台禁止代写、代考、替课和作弊类服务。' },
@@ -1590,11 +2046,37 @@ const ensureUserDocumentsTable = async (env: Env) => {
       name TEXT NOT NULL,
       type TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'pending',
+      review_note TEXT NOT NULL DEFAULT '',
       data_url TEXT NOT NULL DEFAULT '',
       uploaded_at TEXT NOT NULL
     )`,
   ).run()
+  await ensureColumn(env, 'user_documents', 'review_note', "review_note TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'user_documents', 'data_url', "data_url TEXT NOT NULL DEFAULT ''")
+}
+
+const ensureManagedMerchantsTable = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS managed_merchants (
+      id TEXT PRIMARY KEY,
+      category TEXT NOT NULL,
+      name TEXT NOT NULL,
+      logo TEXT NOT NULL DEFAULT '',
+      summary TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      tags_json TEXT NOT NULL DEFAULT '[]',
+      verified INTEGER NOT NULL DEFAULT 1,
+      location TEXT NOT NULL DEFAULT '',
+      detail_tone TEXT NOT NULL DEFAULT '',
+      level TEXT NOT NULL DEFAULT 'normal',
+      logo_image TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_managed_merchants_category ON managed_merchants(category, status)').run()
 }
 
 const getAllUsers = async (env: Env) => {
@@ -1612,6 +2094,38 @@ const getAllUsers = async (env: Env) => {
   }
 
   return (userRows.results ?? []).map((row) => rowToUser(row, documentsByUser.get(String(row.id)) ?? []))
+}
+
+const getManagedMerchants = async (env: Env) => {
+  if (!env.DB) return []
+  await ensureManagedMerchantsTable(env)
+  const rows = await env.DB.prepare('SELECT * FROM managed_merchants ORDER BY category ASC, updated_at DESC').all<Record<string, unknown>>()
+  return (rows.results ?? []).map(rowToManagedMerchant)
+}
+
+const getAdminDocumentBackup = async (env: Env) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  const users = await getAllUsers(env)
+  const documents = users.flatMap((user) =>
+    user.documents.map((document) => ({
+      ...document,
+      userId: user.id,
+      userName: user.name,
+      userEmail: user.email,
+      userIdentity: user.identity,
+      userSchool: user.school,
+      userStatus: user.status,
+      userVerificationStatus: user.verificationStatus,
+    })),
+  )
+
+  return json({
+    generatedAt: new Date().toISOString(),
+    source: 'shouye.fun D1 user_documents',
+    totalUsers: users.length,
+    totalDocuments: documents.length,
+    documents,
+  })
 }
 
 const getMerchantBrandAccesses = async (env: Env): Promise<MerchantBrandAccessRecord[]> => {
@@ -1865,6 +2379,16 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
       section_three_text TEXT NOT NULL DEFAULT '',
       case_one TEXT NOT NULL DEFAULT '',
       case_two TEXT NOT NULL DEFAULT '',
+      showcase_category TEXT NOT NULL DEFAULT '',
+      showcase_merchant_name TEXT NOT NULL DEFAULT '',
+      showcase_service_title TEXT NOT NULL DEFAULT '',
+      showcase_service_subtitle TEXT NOT NULL DEFAULT '',
+      showcase_tag_one TEXT NOT NULL DEFAULT '',
+      showcase_tag_two TEXT NOT NULL DEFAULT '',
+      showcase_tag_three TEXT NOT NULL DEFAULT '',
+      showcase_tag_four TEXT NOT NULL DEFAULT '',
+      showcase_tag_five TEXT NOT NULL DEFAULT '',
+      showcase_tag_six TEXT NOT NULL DEFAULT '',
       showcase_art_title TEXT NOT NULL DEFAULT '',
       showcase_art_subtitle TEXT NOT NULL DEFAULT '',
       logo_image TEXT NOT NULL DEFAULT '',
@@ -1900,6 +2424,16 @@ const ensureMerchantBrandDecorationTables = async (env: Env) => {
   await ensureColumn(env, 'merchant_brand_decorations', 'section_two_text', "section_two_text TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'section_three_title', "section_three_title TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'section_three_text', "section_three_text TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_category', "showcase_category TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_merchant_name', "showcase_merchant_name TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_service_title', "showcase_service_title TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_service_subtitle', "showcase_service_subtitle TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_tag_one', "showcase_tag_one TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_tag_two', "showcase_tag_two TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_tag_three', "showcase_tag_three TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_tag_four', "showcase_tag_four TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_tag_five', "showcase_tag_five TEXT NOT NULL DEFAULT ''")
+  await ensureColumn(env, 'merchant_brand_decorations', 'showcase_tag_six', "showcase_tag_six TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'showcase_art_title', "showcase_art_title TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'showcase_art_subtitle', "showcase_art_subtitle TEXT NOT NULL DEFAULT ''")
   await ensureColumn(env, 'merchant_brand_decorations', 'pending_logo_image', "pending_logo_image TEXT NOT NULL DEFAULT ''")
@@ -1977,6 +2511,24 @@ const ensureWalletTables = async (env: Env) => {
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_withdrawal_requests_status ON withdrawal_requests(status, created_at DESC)').run()
 
   await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS rename_requests (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      old_name TEXT NOT NULL DEFAULT '',
+      requested_name TEXT NOT NULL,
+      cost_earning_points INTEGER NOT NULL DEFAULT 60,
+      status TEXT NOT NULL DEFAULT 'pending',
+      reason TEXT NOT NULL DEFAULT '',
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      reviewed_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_rename_requests_user ON rename_requests(user_id, created_at DESC)').run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_rename_requests_status ON rename_requests(status, created_at DESC)').run()
+
+  await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS point_ledger (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -2042,6 +2594,17 @@ const getWithdrawalRequests = async (env: Env) => {
   await ensureWalletTables(env)
   const rows = await env.DB.prepare('SELECT * FROM withdrawal_requests ORDER BY created_at DESC').all<Record<string, unknown>>()
   return (rows.results ?? []).map(rowToWithdrawalRequest)
+}
+
+const getRenameRequests = async (env: Env, userId?: string) => {
+  if (!env.DB) return []
+  await ensureWalletTables(env)
+  const rows = userId
+    ? await env.DB.prepare('SELECT * FROM rename_requests WHERE user_id = ? ORDER BY created_at DESC')
+        .bind(userId)
+        .all<Record<string, unknown>>()
+    : await env.DB.prepare('SELECT * FROM rename_requests ORDER BY created_at DESC').all<Record<string, unknown>>()
+  return (rows.results ?? []).map(rowToRenameRequest)
 }
 
 const getPointLedger = async (env: Env) => {
@@ -2115,6 +2678,38 @@ const ensureEmailVerificationTables = async (env: Env) => {
     )`,
   ).run()
   await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_email_verification_logs_email_created ON email_verification_logs(email, created_at)').run()
+}
+
+const ensurePhoneAuthTables = async (env: Env) => {
+  if (!env.DB) return
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS phone_verifications (
+      phone TEXT PRIMARY KEY,
+      code_hash TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`,
+  ).run()
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS phone_verification_logs (
+      id TEXT PRIMARY KEY,
+      phone TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`,
+  ).run()
+  await env.DB.prepare(
+    `CREATE TABLE IF NOT EXISTS phone_accounts (
+      phone TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      real_name TEXT NOT NULL DEFAULT '',
+      identity_number_hash TEXT NOT NULL DEFAULT '',
+      identity_number_masked TEXT NOT NULL DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`,
+  ).run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_phone_verification_logs_phone_created ON phone_verification_logs(phone, created_at)').run()
+  await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_phone_accounts_user_id ON phone_accounts(user_id)').run()
 }
 
 const ensureWechatMiniappTables = async (env: Env) => {
@@ -2208,6 +2803,29 @@ const sendVerificationEmail = async (env: Env, email: string, code: string) => {
   return { ok: false, error: '邮件发送配置缺失，请联系管理员配置 RESEND_API_KEY、SendGrid 或 Mailgun。' }
 }
 
+const sendVerificationSms = async (env: Env, phone: string, code: string) => {
+  const provider = (env.SMS_PROVIDER || '').toLowerCase()
+  if (provider === 'generic' && env.SMS_API_URL && env.SMS_API_TOKEN) {
+    const response = await fetch(env.SMS_API_URL, {
+      body: JSON.stringify({
+        to: phone,
+        code,
+        from: env.SMS_FROM || '售业',
+        message: `【售业】你的验证码是 ${code}，10 分钟内有效。`,
+      }),
+      headers: {
+        authorization: `Bearer ${env.SMS_API_TOKEN}`,
+        'content-type': 'application/json',
+      },
+      method: 'POST',
+    })
+    if (!response.ok) return { ok: false, error: '短信验证码发送失败，请检查短信服务配置。' }
+    return { ok: true }
+  }
+
+  return { ok: false, error: '短信服务还未配置，请先接入短信供应商后再开放手机号注册。' }
+}
+
 const handleSendVerificationCode = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   await ensureEmailVerificationTables(env)
@@ -2270,6 +2888,69 @@ const verifyEmailCode = async (env: Env, email: string, code: string) => {
   if (!row) return false
   if (String(row.expires_at) < new Date().toISOString()) return false
   return String(row.code_hash) === (await emailCodeHash(email, code))
+}
+
+const handleSendPhoneVerificationCode = async (request: Request, env: Env) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensurePhoneAuthTables(env)
+  const body = await readBody<{ phone: string }>(request)
+  const phone = normalizePhoneNumber(body.phone)
+
+  if (!phone) return json({ error: '请先填写手机号。' }, { status: 400 })
+  if (!isValidPhoneNumber(phone)) return json({ error: '手机号格式不正确。' }, { status: 400 })
+
+  const existing = await env.DB.prepare('SELECT user_id FROM phone_accounts WHERE phone = ?').bind(phone).first()
+  if (existing) return json({ error: '这个手机号已经注册过了，可以直接登录。' }, { status: 409 })
+
+  const now = new Date()
+  const oneHourAgo = new Date(now.getTime() - 1000 * 60 * 60).toISOString()
+  await env.DB.prepare('DELETE FROM phone_verification_logs WHERE created_at < ?').bind(oneHourAgo).run()
+  await env.DB.prepare('DELETE FROM phone_verifications WHERE expires_at < ?').bind(now.toISOString()).run()
+
+  const currentCode = await env.DB.prepare('SELECT created_at FROM phone_verifications WHERE phone = ?')
+    .bind(phone)
+    .first<{ created_at: string }>()
+  if (currentCode?.created_at && now.getTime() - new Date(currentCode.created_at).getTime() < 1000 * 60) {
+    return json({ error: '验证码发送太频繁，请 60 秒后再试。' }, { status: 429 })
+  }
+
+  const recentCount = await env.DB.prepare(
+    'SELECT COUNT(*) AS count FROM phone_verification_logs WHERE phone = ? AND created_at >= ?',
+  )
+    .bind(phone, oneHourAgo)
+    .first<{ count: number }>()
+  if (Number(recentCount?.count ?? 0) >= 5) {
+    return json({ error: '这个手机号 1 小时内验证码发送次数已达上限，请稍后再试。' }, { status: 429 })
+  }
+
+  const code = String(Math.floor(100000 + Math.random() * 900000))
+  const sent = await sendVerificationSms(env, phone, code)
+  if (!sent.ok) return json({ error: sent.error }, { status: 503 })
+
+  const expiresAt = new Date(now.getTime() + 1000 * 60 * 10)
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO phone_verifications (phone, code_hash, expires_at, created_at)
+     VALUES (?, ?, ?, ?)`,
+  )
+    .bind(phone, await phoneCodeHash(phone, code), expiresAt.toISOString(), now.toISOString())
+    .run()
+  await env.DB.prepare('INSERT INTO phone_verification_logs (id, phone, created_at) VALUES (?, ?, ?)')
+    .bind(createId('phone-code'), phone, now.toISOString())
+    .run()
+
+  return json({ success: true, message: '验证码已发送，请检查手机短信' })
+}
+
+const verifyPhoneCode = async (env: Env, phone: string, code: string) => {
+  if (!env.DB) return false
+  await ensurePhoneAuthTables(env)
+  if (!/^\d{6}$/.test(code)) return false
+  const row = await env.DB.prepare('SELECT * FROM phone_verifications WHERE phone = ?').bind(phone).first<
+    Record<string, unknown>
+  >()
+  if (!row) return false
+  if (String(row.expires_at) < new Date().toISOString()) return false
+  return String(row.code_hash) === (await phoneCodeHash(phone, code))
 }
 
 const handleRegister = async (request: Request, env: Env) => {
@@ -2393,15 +3074,155 @@ const handleRegister = async (request: Request, env: Env) => {
   return json({ user })
 }
 
+const handlePhoneRegister = async (request: Request, env: Env) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensurePhoneAuthTables(env)
+  const body = await readBody<{
+    userType: 'student' | 'merchant'
+    phone: string
+    phoneCode: string
+    password: string
+    confirmPassword: string
+    realName: string
+    identityNumber: string
+    studentStage?: string
+    nickname?: string
+    businessName?: string
+    businessCategory?: string
+    country?: string
+    city?: string
+    school?: string
+  }>(request)
+  const phone = normalizePhoneNumber(body.phone)
+  const password = body.password ?? ''
+  const confirmPassword = body.confirmPassword ?? ''
+  const realName = body.realName?.trim()
+  const identityNumber = body.identityNumber?.trim()
+  const userType = body.userType === 'merchant' ? 'merchant' : 'student'
+  const validStudentStages = new Set(['preparing', 'admitted', 'language_school', 'undergraduate', 'graduate', 'graduated'])
+  const studentStageLabels: Record<string, string> = {
+    preparing: '准备申请',
+    admitted: '已录取待入学',
+    language_school: '语学院',
+    undergraduate: '本科',
+    graduate: '大学院',
+    graduated: '已毕业',
+  }
+
+  if (!phone) return json({ error: '请填写手机号。' }, { status: 400 })
+  if (!isValidPhoneNumber(phone)) return json({ error: '手机号格式不正确。' }, { status: 400 })
+  if (!password) return json({ error: '请设置登录密码。' }, { status: 400 })
+  if (password.length < 6) return json({ error: '密码至少需要 6 位。' }, { status: 400 })
+  if (password !== confirmPassword) return json({ error: '两次输入的密码不一致。' }, { status: 400 })
+  if (!realName || !identityNumber) return json({ error: '手机号注册必须填写实名信息。' }, { status: 400 })
+  if (identityNumber.replace(/\s+/g, '').length < 6) return json({ error: '实名证件号码格式不完整。' }, { status: 400 })
+  if (userType === 'student' && (!body.studentStage || !validStudentStages.has(body.studentStage))) {
+    return json({ error: '请选择学生阶段。' }, { status: 400 })
+  }
+  if (userType === 'merchant' && (!body.businessName?.trim() || !body.businessCategory?.trim())) {
+    return json({ error: '请填写商家/机构名称和服务类型。' }, { status: 400 })
+  }
+  if (userType === 'merchant' && (!body.country?.trim() || !body.city?.trim())) {
+    return json({ error: '请填写商家所在国家和城市。' }, { status: 400 })
+  }
+  if (!(await verifyPhoneCode(env, phone, body.phoneCode ?? ''))) {
+    return json({ error: '手机验证码不正确或已过期。' }, { status: 400 })
+  }
+
+  const existingPhone = await env.DB.prepare('SELECT user_id FROM phone_accounts WHERE phone = ?').bind(phone).first()
+  if (existingPhone) return json({ error: '这个手机号已经注册过了，可以直接登录。' }, { status: 409 })
+
+  const phoneHash = (await hashText(phone)).slice(0, 24)
+  const email = `phone-${phoneHash}@phone.shouye.local`
+  const existingEmail = await env.DB.prepare('SELECT id FROM users WHERE email = ?').bind(email).first()
+  if (existingEmail) return json({ error: '这个手机号已经注册过了，可以直接登录。' }, { status: 409 })
+
+  const userId = createId('user')
+  const joinedAt = new Date().toISOString()
+  const displayName =
+    userType === 'merchant'
+      ? body.businessName?.trim() || '商家用户'
+      : body.nickname?.trim() || realName || '韩国留学用户'
+  const identity =
+    userType === 'merchant'
+      ? `商家 · ${body.businessCategory?.trim()}`
+      : studentStageLabels[body.studentStage ?? 'preparing']
+  const school =
+    userType === 'merchant'
+      ? `${body.country?.trim()} · ${body.city?.trim()}`
+      : body.school?.trim() || '暂未填写'
+  const identityNumberHash = await hashText(identityNumber.replace(/\s+/g, ''))
+  const bio = JSON.stringify({
+    userType,
+    phone,
+    phoneVerified: true,
+    realNameSubmitted: true,
+    realName,
+    identityNumberMasked: maskIdentityNumber(identityNumber),
+    identityNumberHash,
+    businessName: userType === 'merchant' ? displayName : undefined,
+    businessCategory: userType === 'merchant' ? body.businessCategory?.trim() : undefined,
+    country: userType === 'merchant' ? body.country?.trim() : undefined,
+    city: userType === 'merchant' ? body.city?.trim() : undefined,
+  })
+
+  await env.DB.prepare(
+    `INSERT INTO users
+      (id, name, email, password_hash, identity, school, points, earning_points, joined_at, status, verification_status, avatar_url, bio)
+      VALUES (?, ?, ?, ?, ?, ?, 30, 0, ?, 'active', 'pending', '', ?)`,
+  )
+    .bind(userId, displayName, email, await hashText(password), identity, school, joinedAt, bio)
+    .run()
+  await env.DB.prepare(
+    `INSERT INTO phone_accounts (phone, user_id, real_name, identity_number_hash, identity_number_masked, created_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(phone, userId, realName, identityNumberHash, maskIdentityNumber(identityNumber), joinedAt)
+    .run()
+  await env.DB.prepare('DELETE FROM phone_verifications WHERE phone = ?').bind(phone).run()
+
+  const user = rowToUser(
+    {
+      id: userId,
+      name: displayName,
+      email,
+      identity,
+      school,
+      points: 30,
+      earning_points: 0,
+      joined_at: joinedAt,
+      status: 'active',
+      verification_status: 'pending',
+      avatar_url: '',
+      bio,
+    },
+    [],
+  )
+
+  return json({ user })
+}
+
 const handleLogin = async (request: Request, env: Env) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   await ensureUserDocumentsTable(env)
-  const body = await readBody<{ email: string; password: string }>(request)
-  const email = body.email?.trim().toLowerCase()
+  const body = await readBody<{ email?: string; phone?: string; account?: string; password: string }>(request)
+  const account = (body.account ?? body.email ?? body.phone ?? '').trim()
+  const email = account.includes('@') ? account.toLowerCase() : ''
+  const phone = !email ? normalizePhoneNumber(account) : ''
   const password = body.password ?? ''
-  const row = email
+  let row = email
     ? await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<Record<string, unknown>>()
     : null
+
+  if (!row && phone && isValidPhoneNumber(phone)) {
+    await ensurePhoneAuthTables(env)
+    const accountRow = await env.DB.prepare('SELECT user_id FROM phone_accounts WHERE phone = ?')
+      .bind(phone)
+      .first<{ user_id: string }>()
+    row = accountRow?.user_id
+      ? await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(accountRow.user_id).first<Record<string, unknown>>()
+      : null
+  }
 
   if (!row || String(row.password_hash) !== (await hashText(password))) {
     return json({ error: '没有找到这个账号，或密码不正确。' }, { status: 401 })
@@ -3333,6 +4154,16 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
     decoration.sectionThreeText,
     decoration.caseOne,
     decoration.caseTwo,
+    decoration.showcaseCategory,
+    decoration.showcaseMerchantName,
+    decoration.showcaseServiceTitle,
+    decoration.showcaseServiceSubtitle,
+    decoration.showcaseTagOne,
+    decoration.showcaseTagTwo,
+    decoration.showcaseTagThree,
+    decoration.showcaseTagFour,
+    decoration.showcaseTagFive,
+    decoration.showcaseTagSix,
     decoration.showcaseArtTitle,
     decoration.showcaseArtSubtitle,
   ])
@@ -3350,8 +4181,8 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, bubble_color, bubble_text_color, bubble_meta_color, bubble_logo_background, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_category, showcase_merchant_name, showcase_service_title, showcase_service_subtitle, showcase_tag_one, showcase_tag_two, showcase_tag_three, showcase_tag_four, showcase_tag_five, showcase_tag_six, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, bubble_color, bubble_text_color, bubble_meta_color, bubble_logo_background, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -3368,6 +4199,16 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
         section_three_text = excluded.section_three_text,
         case_one = excluded.case_one,
         case_two = excluded.case_two,
+        showcase_category = excluded.showcase_category,
+        showcase_merchant_name = excluded.showcase_merchant_name,
+        showcase_service_title = excluded.showcase_service_title,
+        showcase_service_subtitle = excluded.showcase_service_subtitle,
+        showcase_tag_one = excluded.showcase_tag_one,
+        showcase_tag_two = excluded.showcase_tag_two,
+        showcase_tag_three = excluded.showcase_tag_three,
+        showcase_tag_four = excluded.showcase_tag_four,
+        showcase_tag_five = excluded.showcase_tag_five,
+        showcase_tag_six = excluded.showcase_tag_six,
         showcase_art_title = excluded.showcase_art_title,
         showcase_art_subtitle = excluded.showcase_art_subtitle,
         logo_image = excluded.logo_image,
@@ -3410,6 +4251,16 @@ const saveMerchantBrandDecoration = async (request: Request, env: Env, brandId: 
       decoration.sectionThreeText,
       decoration.caseOne,
       decoration.caseTwo,
+      decoration.showcaseCategory,
+      decoration.showcaseMerchantName,
+      decoration.showcaseServiceTitle,
+      decoration.showcaseServiceSubtitle,
+      decoration.showcaseTagOne,
+      decoration.showcaseTagTwo,
+      decoration.showcaseTagThree,
+      decoration.showcaseTagFour,
+      decoration.showcaseTagFive,
+      decoration.showcaseTagSix,
       decoration.showcaseArtTitle,
       decoration.showcaseArtSubtitle,
       decoration.logoImage,
@@ -3464,8 +4315,8 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
 
   await env.DB.prepare(
     `INSERT INTO merchant_brand_decorations
-      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, bubble_color, bubble_text_color, bubble_meta_color, bubble_logo_background, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (brand_id, owner_user_id, badge, hero_title, intro, contact_copy, panel_label, panel_title, section_one_title, section_one_text, section_two_title, section_two_text, section_three_title, section_three_text, case_one, case_two, showcase_category, showcase_merchant_name, showcase_service_title, showcase_service_subtitle, showcase_tag_one, showcase_tag_two, showcase_tag_three, showcase_tag_four, showcase_tag_five, showcase_tag_six, showcase_art_title, showcase_art_subtitle, logo_image, pending_logo_image, logo_review_status, font_family, title_color, body_color, accent_color, hero_image, hero_image_x, hero_image_y, hero_image_scale, service_image, service_image_x, service_image_y, service_image_scale, text_layer_styles, design_items, bubble_color, bubble_text_color, bubble_meta_color, bubble_logo_background, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(brand_id) DO UPDATE SET
         owner_user_id = excluded.owner_user_id,
         badge = excluded.badge,
@@ -3482,6 +4333,16 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
         section_three_text = excluded.section_three_text,
         case_one = excluded.case_one,
         case_two = excluded.case_two,
+        showcase_category = excluded.showcase_category,
+        showcase_merchant_name = excluded.showcase_merchant_name,
+        showcase_service_title = excluded.showcase_service_title,
+        showcase_service_subtitle = excluded.showcase_service_subtitle,
+        showcase_tag_one = excluded.showcase_tag_one,
+        showcase_tag_two = excluded.showcase_tag_two,
+        showcase_tag_three = excluded.showcase_tag_three,
+        showcase_tag_four = excluded.showcase_tag_four,
+        showcase_tag_five = excluded.showcase_tag_five,
+        showcase_tag_six = excluded.showcase_tag_six,
         showcase_art_title = excluded.showcase_art_title,
         showcase_art_subtitle = excluded.showcase_art_subtitle,
         logo_image = excluded.logo_image,
@@ -3524,6 +4385,16 @@ const updateMerchantBrandDecorationByAdmin = async (request: Request, env: Env, 
       decoration.sectionThreeText,
       decoration.caseOne,
       decoration.caseTwo,
+      decoration.showcaseCategory,
+      decoration.showcaseMerchantName,
+      decoration.showcaseServiceTitle,
+      decoration.showcaseServiceSubtitle,
+      decoration.showcaseTagOne,
+      decoration.showcaseTagTwo,
+      decoration.showcaseTagThree,
+      decoration.showcaseTagFour,
+      decoration.showcaseTagFive,
+      decoration.showcaseTagSix,
       decoration.showcaseArtTitle,
       decoration.showcaseArtSubtitle,
       decoration.logoImage,
@@ -3797,6 +4668,186 @@ const handleWithdrawalCreate = async (request: Request, env: Env) => {
   })
 }
 
+const handleRenameRequestCreate = async (request: Request, env: Env, userId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureWalletTables(env)
+  const body = await readBody<{ requestedName: string; reason?: string }>(request)
+  const requestedName = body.requestedName?.trim().replace(/\s+/g, ' ') ?? ''
+  const reason = body.reason?.trim() ?? ''
+  const costEarningPoints = 60
+
+  if (!userId) return json({ error: '请先登录后再申请改名。' }, { status: 401 })
+  if (requestedName.length < 2 || requestedName.length > 24) {
+    return json({ error: '新昵称需为 2-24 个字符。' }, { status: 400 })
+  }
+  if (/[<>/\\{}]/.test(requestedName)) {
+    return json({ error: '昵称不能包含尖括号、斜杠或花括号。' }, { status: 400 })
+  }
+
+  const user = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!user) return json({ error: '账号不存在，请重新登录。' }, { status: 404 })
+  const oldName = String(user.name ?? '')
+  if (requestedName === oldName) return json({ error: '新昵称和当前昵称相同，无需申请。' }, { status: 400 })
+
+  const pendingRequest = await env.DB.prepare(
+    "SELECT id FROM rename_requests WHERE user_id = ? AND status = 'pending' LIMIT 1",
+  )
+    .bind(userId)
+    .first<Record<string, unknown>>()
+  if (pendingRequest) return json({ error: '已有待审核改名申请，请等待管理员处理。' }, { status: 400 })
+
+  if (Number(user.earning_points ?? 0) < costEarningPoints) {
+    return json({ error: `可提现积分不足，申请改名需要 ${costEarningPoints} 可提现积分。` }, { status: 400 })
+  }
+
+  const actorKey = await getRequestActorKey(request, userId)
+  const rateError = await enforceRateLimit(env, {
+    actorKey,
+    action: 'profile:rename-request',
+    maxCount: 5,
+    windowSeconds: 60 * 60 * 24,
+  })
+  if (rateError) return json({ error: rateError }, { status: 429 })
+
+  const now = new Date().toISOString()
+  const renameRequest: RenameRequestRecord = {
+    id: createId('rename'),
+    userId,
+    oldName,
+    requestedName,
+    costEarningPoints,
+    status: 'pending',
+    reason,
+    adminNote: '',
+    createdAt: now,
+  }
+
+  await env.DB.prepare('UPDATE users SET earning_points = earning_points - ? WHERE id = ?')
+    .bind(costEarningPoints, userId)
+    .run()
+  await env.DB.prepare(
+    `INSERT INTO rename_requests
+      (id, user_id, old_name, requested_name, cost_earning_points, status, reason, admin_note, created_at, reviewed_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  )
+    .bind(
+      renameRequest.id,
+      renameRequest.userId,
+      renameRequest.oldName,
+      renameRequest.requestedName,
+      renameRequest.costEarningPoints,
+      renameRequest.status,
+      renameRequest.reason,
+      renameRequest.adminNote,
+      renameRequest.createdAt,
+      null,
+    )
+    .run()
+  await insertPointLedger(env, {
+    userId,
+    direction: 'debit',
+    accountType: 'earning_points',
+    points: costEarningPoints,
+    category: 'rename_request_hold',
+    refType: 'rename_request',
+    refId: renameRequest.id,
+    note: '改名申请冻结可提现积分',
+  })
+
+  return json({
+    renameRequest,
+    renameRequests: await getRenameRequests(env, userId),
+    pointLedger: await getPointLedger(env),
+    users: await getAllUsers(env),
+  })
+}
+
+const normalizeManagedMerchantInput = (body: Partial<ManagedMerchantRecord>, fallbackId?: string): ManagedMerchantRecord => {
+  const now = new Date().toISOString()
+  const name = body.name?.trim() || '未命名商家'
+  const category = body.category?.trim() || '留学咨询'
+  const id =
+    fallbackId?.trim() ||
+    body.id?.trim() ||
+    `merchant-${encodeURIComponent(name).replace(/%/g, '').slice(0, 48) || Date.now()}`
+  const tags = Array.isArray(body.tags)
+    ? body.tags.map((tag) => String(tag).trim()).filter(Boolean).slice(0, 8)
+    : []
+  return {
+    id,
+    category,
+    name,
+    logo: body.logo?.trim() || name.slice(0, 3) || '商家',
+    summary: body.summary?.trim() || `${category}服务展示`,
+    description: body.description?.trim() || `${name}已加入售业商家展示，可补充服务范围、价格区间和咨询边界。`,
+    tags,
+    verified: body.verified ?? true,
+    location: body.location?.trim() || '认证商家',
+    detailTone: body.detailTone?.trim() || `${category}服务展示`,
+    level: body.level === 'pinned' ? 'pinned' : 'normal',
+    logoImage: body.logoImage?.trim() || '',
+    status: body.status === 'hidden' ? 'hidden' : 'active',
+    createdAt: body.createdAt || now,
+    updatedAt: now,
+  }
+}
+
+const upsertManagedMerchant = async (request: Request, env: Env, merchantId?: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureManagedMerchantsTable(env)
+  const body = await readBody<Partial<ManagedMerchantRecord>>(request)
+  const existing = merchantId
+    ? await env.DB.prepare('SELECT * FROM managed_merchants WHERE id = ?').bind(merchantId).first<Record<string, unknown>>()
+    : null
+  const merchant = normalizeManagedMerchantInput(
+    {
+      ...(existing ? rowToManagedMerchant(existing) : {}),
+      ...body,
+      createdAt: existing ? String(existing.created_at) : body.createdAt,
+    },
+    merchantId,
+  )
+  await env.DB.prepare(
+    `INSERT INTO managed_merchants
+      (id, category, name, logo, summary, description, tags_json, verified, location, detail_tone, level, logo_image, status, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+      category = excluded.category,
+      name = excluded.name,
+      logo = excluded.logo,
+      summary = excluded.summary,
+      description = excluded.description,
+      tags_json = excluded.tags_json,
+      verified = excluded.verified,
+      location = excluded.location,
+      detail_tone = excluded.detail_tone,
+      level = excluded.level,
+      logo_image = excluded.logo_image,
+      status = excluded.status,
+      updated_at = excluded.updated_at`,
+  )
+    .bind(
+      merchant.id,
+      merchant.category,
+      merchant.name,
+      merchant.logo,
+      merchant.summary,
+      merchant.description,
+      JSON.stringify(merchant.tags),
+      merchant.verified ? 1 : 0,
+      merchant.location,
+      merchant.detailTone,
+      merchant.level,
+      merchant.logoImage,
+      merchant.status,
+      merchant.createdAt,
+      merchant.updatedAt,
+    )
+    .run()
+
+  return json({ managedMerchants: await getManagedMerchants(env) })
+}
+
 const updateProfile = async (request: Request, env: Env, userId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   await ensureUserDocumentsTable(env)
@@ -3806,19 +4857,18 @@ const updateProfile = async (request: Request, env: Env, userId: string) => {
 
   await env.DB.prepare(
     `UPDATE users SET
-      name = COALESCE(?, name),
       identity = COALESCE(?, identity),
       school = COALESCE(?, school),
       avatar_url = COALESCE(?, avatar_url),
       bio = COALESCE(?, bio)
      WHERE id = ?`,
   )
-    .bind(body.name ?? null, body.identity ?? null, body.school ?? null, body.avatarUrl ?? null, body.bio ?? null, userId)
+    .bind(body.identity ?? null, body.school ?? null, body.avatarUrl ?? null, body.bio ?? null, userId)
     .run()
 
   for (const document of body.documents ?? []) {
     await env.DB.prepare(
-      `INSERT INTO user_documents (id, user_id, name, type, status, data_url, uploaded_at)
+      `INSERT OR REPLACE INTO user_documents (id, user_id, name, type, status, data_url, uploaded_at)
        VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
     )
       .bind(
@@ -3838,6 +4888,66 @@ const updateProfile = async (request: Request, env: Env, userId: string) => {
     .all<Record<string, unknown>>()
 
   return json({ user: row ? rowToUser(row, (documents.results ?? []).map(rowToDocument)) : null })
+}
+
+const getUserWithDocuments = async (env: Env, userId: string) => {
+  if (!env.DB) return null
+  const row = await env.DB.prepare('SELECT * FROM users WHERE id = ?').bind(userId).first<Record<string, unknown>>()
+  if (!row) return null
+  const documents = await env.DB.prepare('SELECT * FROM user_documents WHERE user_id = ? ORDER BY uploaded_at DESC')
+    .bind(userId)
+    .all<Record<string, unknown>>()
+  return rowToUser(row, (documents.results ?? []).map(rowToDocument))
+}
+
+const canAccessUserDocument = async (request: Request, env: Env, userId: string) => {
+  if (request.headers.get('x-user-id') === userId) return true
+  return requireAdmin(request, env)
+}
+
+const getUserDocument = async (request: Request, env: Env, userId: string, documentId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  if (!(await canAccessUserDocument(request, env, userId))) return json({ error: '没有权限查看这份材料。' }, { status: 403 })
+  await ensureUserDocumentsTable(env)
+  const row = await env.DB.prepare('SELECT * FROM user_documents WHERE user_id = ? AND id = ?')
+    .bind(userId, documentId)
+    .first<Record<string, unknown>>()
+  if (!row) return json({ error: '没有找到这份材料。' }, { status: 404 })
+  return json({ document: rowToDocument(row) })
+}
+
+const deleteUserDocument = async (request: Request, env: Env, userId: string, documentId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  if (!(await canAccessUserDocument(request, env, userId))) return json({ error: '没有权限删除这份材料。' }, { status: 403 })
+  await ensureUserDocumentsTable(env)
+  await env.DB.prepare('DELETE FROM user_documents WHERE user_id = ? AND id = ?').bind(userId, documentId).run()
+  const user = await getUserWithDocuments(env, userId)
+  if (!user) return json({ error: '用户不存在。' }, { status: 404 })
+  return json({ user })
+}
+
+const replaceUserDocument = async (request: Request, env: Env, userId: string, documentId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  if (!(await canAccessUserDocument(request, env, userId))) return json({ error: '没有权限重新上传这份材料。' }, { status: 403 })
+  await ensureUserDocumentsTable(env)
+  const body = await readBody<CredentialDocument>(request)
+  if (!body.dataUrl) return json({ error: '没有收到文件内容，请重新选择文件。' }, { status: 400 })
+  await env.DB.prepare(
+    `INSERT OR REPLACE INTO user_documents (id, user_id, name, type, status, data_url, uploaded_at)
+     VALUES (?, ?, ?, ?, 'pending', ?, ?)`,
+  )
+    .bind(
+      documentId,
+      userId,
+      body.name || '认证材料',
+      body.type || '身份/学校认证材料',
+      body.dataUrl,
+      body.uploadedAt || new Date().toISOString(),
+    )
+    .run()
+  const user = await getUserWithDocuments(env, userId)
+  if (!user) return json({ error: '用户不存在。' }, { status: 404 })
+  return json({ user })
 }
 
 const getPublicUserProfile = async (env: Env, userId: string) => {
@@ -3887,11 +4997,36 @@ const updateUser = async (request: Request, env: Env, userId: string) => {
 
   if (body.documents?.length) {
     for (const document of body.documents) {
-      await env.DB.prepare('UPDATE user_documents SET status = ? WHERE id = ? AND user_id = ?')
-        .bind(document.status, document.id, userId)
+      await env.DB.prepare('UPDATE user_documents SET status = ?, review_note = COALESCE(?, review_note) WHERE id = ? AND user_id = ?')
+        .bind(document.status, document.reviewNote ?? null, document.id, userId)
         .run()
     }
+  } else if (body.verificationStatus === 'approved') {
+    await env.DB.prepare("UPDATE user_documents SET status = 'approved', review_note = '' WHERE user_id = ? AND status = 'pending'")
+      .bind(userId)
+      .run()
   }
+
+  return json({ users: await getAllUsers(env) })
+}
+
+const resetUserPassword = async (request: Request, env: Env, userId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  const body = await readBody<{ password?: string; confirmPassword?: string }>(request)
+  const password = body.password?.trim() ?? ''
+  const confirmPassword = body.confirmPassword?.trim()
+  if (!password) return json({ error: '请填写新的临时密码。' }, { status: 400 })
+  if (password.length < 6) return json({ error: '临时密码至少需要 6 位。' }, { status: 400 })
+  if (confirmPassword !== undefined && confirmPassword !== password) {
+    return json({ error: '两次输入的密码不一致。' }, { status: 400 })
+  }
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?').bind(userId).first()
+  if (!existing) return json({ error: '用户不存在。' }, { status: 404 })
+
+  await env.DB.prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+    .bind(await hashText(password), userId)
+    .run()
 
   return json({ users: await getAllUsers(env) })
 }
@@ -4146,6 +5281,78 @@ const updateWithdrawalRequest = async (request: Request, env: Env, withdrawalId:
   })
 }
 
+const updateRenameRequest = async (request: Request, env: Env, renameRequestId: string) => {
+  if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
+  await ensureWalletTables(env)
+  const body = await readBody<Partial<RenameRequestRecord>>(request)
+  const requestRow = await env.DB.prepare('SELECT * FROM rename_requests WHERE id = ?')
+    .bind(renameRequestId)
+    .first<Record<string, unknown>>()
+  if (!requestRow) return json({ error: '改名申请不存在。' }, { status: 404 })
+
+  const renameRequest = rowToRenameRequest(requestRow)
+  const nextStatus = body.status ?? renameRequest.status
+  if (!['pending', 'approved', 'rejected'].includes(nextStatus)) {
+    return json({ error: '改名申请状态不正确。' }, { status: 400 })
+  }
+  if (renameRequest.status !== 'pending' && nextStatus !== renameRequest.status) {
+    return json({ error: '已完成审核的改名申请不能再次变更状态。' }, { status: 400 })
+  }
+  if (nextStatus === 'rejected' && !(body.adminNote ?? renameRequest.adminNote).trim()) {
+    return json({ error: '驳回改名申请需要填写理由。' }, { status: 400 })
+  }
+
+  const now = new Date().toISOString()
+  if (renameRequest.status === 'pending' && nextStatus === 'approved') {
+    await env.DB.prepare('UPDATE users SET name = ? WHERE id = ?')
+      .bind(renameRequest.requestedName, renameRequest.userId)
+      .run()
+    await env.DB.prepare('UPDATE posts SET author = ? WHERE author_id = ?')
+      .bind(renameRequest.requestedName, renameRequest.userId)
+      .run()
+    await env.DB.prepare('UPDATE community_questions SET author = ? WHERE author_id = ?')
+      .bind(renameRequest.requestedName, renameRequest.userId)
+      .run()
+    await env.DB.prepare('UPDATE question_answers SET author = ? WHERE author_id = ?')
+      .bind(renameRequest.requestedName, renameRequest.userId)
+      .run()
+  }
+
+  if (renameRequest.status === 'pending' && nextStatus === 'rejected') {
+    await env.DB.prepare('UPDATE users SET earning_points = earning_points + ? WHERE id = ?')
+      .bind(renameRequest.costEarningPoints, renameRequest.userId)
+      .run()
+    await insertPointLedger(env, {
+      userId: renameRequest.userId,
+      direction: 'credit',
+      accountType: 'earning_points',
+      points: renameRequest.costEarningPoints,
+      category: 'rename_request_rejected',
+      refType: 'rename_request',
+      refId: renameRequest.id,
+      note: '改名申请驳回退回可提现积分',
+    })
+  }
+
+  await env.DB.prepare(
+    `UPDATE rename_requests SET
+      status = COALESCE(?, status),
+      admin_note = COALESCE(?, admin_note),
+      reviewed_at = CASE WHEN ? IN ('approved', 'rejected') AND reviewed_at IS NULL THEN ? ELSE reviewed_at END
+     WHERE id = ?`,
+  )
+    .bind(nextStatus, body.adminNote ?? null, nextStatus, now, renameRequestId)
+    .run()
+
+  return json({
+    users: await getAllUsers(env),
+    posts: await getAllPosts(env),
+    ...(await getAllQuestions(env)),
+    renameRequests: await getRenameRequests(env),
+    pointLedger: await getPointLedger(env),
+  })
+}
+
 const deleteQuestionByAdmin = async (env: Env, questionId: string) => {
   if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
   await ensureQuestionTables(env)
@@ -4173,10 +5380,12 @@ const deleteOwnPost = async (request: Request, env: Env, postId: string) => {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url)
+    const securityGateResponse = await enforceSecurityGate(request, env, url)
+    if (securityGateResponse) return securityGateResponse
 
     if (url.hostname === 'www.shouye.fun') {
       url.hostname = 'shouye.fun'
-      return Response.redirect(url.toString(), 301)
+      return withSecurityHeaders(Response.redirect(url.toString(), 301))
     }
 
     if (!url.pathname.startsWith('/api/')) {
@@ -4192,15 +5401,15 @@ export default {
       if (contentType.includes('text/html')) {
         const html = await response.text()
         return new Response(injectSeoHtml(html, url), {
-          headers: {
+          headers: securedHeaders({
             'cache-control': 'no-store, max-age=0',
             'content-type': 'text/html; charset=utf-8',
             'x-shouye-build': 'mobile-app-shell-2026-05-05',
-          },
+          }),
         })
       }
 
-      return response
+      return withSecurityHeaders(response)
     }
 
     if (url.pathname === '/api/health') return json({ ok: true })
@@ -4215,7 +5424,11 @@ export default {
     ) {
       return handleSendVerificationCode(request, env)
     }
+    if (url.pathname === '/api/auth/send-phone-code' && request.method === 'POST') {
+      return handleSendPhoneVerificationCode(request, env)
+    }
     if (url.pathname === '/api/auth/register' && request.method === 'POST') return handleRegister(request, env)
+    if (url.pathname === '/api/auth/register-phone' && request.method === 'POST') return handlePhoneRegister(request, env)
     if (url.pathname === '/api/auth/login' && request.method === 'POST') return handleLogin(request, env)
     if (url.pathname === '/api/auth/wechat-miniapp' && request.method === 'POST') return handleWechatMiniappLogin(request, env)
     if (url.pathname === '/api/posts' && request.method === 'POST') return handlePostCreate(request, env)
@@ -4227,6 +5440,10 @@ export default {
     }
     if (url.pathname === '/api/wallet/withdrawals' && request.method === 'POST') {
       return handleWithdrawalCreate(request, env)
+    }
+    const renameRequestCreateMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/rename-requests$/)
+    if (renameRequestCreateMatch && request.method === 'POST') {
+      return handleRenameRequestCreate(request, env, decodeURIComponent(renameRequestCreateMatch[1]))
     }
     const questionDetailMatch = url.pathname.match(/^\/api\/questions\/([^/]+)$/)
     if (questionDetailMatch && request.method === 'GET') {
@@ -4267,11 +5484,40 @@ export default {
     if (url.pathname === '/api/merchant-brand-accesses' && request.method === 'GET') {
       return json({ merchantBrandAccesses: await getMerchantBrandAccesses(env) })
     }
+    if (url.pathname === '/api/managed-merchants' && request.method === 'GET') {
+      return json({ managedMerchants: await getManagedMerchants(env) })
+    }
     const merchantBrandDecorationMatch = url.pathname.match(/^\/api\/merchant-brand-decorations\/([^/]+)$/)
     if (merchantBrandDecorationMatch && request.method === 'PUT') {
       return saveMerchantBrandDecoration(request, env, decodeURIComponent(merchantBrandDecorationMatch[1]))
     }
     if (url.pathname === '/api/admin/login' && request.method === 'POST') return handleAdminLogin(request, env)
+
+    const userDocumentMatch = url.pathname.match(/^\/api\/users\/([^/]+)\/documents\/([^/]+)$/)
+    if (userDocumentMatch && request.method === 'GET') {
+      return getUserDocument(
+        request,
+        env,
+        decodeURIComponent(userDocumentMatch[1]),
+        decodeURIComponent(userDocumentMatch[2]),
+      )
+    }
+    if (userDocumentMatch && request.method === 'PUT') {
+      return replaceUserDocument(
+        request,
+        env,
+        decodeURIComponent(userDocumentMatch[1]),
+        decodeURIComponent(userDocumentMatch[2]),
+      )
+    }
+    if (userDocumentMatch && request.method === 'DELETE') {
+      return deleteUserDocument(
+        request,
+        env,
+        decodeURIComponent(userDocumentMatch[1]),
+        decodeURIComponent(userDocumentMatch[2]),
+      )
+    }
 
     const publicUserMatch = url.pathname.match(/^\/api\/users\/([^/]+)$/)
     if (publicUserMatch && request.method === 'GET') return getPublicUserProfile(env, publicUserMatch[1])
@@ -4279,6 +5525,10 @@ export default {
 
     if (url.pathname.startsWith('/api/admin/')) {
       if (!(await requireAdmin(request, env))) return json({ error: '未登录管理员。' }, { status: 401 })
+
+      if (url.pathname === '/api/admin/document-backup' && request.method === 'GET') {
+        return getAdminDocumentBackup(env)
+      }
 
       if (url.pathname === '/api/admin/state' && request.method === 'GET') {
         return json({
@@ -4288,10 +5538,12 @@ export default {
           partnerApplications: await getPartnerApplications(env),
           merchantLeads: await getMerchantLeads(env),
           merchantBrandDecorations: await getMerchantBrandDecorations(env),
+          managedMerchants: await getManagedMerchants(env),
           questionDisputes: await getQuestionDisputes(env),
           questionBounties: await getQuestionBounties(env),
           pointOrders: await getPointOrders(env),
           withdrawalRequests: await getWithdrawalRequests(env),
+          renameRequests: await getRenameRequests(env),
           pointLedger: await getPointLedger(env),
           siteContent: await getSiteContent(env),
         })
@@ -4307,11 +5559,25 @@ export default {
         return updateMerchantBrandDecorationByAdmin(request, env, decodeURIComponent(adminMerchantBrandDecorationMatch[1]))
       }
 
+      if (url.pathname === '/api/admin/managed-merchants' && request.method === 'POST') {
+        return upsertManagedMerchant(request, env)
+      }
+
+      const managedMerchantMatch = url.pathname.match(/^\/api\/admin\/managed-merchants\/([^/]+)$/)
+      if (managedMerchantMatch && (request.method === 'PUT' || request.method === 'PATCH')) {
+        return upsertManagedMerchant(request, env, decodeURIComponent(managedMerchantMatch[1]))
+      }
+
+      const resetPasswordMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)\/reset-password$/)
+      if (resetPasswordMatch && request.method === 'POST') {
+        return resetUserPassword(request, env, decodeURIComponent(resetPasswordMatch[1]))
+      }
+
       const userMatch = url.pathname.match(/^\/api\/admin\/users\/([^/]+)$/)
-      if (userMatch && request.method === 'PATCH') return updateUser(request, env, userMatch[1])
+      if (userMatch && request.method === 'PATCH') return updateUser(request, env, decodeURIComponent(userMatch[1]))
       if (userMatch && request.method === 'DELETE') {
         if (!env.DB) return json({ error: '数据服务暂时不可用。' }, { status: 503 })
-        await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(userMatch[1]).run()
+        await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(decodeURIComponent(userMatch[1])).run()
         return json({ users: await getAllUsers(env) })
       }
 
@@ -4340,6 +5606,9 @@ export default {
 
       const withdrawalMatch = url.pathname.match(/^\/api\/admin\/withdrawals\/([^/]+)$/)
       if (withdrawalMatch && request.method === 'PATCH') return updateWithdrawalRequest(request, env, withdrawalMatch[1])
+
+      const renameRequestMatch = url.pathname.match(/^\/api\/admin\/rename-requests\/([^/]+)$/)
+      if (renameRequestMatch && request.method === 'PATCH') return updateRenameRequest(request, env, renameRequestMatch[1])
 
       const partnerMatch = url.pathname.match(/^\/api\/admin\/partners\/([^/]+)$/)
       if (partnerMatch && request.method === 'PATCH') return updatePartnerApplication(request, env, partnerMatch[1])

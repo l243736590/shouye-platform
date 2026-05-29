@@ -168,7 +168,7 @@ Page({
   },
 
   openHelpFeed() {
-    wx.navigateTo({ url: '/pages/solve/index' })
+    wx.switchTab({ url: '/pages/solve/index' })
   },
 
   openAskFeed() {

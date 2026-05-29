@@ -21,7 +21,15 @@
     <text>提问者已采纳回答，回答者获得 {{settledPoints}} 积分。争议可提交人工处理。</text>
   </view>
 
-  <view class="note-card">
+  <view class="note-card reader-action-card" wx:if="{{isReaderMode}}">
+    <view class="note-body">
+      <text class="note-title">求助详情</text>
+      <text class="note-desc">这是求助/看帖视角，只展示问题和已有回答，不显示答主提交、退款申诉或采纳按钮。你也可以发布自己的求助或悬赏。</text>
+      <button class="primary-button red-button" bindtap="openAskPublish">发布我的求助/悬赏</button>
+    </view>
+  </view>
+
+  <view class="note-card" wx:if="{{isHelperMode}}">
     <view class="note-body">
       <text class="note-title">我来回答</text>
       <textarea class="textarea" value="{{answerText}}" bindinput="onAnswerInput" placeholder="写清步骤、材料、注意事项或你能提供的帮助。不要发布代写、代考、非法换汇等违规内容。" />
@@ -29,7 +37,7 @@
     </view>
   </view>
 
-  <view class="note-card">
+  <view class="note-card" wx:if="{{isAskerMode}}">
     <view class="note-body">
       <text class="note-title">退款 / 申诉</text>
       <text class="note-desc">未产生有效回答时可申请退回悬赏；已有回答或已采纳后，请提交申诉由管理员处理。</text>
@@ -52,7 +60,7 @@
       <view class="helper-note" wx:if="{{item.accepted}}">
         <text>已采纳：这条回答进入积分结算。</text>
       </view>
-      <button class="primary-button" wx:if="{{!item.accepted}}" data-id="{{item.id}}" bindtap="acceptAnswer">采纳这条回答</button>
+      <button class="primary-button" wx:if="{{isAskerMode && !item.accepted}}" data-id="{{item.id}}" bindtap="acceptAnswer">采纳这条回答</button>
     </view>
   </view>
 </view>

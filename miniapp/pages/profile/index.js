@@ -104,7 +104,7 @@ Page({
   openPublish(event) {
     const mode = event.currentTarget.dataset.mode
     wx.setStorageSync('pendingPublishMode', mode)
-    wx.switchTab({ url: '/pages/publish/index' })
+    wx.navigateTo({ url: `/pages/publish/index?mode=${encodeURIComponent(mode)}` })
   },
 
   goHome() {

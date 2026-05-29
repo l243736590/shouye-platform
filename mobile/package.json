@@ -1,0 +1,25 @@
+{
+  "name": "shouye-mobile",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo/AppEntry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo run:android",
+    "android:dev": "expo run:android",
+    "typecheck": "tsc --noEmit",
+    "postinstall": "node scripts/patch-react-native-gradle-plugin.js"
+  },
+  "dependencies": {
+    "babel-preset-expo": "~56.0.12",
+    "expo": "~56.0.4",
+    "expo-system-ui": "^56.0.5",
+    "expo-video": "~56.1.2",
+    "react": "19.2.3",
+    "react-native": "0.85.3"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.14",
+    "typescript": "~6.0.2"
+  }
+}

@@ -1,6 +1,8 @@
 const { recordLike, fetchMerchantBrandAccesses } = require('../../utils/api')
 const { merchantCategories, merchantCards, withBrandAccess } = require('../../utils/merchant')
 
+const RECOMMEND_TAB = '推荐'
+
 function makeCard(item, index) {
   return {
     ...item,
@@ -14,8 +16,13 @@ function makeCard(item, index) {
 }
 
 Page({
+  fishTimer: null,
+
   data: {
-    activeCategory: '推荐',
+    activeCategory: RECOMMEND_TAB,
+    activeFishMode: 'overview',
+    activeFishCardIndex: 0,
+    activeFishCard: null,
     categoryTabs: [],
     searchValue: '',
     cards: [],
@@ -23,9 +30,10 @@ Page({
     visibleCards: [],
     visibleLimit: 4,
     fishbowlCards: [],
-    fishCategoryTabs: [],
+    fishCalendarCards: [],
     showLeftCatCue: false,
     catScrollLeft: 0,
+    fishAutoPaused: false,
   },
 
   async onLoad(options = {}) {
@@ -36,6 +44,11 @@ Page({
     if (options.brand) this.focusBrand(decodeURIComponent(options.brand))
     if (options.edit) wx.showToast({ title: '小程序已进入商家展示页', icon: 'none' })
     this.applyFilters()
+    this.syncFishDisplay({ resetIndex: true, resumeAuto: true })
+  },
+
+  onUnload() {
+    this.clearFishAutoFlip()
   },
 
   onShow() {
@@ -43,6 +56,11 @@ Page({
       frontColor: '#000000',
       backgroundColor: '#fffdf7',
     })
+    this.startFishAutoFlip()
+  },
+
+  onHide() {
+    this.clearFishAutoFlip()
   },
 
   onShareAppMessage() {
@@ -54,38 +72,99 @@ Page({
   },
 
   sortFishbowlCards(cards) {
-    return [...cards].sort((a, b) => (a.level === 'pinned' ? 1 : 0) - (b.level === 'pinned' ? 1 : 0))
+    return [...cards].sort((a, b) => (b.level === 'pinned' ? 1 : 0) - (a.level === 'pinned' ? 1 : 0))
   },
 
   refreshCategories() {
-    const names = ['推荐', ...merchantCategories.map((item) => item.title)]
+    const names = [RECOMMEND_TAB, ...merchantCategories.map((item) => item.title)]
     this.setData({
       categoryTabs: names.map((name) => ({ name, className: this.data.activeCategory === name ? 'active' : '' })),
-      fishCategoryTabs: merchantCategories.map((item) => item.title),
     })
   },
 
   focusBrand(brandId) {
     const merchant = this.data.cards.find((item) => item.id === brandId)
     if (!merchant) return
-    this.setData({ activeCategory: merchant.type })
+    this.setData({ activeCategory: merchant.type, activeFishCardIndex: 0, fishAutoPaused: false })
     this.refreshCategories()
+    this.syncFishDisplay({ resetIndex: true, resumeAuto: true })
   },
 
   chooseCategory(event) {
-    this.setData({ activeCategory: event.currentTarget.dataset.name }, () => {
+    const activeCategory = event.currentTarget.dataset.name
+    this.setData({ activeCategory, activeFishCardIndex: 0, fishAutoPaused: false }, () => {
       this.refreshCategories()
       this.applyFilters()
+      this.syncFishDisplay({ resetIndex: true, resumeAuto: true })
     })
   },
 
   chooseFishCategory(event) {
-    const type = event.currentTarget.dataset.type
-    this.setData({ activeCategory: type, catScrollLeft: 0 }, () => {
+    const activeCategory = event.currentTarget.dataset.type
+    this.setData({ activeCategory, activeFishCardIndex: 0, catScrollLeft: 0, fishAutoPaused: false }, () => {
       this.refreshCategories()
       this.applyFilters()
-      wx.pageScrollTo({ selector: '.feed-search-box', duration: 240 })
+      this.syncFishDisplay({ resetIndex: true, resumeAuto: true })
     })
+  },
+
+  syncFishDisplay(options = {}) {
+    const isOverview = this.data.activeCategory === RECOMMEND_TAB
+    const fishCalendarCards = isOverview
+      ? []
+      : this.sortFishbowlCards(this.data.cards.filter((item) => item.type === this.data.activeCategory))
+    const maxIndex = Math.max(0, fishCalendarCards.length - 1)
+    const activeFishCardIndex = options.resetIndex ? 0 : Math.min(this.data.activeFishCardIndex, maxIndex)
+    this.setData(
+      {
+        activeFishMode: isOverview ? 'overview' : 'calendar',
+        fishCalendarCards,
+        activeFishCardIndex,
+        activeFishCard: fishCalendarCards[activeFishCardIndex] || null,
+        fishAutoPaused: options.resumeAuto ? false : this.data.fishAutoPaused,
+      },
+      () => this.startFishAutoFlip(),
+    )
+  },
+
+  clearFishAutoFlip() {
+    if (this.fishTimer) {
+      clearTimeout(this.fishTimer)
+      this.fishTimer = null
+    }
+  },
+
+  startFishAutoFlip() {
+    this.clearFishAutoFlip()
+    if (this.data.activeFishMode !== 'calendar' || this.data.fishAutoPaused || this.data.fishCalendarCards.length <= 1) return
+    const current = this.data.activeFishCard || this.data.fishCalendarCards[this.data.activeFishCardIndex]
+    const delay = current && current.level === 'pinned' ? 10000 : 5000
+    this.fishTimer = setTimeout(() => this.advanceFishCard(1, true), delay)
+  },
+
+  advanceFishCard(direction, fromAuto = false) {
+    const cards = this.data.fishCalendarCards
+    if (cards.length <= 1) return
+    const activeFishCardIndex = (this.data.activeFishCardIndex + direction + cards.length) % cards.length
+    this.setData(
+      {
+        activeFishCardIndex,
+        activeFishCard: cards[activeFishCardIndex],
+        fishAutoPaused: fromAuto ? this.data.fishAutoPaused : true,
+      },
+      () => {
+        if (fromAuto) this.startFishAutoFlip()
+        else this.clearFishAutoFlip()
+      },
+    )
+  },
+
+  showPreviousFishCard() {
+    this.advanceFishCard(-1, false)
+  },
+
+  showNextFishCard() {
+    this.advanceFishCard(1, false)
   },
 
   onSearchInput(event) {
@@ -126,7 +205,7 @@ Page({
   applyFilters() {
     const keyword = String(this.data.searchValue || '').trim().toLowerCase()
     let filteredCards =
-      this.data.activeCategory === '推荐'
+      this.data.activeCategory === RECOMMEND_TAB
         ? this.data.cards
         : this.data.cards.filter((item) => item.type === this.data.activeCategory)
     if (keyword) {

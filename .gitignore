@@ -14,6 +14,11 @@ dist-ssr
 *.zip
 .playwright-cli
 output
+tmp
+test-results
+.expo
+__pycache__/
+*.pyc
 
 # Editor directories and files
 .vscode/*
